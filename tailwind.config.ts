@@ -105,18 +105,38 @@ export default {
             '--tw-prose-invert-td-borders': theme('colors.border'),
             h1: {
               fontWeight: '700',
-              fontSize: '2.25rem', // text-4xl
-              lineHeight: '2.5rem',
+              marginTop: '0',
+              marginBottom: '0',
             },
             h2: {
               fontWeight: '700',
-              fontSize: '1.875rem', // text-3xl
-              lineHeight: '2.25rem',
+              marginTop: '0',
+              marginBottom: '0',
             },
             h3: {
               fontWeight: '600',
-              fontSize: '1.5rem', // text-2xl
-              lineHeight: '2rem',
+              marginTop: '0',
+              marginBottom: '0',
+            },
+            p: {
+              marginTop: '0',
+              marginBottom: '0',
+            },
+             ul: {
+              marginTop: '0',
+              marginBottom: '0',
+            },
+            ol: {
+              marginTop: '0',
+              marginBottom: '0',
+            },
+            li: {
+              marginTop: '0',
+              marginBottom: '0',
+            },
+            blockquote: {
+              marginTop: '0',
+              marginBottom: '0',
             },
             'code::before': {
               content: '""',

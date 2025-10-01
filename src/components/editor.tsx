@@ -140,7 +140,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
   
-  const sharedEditorClasses = "w-full h-full p-0 m-0 text-base md:text-sm whitespace-pre-wrap break-words font-body prose prose-sm md:prose-base max-w-none focus:outline-none";
+  const sharedEditorClasses = "w-full h-full p-0 m-0 text-base bg-transparent whitespace-pre-wrap break-words font-body prose prose-sm md:prose-base max-w-none focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0";
 
 
   return (
@@ -262,9 +262,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           onScroll={handleScroll}
           className={cn(
             'absolute inset-0 z-10 resize-none overflow-auto',
-            'bg-transparent text-transparent caret-foreground',
-            sharedEditorClasses,
-            "focus-visible:ring-0 focus-visible:ring-offset-0"
+            'text-transparent caret-foreground',
+            sharedEditorClasses
           )}
           placeholder="Start writing..."
         />
