@@ -32,11 +32,11 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
 const textColors = [
   { name: 'black', code: '#000000' },
-  { name: 'pink', code: '#FF64FC' },
-  { name: 'rose', code: '#FF6467' },
-  { name: 'purple', code: '#AD46FF' },
   { name: 'green', code: '#31D492' },
   { name: 'blue', code: '#51A2FF' },
+  { name: 'purple', code: '#AD46FF' },
+  { name: 'pink', code: '#FF64FC' },
+  { name: 'rose', code: '#FF6467' },
 ];
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
