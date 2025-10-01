@@ -136,6 +136,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
 
+  const proseClasses = "prose dark:prose-invert max-w-none prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl";
+
   return (
     <div className="p-4 md:p-8 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-4">
@@ -244,14 +246,26 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="absolute inset-0 w-full h-full border-none shadow-none focus-visible:ring-0 p-0 resize-none text-base leading-relaxed bg-transparent text-transparent caret-black dark:caret-white z-10"
+          className={cn(
+            "absolute inset-0 w-full h-full border-none shadow-none focus-visible:ring-0 p-0 resize-none",
+            "bg-transparent text-transparent caret-foreground",
+            "z-10",
+            proseClasses
+          )}
+          style={{
+            textWrap: 'wrap',
+            wordBreak: 'break-word',
+          }}
           placeholder="Start writing..."
         />
         <div
             className={cn(
-              'w-full h-full p-0 text-base leading-relaxed prose dark:prose-invert max-w-none',
-              'prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl'
+              "w-full h-full p-0 pointer-events-none",
+              proseClasses,
             )}
+            style={{
+                wordBreak: 'break-word',
+            }}
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
       </div>
