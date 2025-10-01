@@ -58,13 +58,22 @@ const Header: React.FC<HeaderProps> = ({
         </TooltipProvider>
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          onClick={onToggleRightSidebar}
-        >
-          <Bot className="h-5 w-5 mr-2 text-accent" />
-          Prōla
-        </Button>
+         <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleRightSidebar}
+              >
+                <Bot className="h-5 w-5 text-accent" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Prōla AI</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </header>
   );
