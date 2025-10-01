@@ -136,7 +136,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
 
-  const proseClasses = "prose dark:prose-invert max-w-none prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl";
+  const proseClasses = "prose dark:prose-invert max-w-none prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl text-base";
 
   return (
     <div className="p-4 md:p-8 h-full flex flex-col">
@@ -250,10 +250,9 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
             "absolute inset-0 w-full h-full border-none shadow-none focus-visible:ring-0 p-0 resize-none",
             "bg-transparent text-transparent caret-foreground",
             "z-10",
-            proseClasses
+            "prose dark:prose-invert max-w-none prose-p:my-0 prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl text-base"
           )}
           style={{
-            textWrap: 'wrap',
             wordBreak: 'break-word',
           }}
           placeholder="Start writing..."
@@ -261,7 +260,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
         <div
             className={cn(
               "w-full h-full p-0 pointer-events-none",
-              proseClasses,
+              "prose dark:prose-invert max-w-none prose-p:my-0 prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl text-base"
             )}
             style={{
                 wordBreak: 'break-word',
