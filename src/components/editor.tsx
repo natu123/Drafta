@@ -30,7 +30,14 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
-const textColors = ['#000000', '#FFB93B', '#FF6467', '#AD46FF', '#31D492', '#51A2FF'];
+const textColors = [
+  { name: 'black', code: '#000000' },
+  { name: 'pink', code: '#F13BEE' },
+  { name: 'rose', code: '#FF6467' },
+  { name: 'purple', code: '#AD46FF' },
+  { name: 'green', code: '#31D492' },
+  { name: 'blue', code: '#51A2FF' },
+];
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
   const [title, setTitle] = React.useState(note.title);
@@ -125,13 +132,13 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
                <Separator orientation="vertical" className="h-6 mx-1" />
               <div className="flex items-center gap-1 pl-1">
                 {textColors.map(color => (
-                  <Tooltip key={color}>
+                  <Tooltip key={color.name}>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => applyColor(color)}>
-                        <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color }} />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => applyColor(color.code)}>
+                        <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color.code }} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Color {color}</p></TooltipContent>
+                    <TooltipContent><p>{color.name}</p></TooltipContent>
                   </Tooltip>
                 ))}
               </div>
