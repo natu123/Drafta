@@ -125,12 +125,7 @@ export default function Home() {
 
       <div className="flex flex-1 overflow-hidden">
         <div className="md:hidden">
-          <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="fixed top-14 left-2 z-40 md:hidden">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
+           <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
             <SheetContent side="left" className="p-0 w-80">
               <SheetTitle className="sr-only">Notes Sidebar</SheetTitle>
               <NotesSidebar
@@ -149,7 +144,7 @@ export default function Home() {
 
         <aside
           className={cn(
-            'hidden md:flex flex-col w-80 shrink-0',
+            'hidden md:flex flex-col w-80 shrink-0 transition-all duration-300',
             !isLeftSidebarOpen && 'w-0'
           )}
         >
@@ -192,7 +187,7 @@ export default function Home() {
         <div className="md:hidden">
           <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
             <SheetContent side="right" className="p-0 w-80">
-              <SheetTitle className="sr-only">AI Assistant Sidebar</SheetTitle>
+               <SheetTitle className="sr-only">AI Assistant Sidebar</SheetTitle>
               <AiSidebar
                 chatMessages={chatMessages}
                 onAddChatMessage={handleAddChatMessage}
@@ -204,7 +199,7 @@ export default function Home() {
           </Sheet>
         </div>
 
-         <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col", !isRightSidebarOpen && "w-0")}>
+         <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col transition-all duration-300", !isRightSidebarOpen && "w-0")}>
             {isRightSidebarOpen && (
               <AiSidebar
                 chatMessages={chatMessages}
