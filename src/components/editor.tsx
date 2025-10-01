@@ -247,9 +247,9 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className={cn(
-            "prose dark:prose-invert max-w-none",
             editorContentClass,
             "absolute inset-0 z-10 resize-none border-none bg-transparent text-transparent caret-foreground",
+            "focus-visible:ring-0 focus-visible:ring-offset-0"
           )}
           placeholder="Start writing..."
         />
