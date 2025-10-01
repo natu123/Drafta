@@ -21,7 +21,7 @@ interface UserNavProps {
 export function UserNav({ onOpenSettings }: UserNavProps) {
     const { icon } = useUserPreferences();
 
-    const ActiveIcon = UserIcons[icon] || UserIcons['mono-d'];
+    const ActiveIcon = UserIcons[icon] || UserIcons['cursive-d'];
 
     return (
         <DropdownMenu>

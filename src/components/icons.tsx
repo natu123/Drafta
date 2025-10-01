@@ -24,34 +24,29 @@ export const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-export const IconMonoD = (props: React.SVGProps<SVGSVGElement>) => (
+export const IconCursiveD = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M9 4v16h6a5 5 0 0 0 5-5V9a5 5 0 0 0-5-5H9z"/>
-        <path d="M13 8h-2"/>
-        <path d="M13 12h-2"/>
-        <path d="M13 16h-2"/>
+        <path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8s8-3.58 8-8c0-2.03-.76-3.88-2-5.3M16 4l-4 16"/>
     </svg>
 );
 
-export const IconMonoP = (props: React.SVGProps<SVGSVGElement>) => (
+export const IconCursiveP = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M9 4v16"/>
-      <path d="M9 4h6a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H9"/>
-      <path d="M13 8h-2"/>
+        <path d="M8 4v16"/>
+        <path d="M8 4h6a5 5 0 0 1 0 10H8"/>
     </svg>
 );
 
 
-export const IconMonoA = (props: React.SVGProps<SVGSVGElement>) => (
+export const IconCursiveA = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M4 12h16"/>
-        <path d="M4 12l6-8h4l6 8"/>
-        <path d="M12 4v16"/>
+        <path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8s8-3.58 8-8c0-2.03-.76-3.88-2-5.3"/>
+        <path d="M17 9a5 5 0 0 0-5-5"/>
     </svg>
 );
 
 export const UserIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
-    'mono-d': IconMonoD,
-    'mono-p': IconMonoP,
-    'mono-a': IconMonoA,
+    'cursive-d': IconCursiveD,
+    'cursive-p': IconCursiveP,
+    'cursive-a': IconCursiveA,
 };
