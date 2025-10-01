@@ -120,7 +120,7 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Mobile Left Sidebar */}
         <div className="md:hidden">
-          <Sheet>
+          <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="fixed top-14 left-2 z-40">
                 <Menu className="h-6 w-6" />
@@ -131,7 +131,10 @@ export default function Home() {
                 notes={notes}
                 groups={groups}
                 activeNoteId={activeNoteId}
-                onNoteSelect={handleNoteSelect}
+                onNoteSelect={(id) => {
+                  handleNoteSelect(id);
+                  setIsLeftSidebarOpen(false); // Close sidebar on selection
+                }}
                 onStarNote={handleStarNote}
               />
             </SheetContent>
@@ -176,6 +179,20 @@ export default function Home() {
           </div>
         </main>
         
+        <div className="md:hidden">
+          <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
+            <SheetContent side="right" className="p-0 w-80">
+              <AiSidebar
+                chatMessages={chatMessages}
+                onAddChatMessage={handleAddChatMessage}
+                onEditChatMessage={handleEditChatMessage}
+                activeNoteContent={activeNote?.content || ''}
+                createNoteFromDraft={createNoteFromDraft}
+              />
+            </SheetContent>
+          </Sheet>
+        </div>
+
         {/* Right Sidebar */}
         {isRightSidebarOpen && (
           <aside className="h-full transition-all duration-300 ease-in-out bg-background border-l w-96 shrink-0 hidden md:flex flex-col">
@@ -187,21 +204,6 @@ export default function Home() {
               createNoteFromDraft={createNoteFromDraft}
             />
           </aside>
-        )}
-        
-        {/* Mobile Right Sidebar */}
-        {isClient && window.innerWidth < 768 && (
-          <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
-              <SheetContent side="right" className="p-0 w-80">
-                 <AiSidebar
-                    chatMessages={chatMessages}
-                    onAddChatMessage={handleAddChatMessage}
-                    onEditChatMessage={handleEditChatMessage}
-                    activeNoteContent={activeNote?.content || ''}
-                    createNoteFromDraft={createNoteFromDraft}
-                  />
-              </SheetContent>
-          </Sheet>
         )}
       </div>
     </div>
