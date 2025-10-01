@@ -9,8 +9,9 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { useHistory } from '@/hooks/useHistory';
-import { stripMarkdown } from '@/lib/utils';
+import { stripMarkdown, parseMarkdown } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { cn } from '@/lib/utils';
 
 interface EditorProps {
   note: Note;
@@ -49,6 +50,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);
+  
+  const [renderedContent, setRenderedContent] = React.useState('');
 
   React.useEffect(() => {
     if (debouncedTitle !== note.title) {
@@ -63,6 +66,10 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedContent]);
+  
+  React.useEffect(() => {
+    setRenderedContent(parseMarkdown(content));
+  }, [content]);
 
   // Reset state when note changes
   React.useEffect(() => {
@@ -232,13 +239,22 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
         </TooltipProvider>
       </div>
 
-      <Textarea
-        ref={textareaRef}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="w-full flex-1 border-none shadow-none focus-visible:ring-0 p-0 resize-none text-base leading-relaxed"
-        placeholder="Start writing..."
-      />
+      <div className="relative flex-1">
+        <Textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="absolute inset-0 w-full h-full border-none shadow-none focus-visible:ring-0 p-0 resize-none text-base leading-relaxed bg-transparent text-transparent caret-black dark:caret-white z-10"
+          placeholder="Start writing..."
+        />
+        <div
+            className={cn(
+              'w-full h-full p-0 text-base leading-relaxed prose dark:prose-invert max-w-none',
+              'prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl'
+            )}
+            dangerouslySetInnerHTML={{ __html: renderedContent }}
+          />
+      </div>
     </div>
   );
 };
