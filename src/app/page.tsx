@@ -178,19 +178,17 @@ export default function Home() {
         </main>
         
         {/* Right Sidebar */}
-        <aside className={cn(
-          "h-full transition-all duration-300 ease-in-out bg-background border-l",
-          "w-96 shrink-0 hidden md:flex flex-col",
-          !isRightSidebarOpen && "w-0 hidden"
-        )}>
-          <AiSidebar
-            chatMessages={chatMessages}
-            onAddChatMessage={handleAddChatMessage}
-            onEditChatMessage={handleEditChatMessage}
-            activeNoteContent={activeNote?.content || ''}
-            createNoteFromDraft={createNoteFromDraft}
-          />
-        </aside>
+        {isRightSidebarOpen && (
+          <aside className="h-full transition-all duration-300 ease-in-out bg-background border-l w-96 shrink-0 hidden md:flex flex-col">
+            <AiSidebar
+              chatMessages={chatMessages}
+              onAddChatMessage={handleAddChatMessage}
+              onEditChatMessage={handleEditChatMessage}
+              activeNoteContent={activeNote?.content || ''}
+              createNoteFromDraft={createNoteFromDraft}
+            />
+          </aside>
+        )}
         
         {/* Mobile Right Sidebar */}
         {isClient && window.innerWidth < 768 && (
