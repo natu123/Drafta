@@ -75,7 +75,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
                         <span>{group.name}</span>
                     </div>
                 </AccordionTrigger>
-                <AccordionContent>
+                <AccordionContent className="p-0">
                   <div className="flex flex-col">
                     {notesInGroup.length > 0 ? (
                       notesInGroup.map(note => (
@@ -88,7 +88,10 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
                           )}
                         >
                           <div className="flex justify-between items-start">
-                             <h3 className="font-semibold truncate pr-2">{note.title}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{note.icon || '📝'}</span>
+                              <h3 className="font-semibold truncate pr-2">{note.title}</h3>
+                            </div>
                              <StarRating noteId={note.id} rating={note.stars} />
                           </div>
                           <p className="text-xs text-muted-foreground truncate mt-1">

@@ -1,6 +1,7 @@
 export type Note = {
   id: string;
   title: string;
+  icon?: string;
   content: string;
   group: string;
   stars: 0 | 1 | 2 | 3;

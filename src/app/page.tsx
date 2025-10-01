@@ -36,6 +36,7 @@ export default function Home() {
     const newNote: Note = {
       id: `note-${Date.now()}`,
       title: 'Untitled Note',
+      icon: '📝',
       content: '',
       group: 'general',
       stars: 0,
@@ -72,6 +73,10 @@ export default function Home() {
     setNotes(notes.map(note => note.id === id ? { ...note, stars: (note.stars === stars ? 0 : stars) as Note['stars'] } : note));
   };
 
+  const handleIconChange = (id: string, icon: string) => {
+    setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
+  };
+
   const handleAddChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
       ...message,
@@ -90,6 +95,7 @@ export default function Home() {
       id: `note-${Date.now()}`,
       title: title,
       content: content,
+      icon: '🤖',
       group: 'ai',
       stars: 0,
       createdAt: new Date().toISOString(),
@@ -118,11 +124,10 @@ export default function Home() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Mobile Left Sidebar */}
         <div className="md:hidden">
           <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="fixed top-14 left-2 z-40">
+              <Button variant="ghost" size="icon" className="fixed top-14 left-2 z-40 md:hidden">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
@@ -141,10 +146,9 @@ export default function Home() {
           </Sheet>
         </div>
 
-        {/* Desktop Left Sidebar */}
         <aside
           className={cn(
-            'hidden md:flex flex-col w-80 shrink-0 transition-all duration-300',
+            'hidden md:flex flex-col w-80 shrink-0',
             !isLeftSidebarOpen && 'w-0'
           )}
         >
@@ -168,7 +172,12 @@ export default function Home() {
            />
           <div className="flex-1 overflow-y-auto">
             {activeNote ? (
-              <Editor key={activeNote.id} note={activeNote} onNoteUpdate={handleNoteUpdate} />
+              <Editor 
+                key={activeNote.id} 
+                note={activeNote} 
+                onNoteUpdate={handleNoteUpdate}
+                onIconChange={handleIconChange}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <p className="text-lg">Select a note to start editing</p>
@@ -193,8 +202,7 @@ export default function Home() {
           </Sheet>
         </div>
 
-        {/* Right Sidebar */}
-         <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col transition-all duration-300", !isRightSidebarOpen && "w-0")}>
+         <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col", !isRightSidebarOpen && "w-0")}>
             {isRightSidebarOpen && (
               <AiSidebar
                 chatMessages={chatMessages}

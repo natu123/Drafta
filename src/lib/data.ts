@@ -11,6 +11,7 @@ export const notes: Note[] = [
   {
     id: 'note-1',
     title: 'Welcome to Draftio × Prōla',
+    icon: '👋',
     content: `
 # Welcome to Draftio × Prōla!
 
@@ -32,6 +33,7 @@ Happy note-taking!
   {
     id: 'note-2',
     title: 'Markdown Cheatsheet',
+    icon: '📝',
     content: `
 ## Basic Syntax
 
@@ -70,6 +72,7 @@ function hello() {
   {
     id: 'note-3',
     title: 'Q3 Project brainstorming',
+    icon: '💡',
     content: 'Initial ideas for the next quarter project. Focus on improving user engagement and retention. Potential features: gamification, community forums, personalized recommendations.',
     group: 'work',
     stars: 1,
@@ -79,6 +82,7 @@ function hello() {
   {
     id: 'note-4',
     title: 'Grocery List',
+    icon: '🛒',
     content: 'Milk, Bread, Eggs, Cheese, Apples',
     group: 'personal',
     stars: 0,

@@ -4,16 +4,18 @@ import * as React from 'react';
 import type { Note } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Bold, Italic, Strikethrough, Code, Undo, Redo, List, ListOrdered, Eraser, CheckSquare } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Code, Undo, Redo, List, ListOrdered, Eraser, CheckSquare, Smile } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { useHistory } from '@/hooks/useHistory';
 import { stripMarkdown } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 interface EditorProps {
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
+  onIconChange: (id: string, icon: string) => void;
 }
 
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -38,7 +40,9 @@ const textColors = [
   { name: 'rose', code: '#FF6467' },
 ];
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
+const emojiSelection = ['⭐️', '🌈', '❣️', '🎵', '⚛', '🔥', '📝', '💡', '🚀', '🧠', '💼', '🏠'];
+
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
   const [title, setTitle] = React.useState(note.title);
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset: resetContentHistory } = useHistory(note.content);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -71,7 +75,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
     const end = textarea.selectionEnd;
     const selectedText = content.substring(start, end);
     
-    // Handle list items
     if (syntax.prefix.match(/^(\-|\d+\.) /) || syntax.prefix.startsWith('- [ ]')) {
        const lineStart = content.lastIndexOf('\n', start - 1) + 1;
        const newText = `${content.substring(0, lineStart)}${syntax.prefix}${content.substring(lineStart)}`;
@@ -124,12 +127,36 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
 
   return (
     <div className="p-4 md:p-8 h-full flex flex-col">
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="text-2xl md:text-3xl font-bold font-headline border-none shadow-none focus-visible:ring-0 p-0 h-auto mb-4"
-        placeholder="Note Title"
-      />
+      <div className="flex items-center gap-2 mb-4">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-2xl shrink-0">
+              {note.icon || <Smile className="w-5 h-5 text-muted-foreground" />}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2">
+            <div className="grid grid-cols-6 gap-1">
+              {emojiSelection.map(emoji => (
+                <Button 
+                  key={emoji}
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-xl"
+                  onClick={() => onIconChange(note.id, emoji)}
+                >
+                  {emoji}
+                </Button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="text-2xl md:text-3xl font-bold font-headline border-none shadow-none focus-visible:ring-0 p-0 h-auto"
+          placeholder="Note Title"
+        />
+      </div>
       <div className="flex items-center gap-1 bg-muted p-1 rounded-md border-b pb-2 mb-4 flex-wrap">
         <TooltipProvider>
           <div className="flex items-center gap-1">
@@ -162,18 +189,16 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
           
           <Separator orientation="vertical" className="h-6 mx-1" />
           
-          <Tooltip>
-             <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stripFormattingAction.action}>
-                    <stripFormattingAction.icon className="h-4 w-4" />
-                </Button>
-             </TooltipTrigger>
-             <TooltipContent><p>{stripFormattingAction.tooltip}</p></TooltipContent>
-          </Tooltip>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
           <div className="flex items-center gap-1">
+            <Tooltip>
+               <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stripFormattingAction.action}>
+                      <stripFormattingAction.icon className="h-4 w-4" />
+                  </Button>
+               </TooltipTrigger>
+               <TooltipContent><p>{stripFormattingAction.tooltip}</p></TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="h-6 mx-1" />
             {formattingActions.map((item, index) => (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>

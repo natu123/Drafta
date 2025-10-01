@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { X, FileText } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Note } from '@/lib/types';
@@ -57,7 +57,7 @@ const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId
                     isExpanded ? 'px-4' : 'px-3 justify-center'
                   )}
                 >
-                  <FileText className="w-5 h-5 shrink-0" />
+                  <span className="text-xl shrink-0">{note.icon || '📝'}</span>
                   <span className={cn(
                     "truncate transition-opacity duration-200",
                     isExpanded ? 'opacity-100' : 'opacity-0'
