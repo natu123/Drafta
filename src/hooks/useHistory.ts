@@ -41,16 +41,7 @@ export const useHistory = <T,>(initialPresent: T) => {
   }, [canRedo, state.present, state.future, state.past]);
 
   const set = useCallback((newPresent: T) => {
-    // This is a special case to handle the textarea onChange event.
-    // We don't want to create a history entry for every keystroke.
-    // The component using this hook will need to decide when to commit to history.
-    // For now, we'll just update the present.
-    // A better approach would be to debounce this.
-    // However, for the editor, we will call this from onChange, and a debounced useEffect
-    // will call a new "commit" function.
-    
-    // Simplified for now: every change is a history entry.
-     if (newPresent === state.present) return;
+    if (newPresent === state.present) return;
     setState({
       past: [...state.past, state.present],
       present: newPresent,
