@@ -12,7 +12,12 @@ export const useUserPreferences = create<UserPreferencesState>()(
   persist(
     (set) => ({
       icon: '1',
-      setIcon: (icon) => set({ icon: icon.charAt(0) || '1' }),
+      setIcon: (icon) => {
+        const newIcon = icon.charAt(0);
+        if (newIcon) {
+          set({ icon: newIcon });
+        }
+      },
     }),
     {
       name: 'user-preferences-storage', 
