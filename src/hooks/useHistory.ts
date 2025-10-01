@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 
 type HistoryState<T> = {
   past: T[];
@@ -19,26 +19,30 @@ export const useHistory = <T,>(initialPresent: T) => {
   const canRedo = state.future.length !== 0;
 
   const undo = useCallback(() => {
-    if (!canUndo) return;
-    const previous = state.past[state.past.length - 1];
-    const newPast = state.past.slice(0, state.past.length - 1);
-    setState({
-      past: newPast,
-      present: previous,
-      future: [state.present, ...state.future],
+    setState((currentState) => {
+      if (currentState.past.length === 0) return currentState;
+      const previous = currentState.past[currentState.past.length - 1];
+      const newPast = currentState.past.slice(0, currentState.past.length - 1);
+      return {
+        past: newPast,
+        present: previous,
+        future: [currentState.present, ...currentState.future],
+      };
     });
-  }, [canUndo, state.present, state.future, state.past]);
+  }, []);
 
   const redo = useCallback(() => {
-    if (!canRedo) return;
-    const next = state.future[0];
-    const newFuture = state.future.slice(1);
-    setState({
-      past: [...state.past, state.present],
-      present: next,
-      future: newFuture,
+    setState((currentState) => {
+      if (currentState.future.length === 0) return currentState;
+      const next = currentState.future[0];
+      const newFuture = currentState.future.slice(1);
+      return {
+        past: [...currentState.past, currentState.present],
+        present: next,
+        future: newFuture,
+      };
     });
-  }, [canRedo, state.present, state.future, state.past]);
+  }, []);
 
   const set = useCallback((newPresent: T) => {
     setState(currentState => {
