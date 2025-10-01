@@ -51,12 +51,16 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
   const debouncedContent = useDebounce(content, 500);
 
   React.useEffect(() => {
-    onNoteUpdate({ title: debouncedTitle });
+    if (debouncedTitle !== note.title) {
+        onNoteUpdate({ title: debouncedTitle });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedTitle]);
 
   React.useEffect(() => {
-    onNoteUpdate({ content: debouncedContent });
+    if (debouncedContent !== note.content) {
+        onNoteUpdate({ content: debouncedContent });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedContent]);
 
@@ -65,7 +69,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     setTitle(note.title);
     resetContentHistory(note.content);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note]);
+  }, [note.id]);
 
   const applyMarkdown = (syntax: { prefix: string; suffix: string }) => {
     const textarea = textareaRef.current;
