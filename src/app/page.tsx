@@ -114,6 +114,7 @@ export default function Home() {
         onToggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
         isLeftSidebarOpen={isLeftSidebarOpen}
         isRightSidebarOpen={isRightSidebarOpen}
+        onNewNote={handleNewNote}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -131,7 +132,6 @@ export default function Home() {
                 groups={groups}
                 activeNoteId={activeNoteId}
                 onNoteSelect={handleNoteSelect}
-                onNewNote={handleNewNote}
                 onStarNote={handleStarNote}
               />
             </SheetContent>
@@ -151,7 +151,6 @@ export default function Home() {
               groups={groups}
               activeNoteId={activeNoteId}
               onNoteSelect={handleNoteSelect}
-              onNewNote={handleNewNote}
               onStarNote={handleStarNote}
             />
           )}

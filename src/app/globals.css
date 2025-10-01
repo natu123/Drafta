@@ -16,7 +16,7 @@
     --secondary-foreground: 202 58% 11%;
     --muted: 43 25% 90%;
     --muted-foreground: 202 20% 45%;
-    --accent: 50 74% 51%; /* #DECA28 */
+    --accent: 56 83% 50%; /* #EDE200 */
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -39,7 +39,7 @@
     --secondary-foreground: 210 40% 98%;
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 50 74% 61%; /* Lighter yellow for dark mode */
+    --accent: 56 83% 60%; /* Lighter yellow for dark mode */
     --accent-foreground: 222 47% 11%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;

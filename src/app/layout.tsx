@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Draftio × Prōla',
+  title: 'Draftio',
   description: 'A modern note-taking app with AI integration.',
 };
 

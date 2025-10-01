@@ -1,14 +1,22 @@
 import * as React from 'react';
-import { ChevronsLeft, ChevronsRight, Bot } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Bot, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 
 interface HeaderProps {
   onToggleLeftSidebar: () => void;
   onToggleRightSidebar: () => void;
   isLeftSidebarOpen: boolean;
   isRightSidebarOpen: boolean;
+  onNewNote: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -16,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   onToggleRightSidebar,
   isLeftSidebarOpen,
   isRightSidebarOpen,
+  onNewNote,
 }) => {
   return (
     <header className="flex items-center justify-between h-14 px-4 border-b bg-background z-10">
@@ -29,8 +38,20 @@ const Header: React.FC<HeaderProps> = ({
           {isLeftSidebarOpen ? <ChevronsLeft /> : <ChevronsRight />}
           <span className="sr-only">Toggle Notes Sidebar</span>
         </Button>
-        <AppLogo className="h-6 w-6 text-primary" />
-        <h1 className="text-lg font-bold font-headline tracking-tight">Draftio × Prōla</h1>
+        <AppLogo className="h-8 w-8 text-primary" />
+        <h1 className="text-xl font-bold font-headline tracking-tight">Draftio</h1>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onNewNote} className="ml-2">
+                <PlusCircle className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>New Note</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       <div className="flex items-center gap-2">
         <Button

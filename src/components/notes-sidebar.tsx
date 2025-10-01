@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { PlusCircle, Star, Search, Folder } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Star, Search, Folder } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Note, Group } from '@/lib/types';
@@ -14,7 +13,6 @@ interface NotesSidebarProps {
   groups: Group[];
   activeNoteId: string | null;
   onNoteSelect: (id: string) => void;
-  onNewNote: () => void;
   onStarNote: (id: string, stars: 1 | 2 | 3) => void;
 }
 
@@ -23,7 +21,6 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
   groups,
   activeNoteId,
   onNoteSelect,
-  onNewNote,
   onStarNote,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -54,10 +51,6 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
   return (
     <div className="flex flex-col h-full bg-secondary/30 border-r">
       <div className="p-4 space-y-4">
-        <Button onClick={onNewNote} className="w-full">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Note
-        </Button>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
