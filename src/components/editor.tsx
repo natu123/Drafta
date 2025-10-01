@@ -9,7 +9,7 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { useHistory } from '@/hooks/useHistory';
-import { stripMarkdown, parseMarkdown } from '@/lib/utils';
+import { stripMarkdown } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -50,8 +50,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);
-  
-  const [renderedContent, setRenderedContent] = React.useState('');
 
   React.useEffect(() => {
     if (debouncedTitle !== note.title) {
@@ -67,9 +65,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedContent]);
   
-  React.useEffect(() => {
-    setRenderedContent(parseMarkdown(content));
-  }, [content]);
 
   // Reset state when note changes
   React.useEffect(() => {
@@ -136,7 +131,9 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
   
-  const editorContentClass = "w-full h-full p-0 m-0 font-body text-base md:text-sm focus:outline-none whitespace-pre-wrap break-words";
+  const editorContentClass = "absolute inset-0 z-10 w-full h-full p-0 m-0 bg-transparent text-transparent caret-foreground resize-none border-none font-body text-base focus-visible:ring-0 focus-visible:ring-offset-0 whitespace-pre-wrap break-words md:text-sm";
+  const editorPreviewClass = "absolute inset-0 z-0 w-full h-full p-0 m-0 pointer-events-none font-body text-base whitespace-pre-wrap break-words md:text-sm";
+
 
   return (
     <div className="p-4 md:p-8 h-full flex flex-col">
@@ -247,16 +244,14 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className={cn(
-            editorContentClass,
-            "absolute inset-0 z-10 resize-none border-none bg-transparent text-transparent caret-foreground",
-            "focus-visible:ring-0 focus-visible:ring-offset-0"
+            "focus-visible:ring-0 focus-visible:ring-offset-0",
+            editorContentClass
           )}
           placeholder="Start writing..."
         />
         <div
-            className={cn("prose dark:prose-invert max-w-none pointer-events-none", editorContentClass)}
-            dangerouslySetInnerHTML={{ __html: renderedContent }}
-          />
+            className={cn(editorPreviewClass)}
+          >{content}</div>
       </div>
     </div>
   );
