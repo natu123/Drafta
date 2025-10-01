@@ -18,6 +18,8 @@ interface UserNavProps {
 }
 
 export function UserNav({ onOpenSettings }: UserNavProps) {
+    const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+
     return (
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -30,7 +32,7 @@ export function UserNav({ onOpenSettings }: UserNavProps) {
             <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">My Account</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                user@example.com
+                {isLoggedIn ? 'user@example.com' : 'Not logged in'}
                 </p>
             </div>
             </DropdownMenuLabel>
@@ -44,12 +46,15 @@ export function UserNav({ onOpenSettings }: UserNavProps) {
             </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-             <DropdownMenuItem>
-                Log in
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-                Log out
-            </DropdownMenuItem>
+            {isLoggedIn ? (
+                <DropdownMenuItem onClick={() => setIsLoggedIn(false)}>
+                    Log out
+                </DropdownMenuItem>
+            ) : (
+                <DropdownMenuItem onClick={() => setIsLoggedIn(true)}>
+                    Log in
+                </DropdownMenuItem>
+            )}
         </DropdownMenuContent>
         </DropdownMenu>
     )
