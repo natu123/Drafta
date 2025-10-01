@@ -107,11 +107,13 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
   ];
 
   const formattingActions = [
-     { icon: Eraser, tooltip: 'Strip Formatting', action: handleStripMarkdown },
      { icon: List, tooltip: 'Unordered List', action: () => applyMarkdown({prefix: '- ', suffix: ''}) },
      { icon: ListOrdered, tooltip: 'Ordered List', action: () => applyMarkdown({prefix: '1. ', suffix: ''}) },
      { icon: CheckSquare, tooltip: 'ToDo List', action: () => applyMarkdown({prefix: '- [ ] ', suffix: ''}) },
   ];
+  
+  const stripFormattingAction = { icon: Eraser, tooltip: 'Strip Formatting', action: handleStripMarkdown };
+
 
   const inlineStyleActions = [
     { icon: Bold, tooltip: 'Bold', action: () => applyMarkdown({prefix: '**', suffix: '**'}) },
@@ -142,8 +144,10 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
               </Tooltip>
             ))}
           </div>
+          
+          <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <div className="flex items-center gap-1 pl-1">
+          <div className="flex items-center gap-1">
             {textColors.map(color => (
               <Tooltip key={color.name}>
                 <TooltipTrigger asChild>
@@ -156,6 +160,17 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
             ))}
           </div>
           
+          <Separator orientation="vertical" className="h-6 mx-1" />
+          
+          <Tooltip>
+             <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stripFormattingAction.action}>
+                    <stripFormattingAction.icon className="h-4 w-4" />
+                </Button>
+             </TooltipTrigger>
+             <TooltipContent><p>{stripFormattingAction.tooltip}</p></TooltipContent>
+          </Tooltip>
+
           <Separator orientation="vertical" className="h-6 mx-1" />
 
           <div className="flex items-center gap-1">
