@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import Header from '@/components/header';
 import NotesSidebar from '@/components/notes-sidebar';
+import NoteTabs from '@/components/note-tabs';
 import Editor from '@/components/editor';
 import AiSidebar from '@/components/ai-sidebar';
 import type { Note, Group, ChatMessage } from '@/lib/types';
@@ -19,12 +20,14 @@ export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   const [activeNoteId, setActiveNoteId] = React.useState<string | null>(notes[0]?.id ?? null);
+  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([notes[0]?.id ?? 'note-1'].filter(Boolean));
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
   
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(true);
   
   const activeNote = notes.find((note) => note.id === activeNoteId) ?? null;
+  const openNotes = openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note);
 
   const handleNoteUpdate = (updatedNote: Partial<Note>) => {
     setNotes(notes.map(note => note.id === activeNoteId ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
@@ -41,11 +44,29 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
     };
     setNotes([newNote, ...notes]);
+    if (!openNoteIds.includes(newNote.id)) {
+      setOpenNoteIds([newNote.id, ...openNoteIds]);
+    }
     setActiveNoteId(newNote.id);
   };
   
   const handleNoteSelect = (id: string) => {
     setActiveNoteId(id);
+    if (!openNoteIds.includes(id)) {
+      setOpenNoteIds([id, ...openNoteIds]);
+    }
+  };
+
+  const handleTabSelect = (id: string) => {
+    setActiveNoteId(id);
+  };
+
+  const handleTabClose = (id: string) => {
+    const newOpenNoteIds = openNoteIds.filter(noteId => noteId !== id);
+    setOpenNoteIds(newOpenNoteIds);
+    if (activeNoteId === id) {
+      setActiveNoteId(newOpenNoteIds[0] || null);
+    }
   };
 
   const handleStarNote = (id: string, stars: number) => {
@@ -76,6 +97,9 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
     };
     setNotes([newNote, ...notes]);
+    if (!openNoteIds.includes(newNote.id)) {
+      setOpenNoteIds([newNote.id, ...openNoteIds]);
+    }
     setActiveNoteId(newNote.id);
   };
 
@@ -138,6 +162,12 @@ export default function Home() {
            <Button variant="ghost" size="icon" className="md:hidden fixed top-14 right-2 z-40" onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}>
               <ChevronsLeft className="h-6 w-6" />
             </Button>
+           <NoteTabs 
+              notes={openNotes}
+              activeNoteId={activeNoteId}
+              onTabSelect={handleTabSelect}
+              onTabClose={handleTabClose}
+           />
           <div className="flex-1 overflow-y-auto">
             {activeNote ? (
               <Editor key={activeNote.id} note={activeNote} onNoteUpdate={handleNoteUpdate} />
