@@ -144,7 +144,7 @@ export default function Home() {
         {/* Desktop Left Sidebar */}
         <aside
           className={cn(
-            'hidden md:flex flex-col w-80 shrink-0 transition-all duration-300 ease-in-out',
+            'hidden md:flex flex-col w-80 shrink-0',
             !isLeftSidebarOpen && 'w-0'
           )}
         >
@@ -195,7 +195,7 @@ export default function Home() {
 
         {/* Right Sidebar */}
         {isRightSidebarOpen && (
-          <aside className="h-full transition-all duration-300 ease-in-out bg-background border-l w-96 shrink-0 hidden md:flex flex-col">
+          <aside className="h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col">
             <AiSidebar
               chatMessages={chatMessages}
               onAddChatMessage={handleAddChatMessage}
