@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={onToggleLeftSidebar}
                 className="hidden md:flex"
               >
-                <PanelLeft className="h-5 w-5" />
+                <PanelLeft className="h-5 w-5 text-accent" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -48,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={onNewNote}>
-                <PlusCircle className="h-5 w-5" />
+                <PlusCircle className="h-5 w-5 text-accent" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({
           variant="ghost"
           onClick={onToggleRightSidebar}
         >
-          <Bot className="h-5 w-5 mr-2" />
+          <Bot className="h-5 w-5 mr-2 text-accent" />
           Prōla
         </Button>
       </div>
