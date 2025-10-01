@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Draftio',
-  description: 'A modern note-taking app with AI integration.',
+  title: 'Prōla',
+  description: 'A revolutionary I/O application integrating notes, a web browser, and a conversational AI.',
 };
 
 export default function RootLayout({

@@ -10,20 +10,22 @@ export const groups: Group[] = [
 export const notes: Note[] = [
   {
     id: 'note-1',
-    title: 'Welcome to Draftio × Prōla',
+    title: 'Welcome to Prōla',
     icon: '👋',
     content: `
-# Welcome to Draftio × Prōla!
+# Welcome to Prōla!
 
-This is your first note. Here's a quick guide to get you started:
+This is your first note. Prōla is a revolutionary I/O application that integrates note-taking, web browsing, and a conversational AI.
+
+Here's a quick guide to get you started:
 
 - **Create notes:** Use the **+ New Note** button in the left sidebar.
 - **Organize:** Notes are automatically grouped. You can manage groups later.
 - **Rich Text:** Use Markdown for formatting. A toolbar is available above the editor.
-- **AI Integration:** Use the Prōla panel on the right to interact with AI. Summarize your notes, generate new content, or start a chat session.
+- **AI Integration:** Use the Prōla AI panel on the right to interact with the AI. Summarize your notes, generate new content, or start a chat session.
 - **Bookmarks:** Use the star icons to bookmark your important notes.
 
-Happy note-taking!
+Let's build the future together!
     `,
     group: 'general',
     stars: 3,
