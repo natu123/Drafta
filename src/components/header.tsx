@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>New Note</p>
+              <p>New note</p>
             </TooltipContent>
           </Tooltip>
       </div>
