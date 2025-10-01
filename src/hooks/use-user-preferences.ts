@@ -11,7 +11,7 @@ interface UserPreferencesState {
 export const useUserPreferences = create<UserPreferencesState>()(
   persist(
     (set) => ({
-      icon: 'constellation1',
+      icon: 'mono-d',
       setIcon: (icon) => set({ icon }),
     }),
     {

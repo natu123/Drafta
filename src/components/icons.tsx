@@ -24,47 +24,34 @@ export const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-export const IconConstellation1 = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M5 12l-2-2 2-2" />
-        <path d="M19 12l2-2-2-2" />
-        <path d="M12 5l-2-2 2-2" />
-        <path d="M12 19l-2 2 2 2" />
-        <circle cx="12" cy="12" r="1" />
-        <path d="M3 10v4" />
-        <path d="M21 10v4" />
-        <path d="M10 3h4" />
-        <path d="M10 21h4" />
+export const IconMonoD = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M9 4v16h6a5 5 0 0 0 5-5V9a5 5 0 0 0-5-5H9z"/>
+        <path d="M13 8h-2"/>
+        <path d="M13 12h-2"/>
+        <path d="M13 16h-2"/>
     </svg>
 );
 
-export const IconConstellation2 = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M12 5v14" />
-        <path d="M5 12h14" />
-        <circle cx="12" cy="12" r="2" />
-        <circle cx="5" cy="5" r="1" />
-        <circle cx="19" cy="5" r="1" />
-        <circle cx="5" cy="19" r="1" />
-        <circle cx="19" cy="19" r="1" />
+export const IconMonoP = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9 4v16"/>
+      <path d="M9 4h6a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H9"/>
+      <path d="M13 8h-2"/>
     </svg>
 );
 
 
-export const IconConstellation3 = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M6 6l12 12" />
-        <path d="M6 18L18 6" />
-        <circle cx="6" cy="6" r="2" />
-        <circle cx="18" cy="18" r="2" />
-        <circle cx="6" cy="18" r="2" />
-        <circle cx="18" cy="6" r="2" />
-        <circle cx="12" cy="12" r="1" />
+export const IconMonoA = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M4 12h16"/>
+        <path d="M4 12l6-8h4l6 8"/>
+        <path d="M12 4v16"/>
     </svg>
 );
 
 export const UserIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
-    'constellation1': IconConstellation1,
-    'constellation2': IconConstellation2,
-    'constellation3': IconConstellation3,
+    'mono-d': IconMonoD,
+    'mono-p': IconMonoP,
+    'mono-a': IconMonoA,
 };
