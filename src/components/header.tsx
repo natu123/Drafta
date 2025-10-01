@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-
+import { UserNav } from './user-nav';
 
 interface HeaderProps {
   onToggleLeftSidebar: () => void;
@@ -16,18 +16,20 @@ interface HeaderProps {
   isLeftSidebarOpen: boolean;
   isRightSidebarOpen: boolean;
   onNewNote: () => void;
+  onOpenSettings: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   onToggleLeftSidebar,
   onToggleRightSidebar,
   onNewNote,
+  onOpenSettings,
 }) => {
   return (
     <header className="flex items-center justify-between h-14 px-4 border-b bg-background z-10">
       <div className="flex items-center gap-2">
         <AppLogo className="h-8 w-8 text-primary" />
-        <h1 className="text-xl font-bold font-headline tracking-tight">Draftio</h1>
+        <h1 className="text-xl font-bold font-headline tracking-tight text-foreground">Draftio</h1>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -74,6 +76,7 @@ const Header: React.FC<HeaderProps> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <UserNav onOpenSettings={onOpenSettings} />
       </div>
     </header>
   );

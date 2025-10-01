@@ -5,7 +5,7 @@ import {
   Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
 import NotesSidebar from '@/components/notes-sidebar';
 import VerticalNoteTabs from '@/components/vertical-note-tabs';
@@ -14,6 +14,7 @@ import AiSidebar from '@/components/ai-sidebar';
 import type { Note, Group, ChatMessage } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import SettingsDialog from '@/components/settings-dialog';
 
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
@@ -24,6 +25,7 @@ export default function Home() {
   
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   
   const activeNote = notes.find((note) => note.id === activeNoteId) ?? null;
   const openNotes = openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note);
@@ -114,6 +116,7 @@ export default function Home() {
   }, []);
 
   return (
+    <>
     <div className="flex h-screen flex-col bg-background text-foreground">
       <Header
         onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
@@ -121,13 +124,13 @@ export default function Home() {
         isLeftSidebarOpen={isLeftSidebarOpen}
         isRightSidebarOpen={isRightSidebarOpen}
         onNewNote={handleNewNote}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="md:hidden">
            <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
             <SheetContent side="left" className="p-0 w-80">
-              <SheetTitle className="sr-only">Notes Sidebar</SheetTitle>
               <NotesSidebar
                 notes={notes}
                 groups={groups}
@@ -212,5 +215,7 @@ export default function Home() {
           </aside>
       </div>
     </div>
+    <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+    </>
   );
 }
