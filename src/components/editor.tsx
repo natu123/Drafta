@@ -136,7 +136,13 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
 
-  const proseClasses = "prose dark:prose-invert max-w-none prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl text-base";
+  const editorContentClass = cn(
+    "prose dark:prose-invert max-w-none w-full h-full p-0 m-0",
+    "prose-p:my-0 prose-headings:my-0",
+    "font-body text-base", // Ensure base font styles are consistent
+    "focus:outline-none",
+    "break-words"
+  );
 
   return (
     <div className="p-4 md:p-8 h-full flex flex-col">
@@ -247,24 +253,13 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className={cn(
-            "absolute inset-0 w-full h-full border-none shadow-none focus-visible:ring-0 p-0 resize-none",
-            "bg-transparent text-transparent caret-foreground",
-            "z-10",
-            "prose dark:prose-invert max-w-none prose-p:my-0 prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl text-base"
+            editorContentClass,
+            "absolute inset-0 z-10 resize-none border-none bg-transparent text-transparent caret-foreground",
           )}
-          style={{
-            wordBreak: 'break-word',
-          }}
           placeholder="Start writing..."
         />
         <div
-            className={cn(
-              "w-full h-full p-0 pointer-events-none",
-              "prose dark:prose-invert max-w-none prose-p:my-0 prose-h1:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl text-base"
-            )}
-            style={{
-                wordBreak: 'break-word',
-            }}
+            className={cn(editorContentClass, "pointer-events-none")}
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
       </div>
@@ -273,3 +268,5 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
 };
 
 export default Editor;
+
+    
