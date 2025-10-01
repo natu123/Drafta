@@ -30,7 +30,7 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
-const textColors = ['#2D7BA1', '#DECA28', '#AD46FF', '#31D492', '#51A2FF'];
+const textColors = ['#000000', '#FFB93B', '#FF6467', '#AD46FF', '#31D492', '#51A2FF'];
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
   const [title, setTitle] = React.useState(note.title);
@@ -149,7 +149,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate }) => {
         </TabsContent>
         <TabsContent value="preview" className="mt-4 flex-1">
             <div
-                className="prose prose-stone dark:prose-invert max-w-none p-2 rounded-md bg-secondary/30 h-full overflow-y-auto"
+                className="prose prose-stone dark:prose-invert max-w-none p-2 rounded-md bg-white h-full overflow-y-auto"
                 dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
             />
         </TabsContent>
