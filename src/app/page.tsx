@@ -5,7 +5,7 @@ import {
   Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
 import NotesSidebar from '@/components/notes-sidebar';
 import VerticalNoteTabs from '@/components/vertical-note-tabs';
@@ -132,6 +132,7 @@ export default function Home() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-80">
+              <SheetTitle className="sr-only">Notes Sidebar</SheetTitle>
               <NotesSidebar
                 notes={notes}
                 groups={groups}
@@ -191,6 +192,7 @@ export default function Home() {
         <div className="md:hidden">
           <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
             <SheetContent side="right" className="p-0 w-80">
+              <SheetTitle className="sr-only">AI Assistant Sidebar</SheetTitle>
               <AiSidebar
                 chatMessages={chatMessages}
                 onAddChatMessage={handleAddChatMessage}
