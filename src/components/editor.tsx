@@ -135,14 +135,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Strikethrough, tooltip: 'Strikethrough', action: () => applyMarkdown({prefix: '~~', suffix: '~~'}) },
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
-
-  const editorContentClass = cn(
-    "prose dark:prose-invert max-w-none w-full h-full p-0 m-0",
-    "prose-p:my-0 prose-headings:my-0",
-    "font-body text-base", // Ensure base font styles are consistent
-    "focus:outline-none",
-    "break-words"
-  );
+  
+  const editorContentClass = "w-full h-full p-0 m-0 font-body text-base md:text-sm focus:outline-none whitespace-pre-wrap break-words";
 
   return (
     <div className="p-4 md:p-8 h-full flex flex-col">
@@ -253,13 +247,14 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className={cn(
+            "prose dark:prose-invert max-w-none",
             editorContentClass,
             "absolute inset-0 z-10 resize-none border-none bg-transparent text-transparent caret-foreground",
           )}
           placeholder="Start writing..."
         />
         <div
-            className={cn(editorContentClass, "pointer-events-none")}
+            className={cn("prose dark:prose-invert max-w-none pointer-events-none", editorContentClass)}
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
       </div>
@@ -268,5 +263,3 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
 };
 
 export default Editor;
-
-    
