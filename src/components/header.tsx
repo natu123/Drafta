@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { ChevronsLeft, ChevronsRight, Bot, PlusCircle, PanelLeft } from 'lucide-react';
+import { Bot, PlusCircle, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
-import { cn } from '@/lib/utils';
 import {
   Tooltip,
   TooltipContent,
@@ -22,8 +21,6 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   onToggleLeftSidebar,
   onToggleRightSidebar,
-  isLeftSidebarOpen,
-  isRightSidebarOpen,
   onNewNote,
 }) => {
   return (
@@ -33,12 +30,11 @@ const Header: React.FC<HeaderProps> = ({
         <h1 className="text-xl font-bold font-headline tracking-tight">Draftio</h1>
         <Button
           variant="ghost"
-          size="icon"
           onClick={onToggleLeftSidebar}
           className="hidden md:flex"
         >
           <PanelLeft className="h-5 w-5" />
-          <span className="sr-only">Toggle Note List</span>
+          <span>Note List</span>
         </Button>
         <TooltipProvider>
           <Tooltip>
