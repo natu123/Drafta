@@ -11,25 +11,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { useUserPreferences } from "@/hooks/use-user-preferences"
-import { Avatar, AvatarFallback } from "./ui/avatar"
+import { Settings } from 'lucide-react';
 
 interface UserNavProps {
     onOpenSettings: () => void;
 }
 
 export function UserNav({ onOpenSettings }: UserNavProps) {
-    const { icon } = useUserPreferences();
-
     return (
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                        {(icon || '1').toUpperCase()}
-                    </AvatarFallback>
-                </Avatar>
+                <Settings className="h-5 w-5" />
             </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>

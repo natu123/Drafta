@@ -11,8 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { Input } from './ui/input';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -21,7 +19,6 @@ interface SettingsDialogProps {
 
 const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange }) => {
   const { theme, setTheme } = useTheme();
-  const { icon, setIcon } = useUserPreferences();
   
   // Mounted check to avoid hydration mismatch
   const [mounted, setMounted] = React.useState(false);
@@ -56,20 +53,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange }) =
                     </div>
                 </RadioGroup>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="profile-icon-input">Profile Icon</Label>
-            <Input
-                id="profile-icon-input"
-                type="text"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                maxLength={1}
-                className="w-20 text-center text-lg"
-            />
-             <p className="text-sm text-muted-foreground">
-                Enter any single character to use as your profile icon.
-            </p>
           </div>
         </div>
       </DialogContent>
