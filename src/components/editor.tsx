@@ -140,7 +140,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
   
-  const sharedEditorClasses = "w-full h-full p-0 m-0 text-base bg-transparent whitespace-pre-wrap break-words font-body prose prose-sm md:prose-base max-w-none focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0";
+  const sharedEditorClasses = "w-full h-full p-0 m-0 text-base bg-transparent whitespace-pre-wrap break-words font-body focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 editor-content";
 
 
   return (
@@ -251,7 +251,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           ref={previewRef}
           className={cn(
             'absolute inset-0 z-0 pointer-events-none overflow-auto',
-            sharedEditorClasses
+            sharedEditorClasses,
+            'prose prose-sm md:prose-base max-w-none'
           )}
           dangerouslySetInnerHTML={{ __html: parseMarkdown(content) + '<br>' }}
         />

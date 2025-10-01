@@ -71,7 +71,7 @@ export default {
       typography: ({ theme }: { theme: (path: string) => string }) => ({
         DEFAULT: {
           css: {
-            '--tw-prose-body': theme('colors.foreground'),
+             '--tw-prose-body': theme('colors.foreground'),
             '--tw-prose-headings': theme('colors.foreground'),
             '--tw-prose-lead': theme('colors.foreground'),
             '--tw-prose-links': theme('colors.primary.DEFAULT'),
@@ -103,56 +103,6 @@ export default {
             '--tw-prose-invert-pre-bg': theme('colors.muted.DEFAULT'),
             '--tw-prose-invert-th-borders': theme('colors.border'),
             '--tw-prose-invert-td-borders': theme('colors.border'),
-            h1: {
-              fontWeight: '700',
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            h2: {
-              fontWeight: '700',
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            h3: {
-              fontWeight: '600',
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            p: {
-              marginTop: '0',
-              marginBottom: '0',
-            },
-             ul: {
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            ol: {
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            li: {
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            blockquote: {
-              marginTop: '0',
-              marginBottom: '0',
-            },
-            'code::before': {
-              content: '""',
-            },
-            'code::after': {
-              content: '""',
-            },
-            code: {
-              backgroundColor: theme('colors.muted.DEFAULT'),
-              padding: '0.2em 0.4em',
-              borderRadius: '0.25rem',
-              fontWeight: '400',
-            },
-            pre: {
-              backgroundColor: theme('colors.muted.DEFAULT'),
-            }
           },
         },
       }),

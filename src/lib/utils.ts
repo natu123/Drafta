@@ -15,46 +15,70 @@ export function parseMarkdown(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/&lt;span style="color: (.*?);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
 
-  // Headings
-  html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-  html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-  html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+  // Process block-level elements first
+  const blocks = html.split(/(\n\n+)/);
+  const processedBlocks = blocks.map(block => {
+    if (block.match(/^\s*$/)) return block;
 
-  // Blockquotes
-  html = html.replace(/^\> (.*$)/gm, '<blockquote>$1</blockquote>');
-  
-  // HR
-  html = html.replace(/^---$/gm, '<hr />');
+    // Headings
+    if (block.startsWith('# ')) return block.replace(/^# (.*$)/, '<h1 class="h1">$1</h1>');
+    if (block.startsWith('## ')) return block.replace(/^## (.*$)/, '<h2 class="h2">$1</h2>');
+    if (block.startsWith('### ')) return block.replace(/^### (.*$)/, '<h3 class="h3">$1</h3>');
 
-  // Lists
-  // To handle lists correctly, we need to wrap them in <ul> or <ol>
-  // This is a simplified version and might not handle nested lists perfectly.
-  html = html.replace(/^\s*[-*] (.*$)/gm, '<li>$1</li>');
-  html = html.replace(/^\s*\d+\. (.*$)/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
+    // Blockquotes
+    if (block.startsWith('> ')) {
+      const bqContent = block.replace(/^\> /gm, '');
+      return `<blockquote class="blockquote">${bqContent}</blockquote>`;
+    }
 
+    // Lists
+    if (block.startsWith('- ') || block.startsWith('* ') || block.match(/^\d+\. /)) {
+      const lines = block.split('\n');
+      let listHtml = '';
+      let listType = '';
 
-  // Inline elements
+      lines.forEach(line => {
+        const ulMatch = line.match(/^[-*] (.*)/);
+        const olMatch = line.match(/^\d+\. (.*)/);
+        const currentList = ulMatch ? 'ul' : 'ol';
+
+        if (listType && currentList !== listType) {
+          listHtml += `</${listType}>`;
+          listType = '';
+        }
+
+        if (!listType) {
+          listType = currentList;
+          listHtml += `<${listType} class="${listType}">`;
+        }
+
+        if (ulMatch) listHtml += `<li class="li">${ulMatch[1]}</li>`;
+        if (olMatch) listHtml += `<li class="li">${olMatch[1]}</li>`;
+      });
+      if (listType) listHtml += `</${listType}>`;
+      return listHtml;
+    }
+
+    // Default to paragraph
+    return `<p class="p">${block}</p>`;
+  });
+
+  html = processedBlocks.join('');
+
+  // Process inline elements
   html = html
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.*?)__/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/_(.*?)_/g, '<em>$1</em>')
-    .replace(/~~(.*?)~~/g, '<del>$1</del>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="strong">$1</strong>')
+    .replace(/__(.*?)__/g, '<strong class="strong">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="em">$1</em>')
+    .replace(/_(.*?)_/g, '<em class="em">$1</em>')
+    .replace(/~~(.*?)~~/g, '<del class="del">$1</del>')
+    .replace(/`([^`]+)`/g, '<code class="code">$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="a">$1</a>');
 
-  // Paragraphs are tricky with this line-by-line approach.
-  // We'll wrap lines that are not part of other block elements in <p> tags.
-  // A simpler approach for now is to just replace newlines with <br>.
-  html = html.replace(/\n/g, '<br />');
-
-  // Remove <br> inside block elements like lists and blockquotes
-  html = html.replace(/<ul><br \/>/g, '<ul>').replace(/<br \/><\/ul>/g, '</ul>');
-  html = html.replace(/<blockquote><br \/>/g, '<blockquote>').replace(/<br \/><\/blockquote>/g, '</blockquote>');
-
-
-  return html;
+  // Cleanup paragraph wrappers around block elements
+  html = html.replace(/<p class="p">(<(?:h1|h2|h3|ul|ol|blockquote)[^>]*>.*<\/(?:h1|h2|h3|ul|ol|blockquote)>)<\/p>/g, '$1');
+  
+  return html.replace(/\n/g, '<br />');
 }
 
 export function stripMarkdown(text: string): string {
