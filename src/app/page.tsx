@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import Header from '@/components/header';
 import NotesSidebar from '@/components/notes-sidebar';
-import NoteTabs from '@/components/note-tabs';
+import VerticalNoteTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import AiSidebar from '@/components/ai-sidebar';
 import type { Note, Group, ChatMessage } from '@/lib/types';
@@ -144,7 +144,7 @@ export default function Home() {
         {/* Desktop Left Sidebar */}
         <aside
           className={cn(
-            'hidden md:flex flex-col w-80 shrink-0',
+            'hidden md:flex flex-col w-80 shrink-0 transition-all duration-300',
             !isLeftSidebarOpen && 'w-0'
           )}
         >
@@ -159,8 +159,8 @@ export default function Home() {
           )}
         </aside>
 
-        <main className="flex-1 flex flex-col overflow-hidden relative">
-           <NoteTabs 
+        <main className="flex-1 flex overflow-hidden relative">
+           <VerticalNoteTabs 
               notes={openNotes}
               activeNoteId={activeNoteId}
               onTabSelect={handleTabSelect}
@@ -194,17 +194,17 @@ export default function Home() {
         </div>
 
         {/* Right Sidebar */}
-        {isRightSidebarOpen && (
-          <aside className="h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col">
-            <AiSidebar
-              chatMessages={chatMessages}
-              onAddChatMessage={handleAddChatMessage}
-              onEditChatMessage={handleEditChatMessage}
-              activeNoteContent={activeNote?.content || ''}
-              createNoteFromDraft={createNoteFromDraft}
-            />
+         <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col transition-all duration-300", !isRightSidebarOpen && "w-0")}>
+            {isRightSidebarOpen && (
+              <AiSidebar
+                chatMessages={chatMessages}
+                onAddChatMessage={handleAddChatMessage}
+                onEditChatMessage={handleEditChatMessage}
+                activeNoteContent={activeNote?.content || ''}
+                createNoteFromDraft={createNoteFromDraft}
+              />
+            )}
           </aside>
-        )}
       </div>
     </div>
   );
