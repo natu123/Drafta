@@ -41,13 +41,17 @@ export const useHistory = <T,>(initialPresent: T) => {
   }, [canRedo, state.present, state.future, state.past]);
 
   const set = useCallback((newPresent: T) => {
-    if (newPresent === state.present) return;
-    setState({
-      past: [...state.past, state.present],
-      present: newPresent,
-      future: [],
+    setState(currentState => {
+      if (newPresent === currentState.present) {
+        return currentState;
+      }
+      return {
+        past: [...currentState.past, currentState.present],
+        present: newPresent,
+        future: [],
+      };
     });
-  }, [state.present, state.past]);
+  }, []);
   
   const reset = useCallback((newPresent: T) => {
      setState({
