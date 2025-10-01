@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -35,12 +35,10 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-          size="icon"
           onClick={onToggleRightSidebar}
-          className={cn("hidden md:flex transition-transform", isRightSidebarOpen && "rotate-180")}
         >
-          <ChevronsLeft />
-          <span className="sr-only">Toggle AI Sidebar</span>
+          <Bot className="h-5 w-5 mr-2" />
+          Prōla
         </Button>
       </div>
     </header>

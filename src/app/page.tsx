@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import {
-  ChevronsLeft,
   Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ export default function Home() {
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
   
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
   
   const activeNote = notes.find((note) => note.id === activeNoteId) ?? null;
   const openNotes = openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note);
@@ -159,9 +158,6 @@ export default function Home() {
         </aside>
 
         <main className="flex-1 flex flex-col overflow-hidden relative">
-           <Button variant="ghost" size="icon" className="md:hidden fixed top-14 right-2 z-40" onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}>
-              <ChevronsLeft className="h-6 w-6" />
-            </Button>
            <NoteTabs 
               notes={openNotes}
               activeNoteId={activeNoteId}
