@@ -27,7 +27,7 @@ export function UserNav({ onOpenSettings }: UserNavProps) {
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                        {icon.toUpperCase()}
+                        {(icon || '1').toUpperCase()}
                     </AvatarFallback>
                 </Avatar>
             </Button>
