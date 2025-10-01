@@ -99,7 +99,7 @@ const AiSidebar: React.FC<AiSidebarProps> = ({ chatMessages, onAddChatMessage, o
         <Card>
             <CardHeader className="p-4">
                 <CardTitle className="text-base flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-accent" />
+                    <Sparkles className="w-4 h-4 text-primary" />
                     <span>AI Tools</span>
                 </CardTitle>
             </CardHeader>
