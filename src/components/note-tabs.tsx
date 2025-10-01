@@ -29,7 +29,7 @@ const NoteTabs: React.FC<NoteTabsProps> = ({ notes, activeNoteId, onTabSelect, o
   }
 
   return (
-    <div className="border-b bg-background">
+    <div className="border-b bg-secondary/30">
       <ScrollArea className="w-full whitespace-nowrap">
         <div className="flex items-center gap-1 p-1">
           {notes.map(note => (
@@ -40,7 +40,7 @@ const NoteTabs: React.FC<NoteTabsProps> = ({ notes, activeNoteId, onTabSelect, o
               className={cn(
                 'flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-md transition-colors text-sm shrink-0',
                 activeNoteId === note.id
-                  ? 'bg-primary/10 text-primary-foreground font-semibold'
+                  ? 'bg-[#A8A8A8] text-white font-semibold'
                   : 'hover:bg-secondary'
               )}
             >
