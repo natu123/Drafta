@@ -3,9 +3,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
-    allowedDevOrigins: [
-      'https://6000-firebase-studio-1759286430513.cluster-euie3bjlbvhliv5fpqv5ofgi46.cloudworkstations.dev',
-    ],
+    // Note: `allowedDevOrigins` is no longer here.
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -35,6 +33,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: [
+      'https://6000-firebase-studio-1759286430513.cluster-euie3bjlbvhliv5fpqv5ofgi46.cloudworkstations.dev',
+  ],
 };
 
 export default nextConfig;
