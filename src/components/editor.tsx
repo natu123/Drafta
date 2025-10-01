@@ -9,7 +9,7 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { useHistory } from '@/hooks/useHistory';
-import { stripMarkdown } from '@/lib/utils';
+import { stripMarkdown, parseMarkdown } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +47,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
   const [title, setTitle] = React.useState(note.title);
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset: resetContentHistory } = useHistory(note.content);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const previewRef = React.useRef<HTMLDivElement>(null);
 
   const debouncedTitle = useDebounce(title, 500);
   const debouncedContent = useDebounce(content, 500);
@@ -72,6 +73,14 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     resetContentHistory(note.content);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id]);
+
+  // Sync scroll between textarea and preview
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (previewRef.current) {
+      previewRef.current.scrollTop = e.currentTarget.scrollTop;
+      previewRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
 
   const applyMarkdown = (syntax: { prefix: string; suffix: string }) => {
     const textarea = textareaRef.current;
@@ -131,8 +140,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
     { icon: Code, tooltip: 'Code', action: () => applyMarkdown({prefix: '`', suffix: '`'}) },
   ];
   
-  const editorContentClass = "absolute inset-0 z-10 w-full h-full p-0 m-0 bg-transparent text-transparent caret-foreground resize-none border-none font-body text-base focus-visible:ring-0 focus-visible:ring-offset-0 whitespace-pre-wrap break-words md:text-sm";
-  const editorPreviewClass = "absolute inset-0 z-0 w-full h-full p-0 m-0 pointer-events-none font-body text-base whitespace-pre-wrap break-words md:text-sm";
+  const sharedEditorClasses = "w-full h-full p-0 m-0 text-base md:text-sm whitespace-pre-wrap break-words font-body prose prose-sm md:prose-base max-w-none focus:outline-none";
 
 
   return (
@@ -239,19 +247,27 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
       </div>
 
       <div className="relative flex-1">
+        <div
+          ref={previewRef}
+          className={cn(
+            'absolute inset-0 z-0 pointer-events-none overflow-auto',
+            sharedEditorClasses
+          )}
+          dangerouslySetInnerHTML={{ __html: parseMarkdown(content) + '<br>' }}
+        />
         <Textarea
           ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onScroll={handleScroll}
           className={cn(
-            "focus-visible:ring-0 focus-visible:ring-offset-0",
-            editorContentClass
+            'absolute inset-0 z-10 resize-none overflow-auto',
+            'bg-transparent text-transparent caret-foreground',
+            sharedEditorClasses,
+            "focus-visible:ring-0 focus-visible:ring-offset-0"
           )}
           placeholder="Start writing..."
         />
-        <div
-            className={cn(editorPreviewClass)}
-          >{content}</div>
       </div>
     </div>
   );

@@ -15,13 +15,10 @@ export function parseMarkdown(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/&lt;span style="color: (.*?);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
 
-  // Code blocks ```...```
-  html = html.replace(/`{3}([\s\S]*?)`{3}/g, (match, p1) => `<pre><code>${p1}</code></pre>`);
-  
   // Headings
-  html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+  html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+  html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
 
   // Blockquotes
   html = html.replace(/^\> (.*$)/gm, '<blockquote>$1</blockquote>');
@@ -30,9 +27,10 @@ export function parseMarkdown(text: string): string {
   html = html.replace(/^---$/gm, '<hr />');
 
   // Lists
+  // To handle lists correctly, we need to wrap them in <ul> or <ol>
+  // This is a simplified version and might not handle nested lists perfectly.
   html = html.replace(/^\s*[-*] (.*$)/gm, '<li>$1</li>');
   html = html.replace(/^\s*\d+\. (.*$)/gm, '<li>$1</li>');
-  // Crude list wrapping
   html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
 
 
@@ -46,13 +44,15 @@ export function parseMarkdown(text: string): string {
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
-  // Paragraphs and line breaks
-  html = html.split('\n').map(line => {
-    if (line.match(/<(h[1-3]|ul|li|blockquote|hr|pre)/)) {
-      return line;
-    }
-    return line;
-  }).join('<br/>');
+  // Paragraphs are tricky with this line-by-line approach.
+  // We'll wrap lines that are not part of other block elements in <p> tags.
+  // A simpler approach for now is to just replace newlines with <br>.
+  html = html.replace(/\n/g, '<br />');
+
+  // Remove <br> inside block elements like lists and blockquotes
+  html = html.replace(/<ul><br \/>/g, '<ul>').replace(/<br \/><\/ul>/g, '</ul>');
+  html = html.replace(/<blockquote><br \/>/g, '<blockquote>').replace(/<br \/><\/blockquote>/g, '</blockquote>');
+
 
   return html;
 }
