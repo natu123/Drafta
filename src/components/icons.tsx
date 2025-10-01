@@ -1,13 +1,24 @@
 import * as React from 'react';
 
 export const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg
-        viewBox="0 0 100 100"
-        xmlns="http://www.w3.org/2000/svg"
-        {...props}
-    >
-        <g fill="#EDE200">
-            <path d="M50 0L61.2 38.8L100 50L61.2 61.2L50 100L38.8 61.2L0 50L38.8 38.8Z" />
-        </g>
-    </svg>
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <g strokeWidth="8" stroke="#EDE200" fill="none" strokeLinecap="round">
+      <ellipse cx="50" cy="50" rx="45" ry="18" />
+      <ellipse
+        cx="50"
+        cy="50"
+        rx="45"
+        ry="18"
+        transform="rotate(60 50 50)"
+      />
+      <ellipse
+        cx="50"
+        cy="50"
+        rx="45"
+        ry="18"
+        transform="rotate(120 50 50)"
+      />
+    </g>
+    <circle cx="50" cy="50" r="10" fill="#EDE200" />
+  </svg>
 );
