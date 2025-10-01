@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { UserIcons } from "./icons"
 import { useUserPreferences } from "@/hooks/use-user-preferences"
+import { Avatar, AvatarFallback } from "./ui/avatar"
 
 interface UserNavProps {
     onOpenSettings: () => void;
@@ -21,13 +21,15 @@ interface UserNavProps {
 export function UserNav({ onOpenSettings }: UserNavProps) {
     const { icon } = useUserPreferences();
 
-    const ActiveIcon = UserIcons[icon] || UserIcons['cursive-d'];
-
     return (
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <ActiveIcon className="h-5 w-5" />
+                <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                        {icon.toUpperCase()}
+                    </AvatarFallback>
+                </Avatar>
             </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>

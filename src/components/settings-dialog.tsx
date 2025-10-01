@@ -11,10 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from './ui/button';
-import { UserIcons } from './icons';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { cn } from '@/lib/utils';
+import { Input } from './ui/input';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -60,26 +58,18 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange }) =
             )}
           </div>
           <div className="space-y-2">
-            <Label>Profile Icon</Label>
-            <div className="flex items-center gap-2">
-                {Object.keys(UserIcons).map((iconKey) => {
-                    const IconComponent = UserIcons[iconKey];
-                    return (
-                        <Button
-                            key={iconKey}
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setIcon(iconKey)}
-                            className={cn(
-                                'h-12 w-12',
-                                icon === iconKey && 'ring-2 ring-primary'
-                            )}
-                        >
-                            <IconComponent className="h-6 w-6" />
-                        </Button>
-                    )
-                })}
-            </div>
+            <Label htmlFor="profile-icon-input">Profile Icon</Label>
+            <Input
+                id="profile-icon-input"
+                type="text"
+                value={icon}
+                onChange={(e) => setIcon(e.target.value)}
+                maxLength={1}
+                className="w-20 text-center text-lg"
+            />
+             <p className="text-sm text-muted-foreground">
+                Enter any single character to use as your profile icon.
+            </p>
           </div>
         </div>
       </DialogContent>

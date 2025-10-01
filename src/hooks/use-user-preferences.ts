@@ -11,8 +11,8 @@ interface UserPreferencesState {
 export const useUserPreferences = create<UserPreferencesState>()(
   persist(
     (set) => ({
-      icon: 'cursive-d',
-      setIcon: (icon) => set({ icon }),
+      icon: 'D',
+      setIcon: (icon) => set({ icon: icon.charAt(0) || 'D' }),
     }),
     {
       name: 'user-preferences-storage', 
