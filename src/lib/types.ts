@@ -11,6 +11,7 @@ export type Note = {
   lastAccessedAt?: string;
   parentId?: string;
   children?: Note[];
+  thumbnailUrl?: string;
 };
 
 export type Web = {
@@ -23,6 +24,7 @@ export type Web = {
   lastAccessedAt?: string;
   parentId?: string;
   children?: Web[];
+  thumbnailUrl?: string;
 }
 
 export type Group = {

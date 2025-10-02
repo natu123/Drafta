@@ -33,6 +33,7 @@ Let's build the future together!
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     updatedAt: new Date().toISOString(),
     lastAccessedAt: new Date().toISOString(),
+    thumbnailUrl: 'https://picsum.photos/seed/1/600/400'
   },
   {
     id: 'note-2',
@@ -74,6 +75,7 @@ function hello() {
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     parentId: 'note-1',
+    thumbnailUrl: 'https://picsum.photos/seed/2/600/400'
   },
   {
     id: 'note-3',
@@ -85,6 +87,7 @@ function hello() {
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    thumbnailUrl: 'https://picsum.photos/seed/3/600/400'
   },
   {
     id: 'note-4',
