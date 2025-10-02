@@ -37,7 +37,7 @@ const PinButton = ({ noteId, isPinned, onPinNote }: { noteId: string; isPinned?:
     <button onClick={(e) => { e.stopPropagation(); onPinNote(noteId); }} className="p-1 hover:bg-secondary rounded-md">
         <Pin className={cn(
             'w-4 h-4 transition-colors',
-            isPinned ? 'text-accent fill-accent' : 'text-muted-foreground/50 hover:text-accent'
+            isPinned ? 'text-primary fill-primary' : 'text-muted-foreground/50 hover:text-primary'
         )} />
     </button>
 );
