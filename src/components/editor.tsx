@@ -3,7 +3,7 @@
 import * as React from 'react';
 import type { Note } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Undo, Redo, Smile } from 'lucide-react';
+import { Undo, Redo, Smile, Eye, PenSquare } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
@@ -11,6 +11,8 @@ import { useHistory } from '@/hooks/useHistory';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface EditorProps {
   note: Note;
@@ -22,6 +24,7 @@ const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤�
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset } = useHistory(note.content || '');
+  const [viewMode, setViewMode] = React.useState<'write' | 'preview'>('write');
 
   React.useEffect(() => {
     reset(note.content || '');
@@ -98,16 +101,40 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
               </TooltipContent>
             </Tooltip>
             <Separator orientation="vertical" className="h-6 mx-2" />
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant={viewMode === 'write' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('write')}>
+                        <PenSquare />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Write</p>
+                </TooltipContent>
+            </Tooltip>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant={viewMode === 'preview' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('preview')}>
+                        <Eye />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Preview</p>
+                </TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </div>
       <div className="flex-1 overflow-y-auto p-8 prose prose-neutral dark:prose-invert max-w-none">
-         <Textarea
-            value={content}
-            onChange={handleContentChange}
-            placeholder="Start writing..."
-            className="w-full h-full resize-none border-none focus-visible:ring-0 text-base p-0"
-        />
+        {viewMode === 'write' ? (
+             <Textarea
+                value={content}
+                onChange={handleContentChange}
+                placeholder="Start writing..."
+                className="w-full h-full resize-none border-none focus-visible:ring-0 text-base p-0"
+            />
+        ) : (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        )}
       </div>
     </div>
   );
