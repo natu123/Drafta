@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Prōla AI</p>
+              <p>New Talk</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
