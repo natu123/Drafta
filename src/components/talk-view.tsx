@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Bot, Send, ScreenShare, ScreenShareOff, Mic, MicOff } from 'lucide-react';
+import { Bot, Send, ScreenShare, ScreenShareOff, Mic, MicOff, MessageSquareQuote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,6 +28,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
   const [selectedModel, setSelectedModel] = React.useState(aiModels[0]);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -52,7 +53,6 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
       setStream(displayStream);
       setIsSharing(true);
       
-      // When the user clicks the browser's "Stop sharing" button
       displayStream.getVideoTracks()[0].onended = () => {
         handleStopSharing(displayStream);
       };
@@ -87,8 +87,13 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
   
   const toggleVoiceMode = () => {
     setIsVoiceMode(prev => !prev);
-    // Future: Add logic to start/stop voice capture
   }
+
+  const handleQuoteMessage = (message: ChatMessage) => {
+    const quoteText = `> **${message.author === 'user' ? 'You' : 'Prōla'}**:\n> ${message.content.replace(/\n/g, '\n> ')}\n\n`;
+    setChatInput(quoteText);
+    textareaRef.current?.focus();
+  };
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +101,6 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
     onAddChatMessage({ author: 'user', content: chatInput });
     setChatInput('');
 
-    // Mock AI response
     setTimeout(() => {
       const operator = selectedModel === "Auto (Optimal)" ? "Gemini" : selectedModel;
       const responseContent = `[${operator}] I'm a demo assistant! I can't process that, but you can use the tools below.`;
@@ -147,7 +151,14 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
           {chatMessages.map(msg => (
-            <div key={msg.id} className={cn('flex items-start gap-3 group', msg.author === 'user' ? 'justify-end' : 'justify-start')}>
+            <div key={msg.id} className={cn('flex items-start gap-3 group relative', msg.author === 'user' ? 'justify-end' : 'justify-start')}>
+               <div className="absolute top-0 right-full mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                 {msg.author === 'user' && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleQuoteMessage(msg)}>
+                        <MessageSquareQuote className="h-4 w-4" />
+                    </Button>
+                 )}
+              </div>
               {msg.author === 'ai' && <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0"><Bot className="w-5 h-5 text-primary" /></div>}
               <div className={cn(
                 'p-3 rounded-lg max-w-xs relative', 
@@ -158,6 +169,11 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
                   {format(new Date(msg.timestamp), 'p')}
                 </p>
               </div>
+               <div className="absolute top-0 left-full ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleQuoteMessage(msg)}>
+                    <MessageSquareQuote className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -166,6 +182,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
       <div className="p-4 border-t">
         <form onSubmit={handleChatSubmit} className="flex items-start gap-2">
           <Textarea
+            ref={textareaRef}
             placeholder="Chat with Prōla..."
             className="flex-1 resize-none"
             rows={1}
