@@ -3,7 +3,7 @@
 import * as React from 'react';
 import type { Note } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Undo, Redo, Smile, Eye, PenSquare } from 'lucide-react';
+import { Undo, Redo, Smile, Eye, PenSquare, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 interface EditorProps {
   note: Note;
@@ -22,13 +23,27 @@ interface EditorProps {
 
 const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '🔥', '🤖', '🤔', '👨‍💻', '👩‍💻'];
 
+// Regex to find URLs that are not already in a markdown link
+const URL_REGEX = /(?<!\[.*\]\()https?:\/\/[^\s\)]+/g;
+
+
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset } = useHistory(note.content || '');
   const [viewMode, setViewMode] = React.useState<'write' | 'preview'>('write');
+  const [detectedUrl, setDetectedUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     reset(note.content || '');
   }, [note.id, note.content, reset]);
+
+  React.useEffect(() => {
+    if (viewMode === 'write') {
+        const found = content.match(URL_REGEX);
+        setDetectedUrl(found ? found[0] : null);
+    } else {
+        setDetectedUrl(null);
+    }
+  }, [content, viewMode]);
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
@@ -42,6 +57,16 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
   const handleIconSelect = (icon: string) => {
     onIconChange(note.id, icon);
   };
+
+  const handleMakeLink = () => {
+    if (detectedUrl) {
+      const newContent = content.replace(detectedUrl, `[${detectedUrl}](${detectedUrl})`);
+      setContent(newContent);
+      onNoteUpdate({ content: newContent });
+      setDetectedUrl(null);
+    }
+  };
+
 
   return (
     <div className="flex flex-col h-full">
@@ -124,7 +149,27 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
           </div>
         </TooltipProvider>
       </div>
-      <div className="flex-1 overflow-y-auto p-8 prose prose-neutral dark:prose-invert max-w-none">
+
+       {detectedUrl && (
+        <Alert className="m-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <AlertTitle>Link detected</AlertTitle>
+              <AlertDescription>
+                Make this URL a clickable link? <span className="font-mono text-xs bg-muted p-1 rounded-md">{detectedUrl}</span>
+              </AlertDescription>
+            </div>
+            <div className="flex gap-2">
+                <Button onClick={handleMakeLink} size="sm">Convert</Button>
+                <Button onClick={() => setDetectedUrl(null)} size="sm" variant="ghost">
+                    <X className="w-4 h-4" />
+                </Button>
+            </div>
+          </div>
+        </Alert>
+      )}
+
+      <div className={cn("flex-1 overflow-y-auto p-8 prose prose-neutral dark:prose-invert max-w-none", detectedUrl && "pt-0")}>
         {viewMode === 'write' ? (
              <Textarea
                 value={content}
