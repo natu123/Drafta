@@ -24,10 +24,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset } = useHistory(note.content || '');
 
   React.useEffect(() => {
-    if (note.content !== content) {
-       reset(note.content || '');
-    }
-  }, [note.id]);
+    reset(note.content || '');
+  }, [note.id, note.content, reset]);
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
