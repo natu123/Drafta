@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from 'react';
-import { Bot, Send, ScreenShare, ScreenShareOff } from 'lucide-react';
+import { Bot, Send, ScreenShare, ScreenShareOff, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format }s from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,6 +19,7 @@ interface TalkViewProps {
 const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) => {
   const [chatInput, setChatInput] = React.useState('');
   const [isSharing, setIsSharing] = React.useState(false);
+  const [isVoiceMode, setIsVoiceMode] = React.useState(false);
   const [stream, setStream] = React.useState<MediaStream | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -79,6 +80,11 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
       handleStartSharing();
     }
   };
+  
+  const toggleVoiceMode = () => {
+    setIsVoiceMode(prev => !prev);
+    // Future: Add logic to start/stop voice capture
+  }
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +160,9 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
               }
             }}
           />
+           <Button type="button" size="icon" variant={isVoiceMode ? "destructive" : "ghost"} onClick={toggleVoiceMode}>
+             {isVoiceMode ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
           <Button type="button" size="icon" variant={isSharing ? "destructive" : "ghost"} onClick={toggleScreenSharing}>
              {isSharing ? <ScreenShareOff className="h-4 w-4" /> : <ScreenShare className="h-4 w-4" />}
           </Button>
