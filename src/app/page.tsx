@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -15,30 +16,22 @@ import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import WebView from '@/components/webview';
 
 type ActiveContent = {
   id: string;
   type: 'note' | 'web';
 } | null;
 
-const WebviewPlaceholder = ({ url }: { url: string }) => (
-  <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
-    <Globe className="w-16 h-16 mb-4" />
-    <h2 className="text-2xl font-bold mb-2">Web View</h2>
-    <p>This is a placeholder for web content.</p>
-    <p className="text-sm mt-2">URL: <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline">{url}</a></p>
-  </div>
-);
-
-type HomeSectionProps = {
-  title: string;
-  icon: React.ElementType;
-  items: (Note | Web)[];
-  onItemSelect: (id: string, type: 'note' | 'web') => void;
-  itemType: 'note' | 'web';
+const HomeSectionProps = {
+  title: '',
+  icon: Notebook,
+  items: [] as (Note | Web)[],
+  onItemSelect: (id: string, type: 'note' | 'web') => {},
+  itemType: 'note' as 'note' | 'web',
 };
 
-const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType }) => {
+const HomeSection: React.FC<typeof HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType }) => {
   return (
     <Card className="flex-1 flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -269,7 +262,7 @@ export default function Home() {
                 onIconChange={handleIconChange}
               />
             ) : activeContent?.type === 'web' && activeWeb ? (
-              <WebviewPlaceholder key={activeWeb.id} url={activeWeb.url} />
+              <WebView key={activeWeb.id} web={activeWeb} />
             ) : (
               <div className="p-4 md:p-8 h-full">
                 <div className="flex h-full gap-4">
@@ -326,5 +319,3 @@ export default function Home() {
     </>
   );
 }
-
-    
