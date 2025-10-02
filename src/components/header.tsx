@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bot, PlusCircle, PanelLeft } from 'lucide-react';
+import { Bot, FilePlus, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={onNewNote}>
-                <PlusCircle className="h-5 w-5 text-accent" />
+                <FilePlus className="h-5 w-5 text-accent" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
