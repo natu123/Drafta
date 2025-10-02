@@ -8,7 +8,7 @@ import Header from '@/components/header';
 import NotesSidebar from '@/components/notes-sidebar';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
-import AiSidebar from '@/components/ai-sidebar';
+import TalkView from '@/components/talk-view';
 import type { Note, Group, ChatMessage, Web } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -200,24 +200,6 @@ export default function Home() {
     setChatMessages(prev => prev.map(msg => msg.id === id ? { ...msg, content } : msg));
   };
 
-  const createNoteFromDraft = (title: string, content: string) => {
-    const newNote: Note = {
-      id: `note-${Date.now()}`,
-      title: title,
-      content: content,
-      icon: '🤖',
-      group: 'ai',
-      stars: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes([newNote, ...notes]);
-    if (!openNoteIds.includes(newNote.id)) {
-      setOpenNoteIds([newNote.id, ...openNoteIds]);
-    }
-    setActiveContent({ type: 'note', id: newNote.id });
-  };
-
   const [isClient, setIsClient] = React.useState(false);
   React.useEffect(() => {
     setIsClient(true);
@@ -320,12 +302,9 @@ export default function Home() {
           <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
             <SheetContent side="right" className="p-0 w-80">
                <SheetTitle className="sr-only">AI Assistant Sidebar</SheetTitle>
-              <AiSidebar
+              <TalkView
                 chatMessages={chatMessages}
                 onAddChatMessage={handleAddChatMessage}
-                onEditChatMessage={handleEditChatMessage}
-                activeNoteContent={activeNote?.content || ''}
-                createNoteFromDraft={createNoteFromDraft}
               />
             </SheetContent>
           </Sheet>
@@ -333,12 +312,9 @@ export default function Home() {
 
          <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col transition-all duration-300", !isRightSidebarOpen && "w-0")}>
             {isRightSidebarOpen && (
-              <AiSidebar
+              <TalkView
                 chatMessages={chatMessages}
                 onAddChatMessage={handleAddChatMessage}
-                onEditChatMessage={handleEditChatMessage}
-                activeNoteContent={activeNote?.content || ''}
-                createNoteFromDraft={createNoteFromDraft}
               />
             )}
           </aside>
