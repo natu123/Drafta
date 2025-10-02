@@ -1,56 +1,150 @@
 "use client";
 
 import * as React from 'react';
-import { Star, Search, Folder } from 'lucide-react';
+import { Star, Search, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import type { Note, Group } from '@/lib/types';
+import type { Note } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NotesSidebarProps {
   notes: Note[];
-  groups: Group[];
   activeNoteId: string | null;
   onNoteSelect: (id: string) => void;
   onStarNote: (id: string, stars: 1 | 2 | 3) => void;
 }
 
+const StarRating = ({ noteId, rating, onStarNote }: { noteId: string; rating: Note['stars']; onStarNote: NotesSidebarProps['onStarNote'] }) => (
+  <div className="flex items-center">
+    {[1, 2, 3].map(star => (
+      <Star
+        key={star}
+        className={cn(
+          'w-4 h-4 cursor-pointer transition-colors',
+          star <= rating ? 'text-accent fill-accent' : 'text-muted-foreground/50 hover:text-accent'
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onStarNote(noteId, star as 1 | 2 | 3);
+        }}
+      />
+    ))}
+  </div>
+);
+
+interface NoteTreeItemProps {
+  note: Note;
+  level: number;
+  activeNoteId: string | null;
+  onNoteSelect: (id: string) => void;
+  onStarNote: (id: string, stars: 1 | 2 | 3) => void;
+  isInitiallyOpen?: boolean;
+}
+
+const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, onNoteSelect, onStarNote, isInitiallyOpen = false }) => {
+  const [isOpen, setIsOpen] = React.useState(isInitiallyOpen);
+  const hasChildren = note.children && note.children.length > 0;
+
+  return (
+    <div>
+      <button
+        onClick={() => onNoteSelect(note.id)}
+        className={cn(
+          'w-full text-left p-2 pr-4 border-b border-border transition-colors flex items-center gap-2',
+          activeNoteId === note.id ? 'bg-primary/10' : 'hover:bg-secondary'
+        )}
+        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+      >
+        <div className="flex items-center gap-2 flex-1 overflow-hidden">
+          {hasChildren ? (
+            <ChevronRight
+              className={cn('w-4 h-4 shrink-0 transition-transform', isOpen && 'rotate-90')}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(!isOpen);
+              }}
+            />
+          ) : (
+            <div className="w-4 h-4 shrink-0" /> // Placeholder for alignment
+          )}
+          <span className="text-lg shrink-0">{note.icon || '📝'}</span>
+          <div className="flex-1 overflow-hidden">
+            <h3 className="font-semibold truncate">{note.title}</h3>
+            <p className="text-xs text-muted-foreground truncate">
+              {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
+            </p>
+          </div>
+        </div>
+        <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
+      </button>
+
+      {hasChildren && isOpen && (
+        <div className="relative">
+           <div className="absolute left-0 top-0 bottom-0 ml-[1.1rem] w-px bg-border -z-10" />
+            {note.children?.map(childNote => (
+                <NoteTreeItem
+                key={childNote.id}
+                note={childNote}
+                level={level + 1}
+                activeNoteId={activeNoteId}
+                onNoteSelect={onNoteSelect}
+                onStarNote={onStarNote}
+                isInitiallyOpen={isInitiallyOpen}
+                />
+            ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 const NotesSidebar: React.FC<NotesSidebarProps> = ({
   notes,
-  groups,
   activeNoteId,
   onNoteSelect,
   onStarNote,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const filteredNotes = notes.filter(note =>
-    note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const noteTree = React.useMemo(() => {
+    const buildTree = (items: Note[], parentId?: string): Note[] => {
+      return items
+        .filter(item => item.parentId === parentId)
+        .map(item => ({
+          ...item,
+          children: buildTree(items, item.id),
+        }));
+    };
+    return buildTree(notes);
+  }, [notes]);
   
-  const StarRating = ({ noteId, rating }: { noteId: string; rating: Note['stars'] }) => (
-    <div className="flex items-center">
-      {[1, 2, 3].map(star => (
-        <Star
-          key={star}
-          className={cn(
-            'w-4 h-4 cursor-pointer transition-colors',
-            star <= rating ? 'text-accent fill-accent' : 'text-muted-foreground/50 hover:text-accent'
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            onStarNote(noteId, star as 1 | 2 | 3);
-          }}
-        />
-      ))}
-    </div>
-  );
+  const filteredNotes = React.useMemo(() => {
+    if (!searchTerm) return noteTree;
+    
+    const lowercasedFilter = searchTerm.toLowerCase();
+    
+    const filterTree = (nodes: Note[]): Note[] => {
+      const result: Note[] = [];
+      for (const node of nodes) {
+        const children = node.children ? filterTree(node.children) : [];
+        if (
+          node.title.toLowerCase().includes(lowercasedFilter) ||
+          node.content.toLowerCase().includes(lowercasedFilter) ||
+          children.length > 0
+        ) {
+          result.push({ ...node, children });
+        }
+      }
+      return result;
+    };
+    
+    return filterTree(noteTree);
+  }, [searchTerm, noteTree, notes]); // notes is needed here to re-filter when content changes
 
   return (
     <div className="flex flex-col h-full bg-secondary/30 border-r">
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 border-b">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -62,55 +156,21 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <Accordion type="multiple" defaultValue={groups.map(g => g.id)} className="w-full">
-          {groups.map(group => {
-            const notesInGroup = filteredNotes.filter(note => note.group === group.id);
-            if (notesInGroup.length === 0 && searchTerm) return null;
-
-            return (
-              <AccordionItem value={group.id} key={group.id}>
-                <AccordionTrigger className="px-4 text-sm font-medium text-muted-foreground hover:no-underline hover:bg-secondary">
-                    <div className="flex items-center gap-2">
-                        <Folder className="w-4 h-4" />
-                        <span>{group.name}</span>
-                    </div>
-                </AccordionTrigger>
-                <AccordionContent className="p-0">
-                  <div className="flex flex-col">
-                    {notesInGroup.length > 0 ? (
-                      notesInGroup.map(note => (
-                        <button
-                          key={note.id}
-                          onClick={() => onNoteSelect(note.id)}
-                          className={cn(
-                            'text-left p-4 border-b border-border transition-colors',
-                            activeNoteId === note.id ? 'bg-primary/10' : 'hover:bg-secondary'
-                          )}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl">{note.icon || '📝'}</span>
-                              <h3 className="font-semibold truncate pr-2">{note.title}</h3>
-                            </div>
-                             <StarRating noteId={note.id} rating={note.stars} />
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate mt-1">
-                            {note.content.substring(0, 70).replace(/(\r\n|\n|\r)/gm," ")}...
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
-                          </p>
-                        </button>
-                      ))
-                    ) : (
-                      <p className="p-4 text-sm text-muted-foreground">No notes in this group.</p>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+        {filteredNotes.length > 0 ? (
+          filteredNotes.map(note => (
+            <NoteTreeItem
+              key={note.id}
+              note={note}
+              level={0}
+              activeNoteId={activeNoteId}
+              onNoteSelect={onNoteSelect}
+              onStarNote={onStarNote}
+              isInitiallyOpen={!!searchTerm}
+            />
+          ))
+        ) : (
+          <p className="p-4 text-sm text-muted-foreground">No notes found.</p>
+        )}
       </div>
     </div>
   );

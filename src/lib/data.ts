@@ -70,6 +70,7 @@ function hello() {
     stars: 2,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    parentId: 'note-1',
   },
   {
     id: 'note-3',
@@ -90,6 +91,17 @@ function hello() {
     stars: 0,
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+  },
+    {
+    id: 'note-5',
+    title: 'Meeting Notes',
+    icon: '💼',
+    content: 'Meeting with the design team.',
+    group: 'work',
+    stars: 0,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    parentId: 'note-3',
   },
 ];
 

@@ -7,6 +7,8 @@ export type Note = {
   stars: 0 | 1 | 2 | 3;
   createdAt: string;
   updatedAt: string;
+  parentId?: string;
+  children?: Note[];
 };
 
 export type Web = {
@@ -16,6 +18,8 @@ export type Web = {
   icon?: string;
   createdAt: string;
   updatedAt: string;
+  parentId?: string;
+  children?: Web[];
 }
 
 export type Group = {
