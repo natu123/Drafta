@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from 'react';
-import { Bot, Send } from 'lucide-react';
+import { Bot, Send, ScreenShare, ScreenShareOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface TalkViewProps {
   chatMessages: ChatMessage[];
@@ -16,13 +18,67 @@ interface TalkViewProps {
 
 const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) => {
   const [chatInput, setChatInput] = React.useState('');
+  const [isSharing, setIsSharing] = React.useState(false);
+  const [stream, setStream] = React.useState<MediaStream | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
+  React.useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  const handleStartSharing = async () => {
+    setError(null);
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+      setStream(displayStream);
+      setIsSharing(true);
+      
+      // When the user clicks the browser's "Stop sharing" button
+      displayStream.getVideoTracks()[0].onended = () => {
+        handleStopSharing(displayStream);
+      };
+
+    } catch (err) {
+      console.error("Error starting screen share:", err);
+      setError("Screen sharing permission was denied. Please grant permission to use this feature.");
+       toast({
+          variant: "destructive",
+          title: "Screen Share Failed",
+          description: "Could not start screen sharing. Please ensure you grant the necessary permissions.",
+        });
+    }
+  };
+
+  const handleStopSharing = (streamToStop?: MediaStream) => {
+    const currentStream = streamToStop || stream;
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+    }
+    setStream(null);
+    setIsSharing(false);
+  };
+  
+  const toggleScreenSharing = () => {
+    if (isSharing) {
+      handleStopSharing();
+    } else {
+      handleStartSharing();
+    }
+  };
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +98,27 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
         <Bot className="h-6 w-6 text-primary" />
         <h2 className="text-lg font-bold font-headline">Prōla Talk</h2>
       </div>
+
+       {isSharing && (
+        <div className="relative p-4 border-b">
+          <video ref={videoRef} autoPlay muted className="w-full rounded-md bg-black" />
+           <div className="absolute top-6 right-6">
+            <Button size="sm" variant="destructive" onClick={() => handleStopSharing()}>
+              <ScreenShareOff className="mr-2" />
+              Stop Sharing
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4">
+            <Alert variant="destructive">
+                <AlertTitle>Screen Share Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        </div>
+      )}
       
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
@@ -63,7 +140,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
       </ScrollArea>
       
       <div className="p-4 border-t">
-        <form onSubmit={handleChatSubmit} className="flex items-center gap-2">
+        <form onSubmit={handleChatSubmit} className="flex items-start gap-2">
           <Textarea
             placeholder="Chat with Prōla..."
             className="flex-1 resize-none"
@@ -77,6 +154,9 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
               }
             }}
           />
+          <Button type="button" size="icon" variant={isSharing ? "destructive" : "ghost"} onClick={toggleScreenSharing}>
+             {isSharing ? <ScreenShareOff className="h-4 w-4" /> : <ScreenShare className="h-4 w-4" />}
+          </Button>
           <Button type="submit" size="icon" disabled={!chatInput.trim()}>
             <Send className="h-4 w-4" />
           </Button>
@@ -87,5 +167,3 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
 };
 
 export default TalkView;
-
-    
