@@ -1,37 +1,60 @@
 "use client";
 
 import * as React from 'react';
-import {
-  Menu,
-} from 'lucide-react';
+import { Globe, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
 import NotesSidebar from '@/components/notes-sidebar';
-import VerticalNoteTabs from '@/components/vertical-note-tabs';
+import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import AiSidebar from '@/components/ai-sidebar';
-import type { Note, Group, ChatMessage } from '@/lib/types';
+import type { Note, Group, ChatMessage, Web } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 
+type ActiveContent = {
+  id: string;
+  type: 'note' | 'web';
+} | null;
+
+const WebviewPlaceholder = ({ url }: { url: string }) => (
+  <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+    <Globe className="w-16 h-16 mb-4" />
+    <h2 className="text-2xl font-bold mb-2">Web View</h2>
+    <p>This is a placeholder for web content.</p>
+    <p className="text-sm mt-2">URL: <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline">{url}</a></p>
+  </div>
+);
+
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
+  const [webs, setWebs] = React.useState<Web[]>([]);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
-  const [activeNoteId, setActiveNoteId] = React.useState<string | null>(notes[0]?.id ?? null);
+  
   const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([notes[0]?.id ?? 'note-1'].filter(Boolean));
+  const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
+  
+  const [activeContent, setActiveContent] = React.useState<ActiveContent>({ type: 'note', id: notes[0]?.id });
+  
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
   
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   
-  const activeNote = notes.find((note) => note.id === activeNoteId) ?? null;
-  const openNotes = openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note);
+  const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
+  const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
+
+  const openTabs = [
+    ...openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note).map(note => ({ ...note, type: 'note' as const })),
+    ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const }))
+  ];
 
   const handleNoteUpdate = (updatedNote: Partial<Note>) => {
-    setNotes(notes.map(note => note.id === activeNoteId ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
+    if (activeContent?.type !== 'note') return;
+    setNotes(notes.map(note => note.id === activeContent.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
   };
   
   const handleNewNote = () => {
@@ -49,25 +72,51 @@ export default function Home() {
     if (!openNoteIds.includes(newNote.id)) {
       setOpenNoteIds([newNote.id, ...openNoteIds]);
     }
-    setActiveNoteId(newNote.id);
+    setActiveContent({ type: 'note', id: newNote.id });
   };
   
+  const handleNewWeb = () => {
+    const newWeb: Web = {
+      id: `web-${Date.now()}`,
+      title: 'New Tab',
+      url: 'https://www.google.com',
+      icon: '🌐',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setWebs([newWeb, ...webs]);
+    if (!openWebIds.includes(newWeb.id)) {
+      setOpenWebIds([newWeb.id, ...openWebIds]);
+    }
+    setActiveContent({ type: 'web', id: newWeb.id });
+  };
+
   const handleNoteSelect = (id: string) => {
-    setActiveNoteId(id);
+    setActiveContent({ type: 'note', id });
     if (!openNoteIds.includes(id)) {
       setOpenNoteIds([id, ...openNoteIds]);
     }
   };
 
-  const handleTabSelect = (id: string) => {
-    setActiveNoteId(id);
+  const handleTabSelect = (id: string, type: 'note' | 'web') => {
+    setActiveContent({ type, id });
   };
 
-  const handleTabClose = (id: string) => {
-    const newOpenNoteIds = openNoteIds.filter(noteId => noteId !== id);
-    setOpenNoteIds(newOpenNoteIds);
-    if (activeNoteId === id) {
-      setActiveNoteId(newOpenNoteIds[0] || null);
+  const handleTabClose = (id: string, type: 'note' | 'web') => {
+    if (type === 'note') {
+      const newOpenNoteIds = openNoteIds.filter(noteId => noteId !== id);
+      setOpenNoteIds(newOpenNoteIds);
+      if (activeContent?.id === id) {
+        const nextTab = openTabs.find(tab => tab.id !== id);
+        setActiveContent(nextTab ? {id: nextTab.id, type: nextTab.type} : null);
+      }
+    } else if (type === 'web') {
+      const newOpenWebIds = openWebIds.filter(webId => webId !== id);
+      setOpenWebIds(newOpenWebIds);
+      if (activeContent?.id === id) {
+        const nextTab = openTabs.find(tab => tab.id !== id);
+        setActiveContent(nextTab ? {id: nextTab.id, type: nextTab.type} : null);
+      }
     }
   };
 
@@ -76,6 +125,7 @@ export default function Home() {
   };
 
   const handleIconChange = (id: string, icon: string) => {
+    if (activeContent?.type !== 'note') return;
     setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
   };
 
@@ -107,7 +157,7 @@ export default function Home() {
     if (!openNoteIds.includes(newNote.id)) {
       setOpenNoteIds([newNote.id, ...openNoteIds]);
     }
-    setActiveNoteId(newNote.id);
+    setActiveContent({ type: 'note', id: newNote.id });
   };
 
   const [isClient, setIsClient] = React.useState(false);
@@ -124,6 +174,7 @@ export default function Home() {
         isLeftSidebarOpen={isLeftSidebarOpen}
         isRightSidebarOpen={isRightSidebarOpen}
         onNewNote={handleNewNote}
+        onNewWeb={handleNewWeb}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
@@ -134,7 +185,7 @@ export default function Home() {
               <NotesSidebar
                 notes={notes}
                 groups={groups}
-                activeNoteId={activeNoteId}
+                activeNoteId={activeNote?.id}
                 onNoteSelect={(id) => {
                   handleNoteSelect(id);
                   setIsLeftSidebarOpen(false); // Close sidebar on selection
@@ -155,7 +206,7 @@ export default function Home() {
             <NotesSidebar
               notes={notes}
               groups={groups}
-              activeNoteId={activeNoteId}
+              activeNoteId={activeNote?.id}
               onNoteSelect={handleNoteSelect}
               onStarNote={handleStarNote}
             />
@@ -163,31 +214,36 @@ export default function Home() {
         </aside>
 
         <main className="flex-1 flex overflow-hidden relative">
-           <VerticalNoteTabs 
-              notes={openNotes}
-              activeNoteId={activeNoteId}
+           <VerticalTabs
+              items={openTabs}
+              activeId={activeContent?.id}
               onTabSelect={handleTabSelect}
               onTabClose={handleTabClose}
            />
           <div className="flex-1 overflow-y-auto">
-            {activeNote ? (
+            {activeContent?.type === 'note' && activeNote ? (
               <Editor 
                 key={activeNote.id} 
                 note={activeNote} 
                 onNoteUpdate={handleNoteUpdate}
                 onIconChange={handleIconChange}
               />
+            ) : activeContent?.type === 'web' && activeWeb ? (
+              <WebviewPlaceholder key={activeWeb.id} url={activeWeb.url} />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <p className="text-lg">Select a note to start editing</p>
+                <p className="text-lg">Select an item to view</p>
                 <p>or</p>
-                <Button onClick={handleNewNote} className="mt-2">Create a new note</Button>
+                 <div className="flex gap-2">
+                    <Button onClick={handleNewNote} className="mt-2">Create a new note</Button>
+                    <Button onClick={handleNewWeb} className="mt-2">Open a new web tab</Button>
+                 </div>
               </div>
             )}
           </div>
         </main>
         
-        <div className="md:hidden">
+        <div className="md-hidden">
           <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
             <SheetContent side="right" className="p-0 w-80">
                <SheetTitle className="sr-only">AI Assistant Sidebar</SheetTitle>

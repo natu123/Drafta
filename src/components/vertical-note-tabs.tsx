@@ -4,17 +4,19 @@ import * as React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Note } from '@/lib/types';
+import type { Note, Web } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
-interface VerticalNoteTabsProps {
-  notes: Note[];
-  activeNoteId: string | null;
-  onTabSelect: (id: string) => void;
-  onTabClose: (id: string) => void;
+type TabItem = (Note | Web) & { type: 'note' | 'web' };
+
+interface VerticalTabsProps {
+  items: TabItem[];
+  activeId: string | null;
+  onTabSelect: (id: string, type: 'note' | 'web') => void;
+  onTabClose: (id: string, type: 'note' | 'web') => void;
 }
 
-const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId, onTabSelect, onTabClose }) => {
+const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const activeTabRef = React.useRef<HTMLButtonElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -23,11 +25,17 @@ const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId
     if (isExpanded && activeTabRef.current) {
       activeTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [activeNoteId, isExpanded]);
+  }, [activeId, isExpanded]);
 
-  if (notes.length === 0) {
+  if (items.length === 0) {
     return null;
   }
+
+  const getIcon = (item: TabItem) => {
+    if (item.type === 'note') return item.icon || '📝';
+    if (item.type === 'web') return item.icon || '🌐';
+    return '❓';
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -41,28 +49,28 @@ const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId
         )}
       >
         <div className="flex flex-col pt-2 overflow-y-auto h-full">
-          {notes.map(note => (
-            <Tooltip key={note.id} disableHoverableContent={isExpanded}>
+          {items.map(item => (
+            <Tooltip key={item.id} disableHoverableContent={isExpanded}>
               <TooltipTrigger asChild>
                 <button
-                  ref={note.id === activeNoteId ? activeTabRef : null}
-                  onClick={() => onTabSelect(note.id)}
+                  ref={item.id === activeId ? activeTabRef : null}
+                  onClick={() => onTabSelect(item.id, item.type)}
                   className={cn(
                     'flex items-center gap-2 w-full text-left p-2 rounded-none transition-colors text-sm shrink-0',
                     'hover:bg-secondary',
                     'justify-start',
-                    activeNoteId === note.id
+                    activeId === item.id
                       ? 'bg-primary/10'
                       : '',
                     isExpanded ? 'px-4' : 'px-3 justify-center'
                   )}
                 >
-                  <span className="text-xl shrink-0">{note.icon || '📝'}</span>
+                  <span className="text-xl shrink-0">{getIcon(item)}</span>
                   <span className={cn(
                     "truncate transition-opacity duration-200",
                     isExpanded ? 'opacity-100' : 'opacity-0'
                   )}>
-                    {note.title || 'Untitled Note'}
+                    {item.title || 'Untitled'}
                   </span>
                   
                   {isExpanded && (
@@ -72,7 +80,7 @@ const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId
                       className="h-6 w-6 rounded-full ml-auto shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onTabClose(note.id);
+                        onTabClose(item.id, item.type);
                       }}
                     >
                       <X className="w-4 h-4" />
@@ -82,7 +90,7 @@ const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId
               </TooltipTrigger>
               {!isExpanded && (
                  <TooltipContent side="right" sideOffset={5}>
-                   <p>{note.title || 'Untitled Note'}</p>
+                   <p>{item.title || 'Untitled'}</p>
                  </TooltipContent>
               )}
             </Tooltip>
@@ -93,4 +101,4 @@ const VerticalNoteTabs: React.FC<VerticalNoteTabsProps> = ({ notes, activeNoteId
   );
 };
 
-export default VerticalNoteTabs;
+export default VerticalTabs;

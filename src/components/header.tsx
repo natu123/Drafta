@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bot, FilePlus, PanelLeft } from 'lucide-react';
+import { Bot, FilePlus, PanelLeft, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -16,6 +16,7 @@ interface HeaderProps {
   isLeftSidebarOpen: boolean;
   isRightSidebarOpen: boolean;
   onNewNote: () => void;
+  onNewWeb: () => void;
   onOpenSettings: () => void;
 }
 
@@ -23,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   onToggleLeftSidebar,
   onToggleRightSidebar,
   onNewNote,
+  onNewWeb,
   onOpenSettings,
 }) => {
   return (
@@ -57,6 +59,18 @@ const Header: React.FC<HeaderProps> = ({
               <p>New Note</p>
             </TooltipContent>
           </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onNewWeb}>
+                <Globe className="h-5 w-5 text-accent" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>New Web</p>
+            </TooltipContent>
+          </Tooltip>
+
         </TooltipProvider>
       </div>
       <div className="flex items-center gap-2">
