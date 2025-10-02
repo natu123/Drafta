@@ -36,7 +36,7 @@ export default function Home() {
   const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([notes[0]?.id ?? 'note-1'].filter(Boolean));
   const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
   
-  const [activeContent, setActiveContent] = React.useState<ActiveContent>({ type: 'note', id: notes[0]?.id });
+  const [activeContent, setActiveContent] = React.useState<ActiveContent>(notes[0] ? { type: 'note', id: notes[0].id } : null);
   
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
   
@@ -103,19 +103,22 @@ export default function Home() {
   };
 
   const handleTabClose = (id: string, type: 'note' | 'web') => {
+    let newOpenTabs = [...openTabs];
+    let closingTabIndex = newOpenTabs.findIndex(tab => tab.id === id && tab.type === type);
+    
     if (type === 'note') {
-      const newOpenNoteIds = openNoteIds.filter(noteId => noteId !== id);
-      setOpenNoteIds(newOpenNoteIds);
-      if (activeContent?.id === id) {
-        const nextTab = openTabs.find(tab => tab.id !== id);
-        setActiveContent(nextTab ? {id: nextTab.id, type: nextTab.type} : null);
-      }
+      setOpenNoteIds(prev => prev.filter(noteId => noteId !== id));
     } else if (type === 'web') {
-      const newOpenWebIds = openWebIds.filter(webId => webId !== id);
-      setOpenWebIds(newOpenWebIds);
-      if (activeContent?.id === id) {
-        const nextTab = openTabs.find(tab => tab.id !== id);
-        setActiveContent(nextTab ? {id: nextTab.id, type: nextTab.type} : null);
+      setOpenWebIds(prev => prev.filter(webId => webId !== id));
+    }
+    
+    if (activeContent?.id === id && activeContent.type === type) {
+      newOpenTabs.splice(closingTabIndex, 1);
+      if (newOpenTabs.length > 0) {
+        const nextTab = newOpenTabs[closingTabIndex] || newOpenTabs[closingTabIndex - 1] || newOpenTabs[0];
+        setActiveContent({ id: nextTab.id, type: nextTab.type });
+      } else {
+        setActiveContent(null);
       }
     }
   };
@@ -184,7 +187,6 @@ export default function Home() {
             <SheetContent side="left" className="p-0 w-80">
               <NotesSidebar
                 notes={notes}
-                groups={groups}
                 activeNoteId={activeNote?.id}
                 onNoteSelect={(id) => {
                   handleNoteSelect(id);
@@ -205,7 +207,6 @@ export default function Home() {
           {isLeftSidebarOpen && (
             <NotesSidebar
               notes={notes}
-              groups={groups}
               activeNoteId={activeNote?.id}
               onNoteSelect={handleNoteSelect}
               onStarNote={handleStarNote}

@@ -45,6 +45,10 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, 
   const [isOpen, setIsOpen] = React.useState(isInitiallyOpen);
   const hasChildren = note.children && note.children.length > 0;
 
+  React.useEffect(() => {
+    setIsOpen(isInitiallyOpen);
+  }, [isInitiallyOpen]);
+
   return (
     <div>
       <button
@@ -108,17 +112,24 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
   const [searchTerm, setSearchTerm] = React.useState('');
 
   const noteTree = React.useMemo(() => {
-    const buildTree = (items: Note[], parentId?: string): Note[] => {
-      return items
-        .filter(item => item.parentId === parentId)
-        .map(item => ({
-          ...item,
-          children: buildTree(items, item.id),
-        }));
-    };
-    return buildTree(notes);
+    const items: Record<string, Note & { children: Note[] }> = {};
+    const roots: Note[] = [];
+
+    notes.forEach(note => {
+      items[note.id] = { ...note, children: [] };
+    });
+
+    notes.forEach(note => {
+      if (note.parentId && items[note.parentId]) {
+        items[note.parentId].children.push(items[note.id]);
+      } else {
+        roots.push(items[note.id]);
+      }
+    });
+
+    return roots;
   }, [notes]);
-  
+
   const filteredNotes = React.useMemo(() => {
     if (!searchTerm) return noteTree;
     
@@ -130,7 +141,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
         const children = node.children ? filterTree(node.children) : [];
         if (
           node.title.toLowerCase().includes(lowercasedFilter) ||
-          node.content.toLowerCase().includes(lowercasedFilter) ||
+          (node.content && node.content.toLowerCase().includes(lowercasedFilter)) ||
           children.length > 0
         ) {
           result.push({ ...node, children });
@@ -140,7 +151,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
     };
     
     return filterTree(noteTree);
-  }, [searchTerm, noteTree, notes]); // notes is needed here to re-filter when content changes
+  }, [searchTerm, noteTree]);
 
   return (
     <div className="flex flex-col h-full bg-secondary/30 border-r">
