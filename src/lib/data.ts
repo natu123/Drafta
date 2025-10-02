@@ -29,6 +29,7 @@ Let's build the future together!
     `,
     group: 'general',
     stars: 3,
+    isPinned: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     updatedAt: new Date().toISOString(),
   },

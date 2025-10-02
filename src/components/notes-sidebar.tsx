@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Star, Search, ChevronRight } from 'lucide-react';
+import { Star, Search, ChevronRight, Pin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { Note } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ interface NotesSidebarProps {
   activeNoteId: string | null;
   onNoteSelect: (id: string) => void;
   onStarNote: (id: string, stars: 1 | 2 | 3) => void;
+  onPinNote: (id: string) => void;
 }
 
 const StarRating = ({ noteId, rating, onStarNote }: { noteId: string; rating: Note['stars']; onStarNote: NotesSidebarProps['onStarNote'] }) => (
@@ -32,16 +33,26 @@ const StarRating = ({ noteId, rating, onStarNote }: { noteId: string; rating: No
   </div>
 );
 
+const PinButton = ({ noteId, isPinned, onPinNote }: { noteId: string; isPinned?: boolean; onPinNote: (id: string) => void }) => (
+    <button onClick={(e) => { e.stopPropagation(); onPinNote(noteId); }} className="p-1 hover:bg-secondary rounded-md">
+        <Pin className={cn(
+            'w-4 h-4 transition-colors',
+            isPinned ? 'text-accent fill-accent' : 'text-muted-foreground/50 hover:text-accent'
+        )} />
+    </button>
+);
+
 interface NoteTreeItemProps {
   note: Note;
   level: number;
   activeNoteId: string | null;
   onNoteSelect: (id: string) => void;
   onStarNote: (id: string, stars: 1 | 2 | 3) => void;
+  onPinNote: (id: string) => void;
   isInitiallyOpen?: boolean;
 }
 
-const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, onNoteSelect, onStarNote, isInitiallyOpen = false }) => {
+const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, onNoteSelect, onStarNote, onPinNote, isInitiallyOpen = false }) => {
   const [isOpen, setIsOpen] = React.useState(isInitiallyOpen);
   const hasChildren = note.children && note.children.length > 0;
 
@@ -79,7 +90,10 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, 
             </p>
           </div>
         </div>
-        <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
+        <div className="flex items-center gap-2">
+            <PinButton noteId={note.id} isPinned={note.isPinned} onPinNote={onPinNote} />
+            <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
+        </div>
       </button>
 
       {hasChildren && isOpen && (
@@ -93,6 +107,7 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, 
                 activeNoteId={activeNoteId}
                 onNoteSelect={onNoteSelect}
                 onStarNote={onStarNote}
+                onPinNote={onPinNote}
                 isInitiallyOpen={isInitiallyOpen}
                 />
             ))}
@@ -108,18 +123,25 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
   activeNoteId,
   onNoteSelect,
   onStarNote,
+  onPinNote,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
 
   const noteTree = React.useMemo(() => {
+    const sortedNotes = [...notes].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+
     const items: Record<string, Note & { children: Note[] }> = {};
     const roots: Note[] = [];
 
-    notes.forEach(note => {
+    sortedNotes.forEach(note => {
       items[note.id] = { ...note, children: [] };
     });
 
-    notes.forEach(note => {
+    sortedNotes.forEach(note => {
       if (note.parentId && items[note.parentId]) {
         items[note.parentId].children.push(items[note.id]);
       } else {
@@ -176,6 +198,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
               activeNoteId={activeNoteId}
               onNoteSelect={onNoteSelect}
               onStarNote={onStarNote}
+              onPinNote={onPinNote}
               isInitiallyOpen={!!searchTerm}
             />
           ))

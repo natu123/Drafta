@@ -182,6 +182,10 @@ export default function Home() {
     setNotes(notes.map(note => note.id === id ? { ...note, stars: (note.stars === stars ? 0 : stars) as Note['stars'] } : note));
   };
 
+  const handlePinNote = (id: string) => {
+    setNotes(notes.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note));
+  };
+
   const handleIconChange = (id: string, icon: string) => {
     if (activeContent?.type !== 'note') return;
     setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
@@ -226,6 +230,7 @@ export default function Home() {
                   setIsLeftSidebarOpen(false); // Close sidebar on selection
                 }}
                 onStarNote={handleStarNote}
+                onPinNote={handlePinNote}
               />
             </SheetContent>
           </Sheet>
@@ -243,6 +248,7 @@ export default function Home() {
               activeNoteId={activeNote?.id}
               onNoteSelect={handleNoteSelect}
               onStarNote={handleStarNote}
+              onPinNote={handlePinNote}
             />
           )}
         </aside>

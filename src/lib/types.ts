@@ -5,6 +5,7 @@ export type Note = {
   content: string;
   group: string;
   stars: 0 | 1 | 2 | 3;
+  isPinned?: boolean;
   createdAt: string;
   updatedAt: string;
   parentId?: string;
