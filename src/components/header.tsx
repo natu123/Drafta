@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>New note</p>
+              <p>New Note</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
