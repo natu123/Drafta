@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -14,7 +15,7 @@ import type { Note, Group, ChatMessage, Web } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import WebView from '@/components/webview';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -25,6 +26,7 @@ type ActiveContent = {
 } | null;
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
+type ViewMode = 'list' | 'grid';
 
 interface HomeSectionProps {
   title: string;
@@ -34,9 +36,11 @@ interface HomeSectionProps {
   itemType: 'note' | 'web';
   sortOption: SortOption;
   onSortChange: (sortOption: SortOption) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (viewMode: ViewMode) => void;
 }
 
-const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType, sortOption, onSortChange }) => {
+const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType, sortOption, onSortChange, viewMode, onViewModeChange }) => {
   return (
     <Card className="flex-1 flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -58,25 +62,44 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
               <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>Last Accessed</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-           <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+           <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => onViewModeChange('list')}>
               <List className="w-4 h-4" />
            </Button>
-           <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+           <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => onViewModeChange('grid')}>
               <LayoutGrid className="w-4 h-4" />
             </Button>
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-full">
-            <div className="p-2">
+            <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 gap-2')}>
               {items.map(item => (
-                <button 
-                  key={item.id} 
-                  onClick={() => onItemSelect(item.id, itemType)}
-                  className="w-full text-left p-2 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <span className="truncate">{item.title || 'Untitled'}</span>
-                </button>
+                viewMode === 'list' ? (
+                  <button 
+                    key={item.id} 
+                    onClick={() => onItemSelect(item.id, itemType)}
+                    className="w-full text-left p-2 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <span className="truncate">{item.title || 'Untitled'}</span>
+                  </button>
+                ) : (
+                  <Card key={item.id} onClick={() => onItemSelect(item.id, itemType)} className="cursor-pointer hover:bg-secondary transition-colors">
+                    <CardContent className="p-0">
+                      <div className="aspect-video relative w-full">
+                         {item.thumbnailUrl ? (
+                           <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover rounded-t-lg" />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center rounded-t-lg">
+                              <Icon className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-2">
+                       <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
+                    </CardFooter>
+                  </Card>
+                )
               ))}
             </div>
         </ScrollArea>
@@ -104,6 +127,8 @@ export default function Home() {
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
   const [webSort, setWebSort] = React.useState<SortOption>('manual');
+  const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
+  const [webViewMode, setWebViewMode] = React.useState<ViewMode>('list');
   
   const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
@@ -238,7 +263,12 @@ export default function Home() {
         return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
       case 'manual':
       default:
-        return notes;
+        // Pinned items first, then by updated date
+        return sorted.sort((a, b) => {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
     }
   }, [notes, noteSort]);
 
@@ -333,6 +363,8 @@ export default function Home() {
                     itemType="note"
                     sortOption={noteSort}
                     onSortChange={setNoteSort}
+                    viewMode={noteViewMode}
+                    onViewModeChange={setNoteViewMode}
                   />
                   <HomeSection 
                     title="Web" 
@@ -342,6 +374,8 @@ export default function Home() {
                     itemType="web"
                     sortOption={webSort}
                     onSortChange={setWebSort}
+                    viewMode={webViewMode}
+                    onViewModeChange={setWebViewMode}
                   />
                   <Card className="flex-1 flex flex-col">
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -394,3 +428,5 @@ export default function Home() {
     </>
   );
 }
+
+    
