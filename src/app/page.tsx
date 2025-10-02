@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Globe, Menu } from 'lucide-react';
+import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
@@ -13,6 +13,8 @@ import type { Note, Group, ChatMessage, Web } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type ActiveContent = {
   id: string;
@@ -27,6 +29,51 @@ const WebviewPlaceholder = ({ url }: { url: string }) => (
     <p className="text-sm mt-2">URL: <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline">{url}</a></p>
   </div>
 );
+
+type HomeSectionProps = {
+  title: string;
+  icon: React.ElementType;
+  items: (Note | Web)[];
+  onItemSelect: (id: string, type: 'note' | 'web') => void;
+  itemType: 'note' | 'web';
+};
+
+const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType }) => {
+  return (
+    <Card className="flex-1 flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Icon className="w-5 h-5 text-primary" />
+          <span>{title}</span>
+        </CardTitle>
+        <div className="flex items-center gap-1">
+           <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+              <List className="w-4 h-4" />
+           </Button>
+           <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 p-0">
+        <ScrollArea className="h-full">
+            <div className="p-2">
+              {items.map(item => (
+                <button 
+                  key={item.id} 
+                  onClick={() => onItemSelect(item.id, itemType)}
+                  className="w-full text-left p-2 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <span className="truncate">{item.title || 'Untitled'}</span>
+                </button>
+              ))}
+            </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  )
+};
+
 
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
@@ -97,6 +144,14 @@ export default function Home() {
       setOpenNoteIds([id, ...openNoteIds]);
     }
   };
+
+  const handleWebSelect = (id: string) => {
+    setActiveContent({ type: 'web', id });
+    if (!openWebIds.includes(id)) {
+      setOpenWebIds([id, ...openWebIds]);
+    }
+  };
+
 
   const handleTabSelect = (id: string, type: 'note' | 'web') => {
     setActiveContent({ type, id });
@@ -232,13 +287,30 @@ export default function Home() {
             ) : activeContent?.type === 'web' && activeWeb ? (
               <WebviewPlaceholder key={activeWeb.id} url={activeWeb.url} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <p className="text-lg">Select an item to view</p>
-                <p>or</p>
-                 <div className="flex gap-2">
-                    <Button onClick={handleNewNote} className="mt-2">Create a new note</Button>
-                    <Button onClick={handleNewWeb} className="mt-2">Open a new web tab</Button>
-                 </div>
+              <div className="p-4 md:p-8 h-full">
+                <div className="flex h-full gap-4">
+                  <HomeSection title="Notes" icon={Notebook} items={notes} onItemSelect={(id) => handleNoteSelect(id)} itemType="note" />
+                  <HomeSection title="Web" icon={Globe} items={webs} onItemSelect={(id) => handleWebSelect(id)} itemType="web" />
+                  <Card className="flex-1 flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                       <CardTitle className="text-lg flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-primary" />
+                        <span>Talks</span>
+                      </CardTitle>
+                       <div className="flex items-center gap-1">
+                         <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                            <List className="w-4 h-4" />
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                            <LayoutGrid className="w-4 h-4" />
+                          </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex items-center justify-center">
+                       <p className="text-sm text-muted-foreground">Talks feature coming soon.</p>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             )}
           </div>

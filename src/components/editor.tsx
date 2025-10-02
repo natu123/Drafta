@@ -3,13 +3,14 @@
 import * as React from 'react';
 import type { Note } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Undo, Redo, Smile } from 'lucide-react';
+import { Undo, Redo, Smile, Construction } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { useHistory } from '@/hooks/useHistory';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 interface EditorProps {
   note: Note;
@@ -17,153 +18,13 @@ interface EditorProps {
   onIconChange: (id: string, icon: string) => void;
 }
 
-const useDebounce = <T,>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-  return debouncedValue;
-};
-
-const textColors = [
-  { name: 'black', code: '#000000' },
-  { name: 'green', code: '#31D492' },
-  { name: 'blue', code: '#51A2FF' },
-  { name: 'purple', code: '#AD46FF' },
-  { name: 'pink', code: '#FF64FC' },
-  { name: 'rose', code: '#FF6467' },
-];
-
-const emojiSelection = ['⭐️', '🌈', '❣️', '🎵', '⚛', '🔥', '📝', '💡', '🚀', '🧠', '💼', '🏠'];
-
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
-  const [title, setTitle] = React.useState(note.title);
-  const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset: resetContentHistory } = useHistory(note.content);
-  const editorRef = React.useRef<HTMLDivElement>(null);
-
-  const debouncedTitle = useDebounce(title, 500);
-  const debouncedContent = useDebounce(content, 500);
-
-  React.useEffect(() => {
-    if (debouncedTitle !== note.title) {
-        onNoteUpdate({ title: debouncedTitle });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedTitle]);
-
-  React.useEffect(() => {
-    if (debouncedContent !== note.content) {
-        onNoteUpdate({ content: debouncedContent });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedContent]);
-  
-  React.useEffect(() => {
-    setTitle(note.title);
-    resetContentHistory(note.content);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note.id]);
-
-  React.useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== content) {
-      editorRef.current.innerHTML = content;
-    }
-  }, [content]);
-  
-  const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
-    setContent(e.currentTarget.innerHTML);
-  };
-  
-  const historyActions = [
-    { icon: Undo, tooltip: 'Undo', action: undo, disabled: !canUndo },
-    { icon: Redo, tooltip: 'Redo', action: redo, disabled: !canRedo },
-  ];
-
-  const applyColor = (colorCode: string) => {
-    document.execCommand('styleWithCSS', false, 'true');
-    document.execCommand('foreColor', false, colorCode);
-  };
-
   return (
-    <div className="p-4 md:p-8 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-2xl shrink-0">
-              {note.icon || <Smile className="w-5 h-5 text-muted-foreground" />}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2">
-            <div className="grid grid-cols-6 gap-1">
-              {emojiSelection.map(emoji => (
-                <Button 
-                  key={emoji}
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-xl"
-                  onClick={() => onIconChange(note.id, emoji)}
-                >
-                  {emoji}
-                </Button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="text-2xl md:text-3xl font-bold font-headline border-none shadow-none focus-visible:ring-0 p-0 h-auto"
-          placeholder="Note Title"
-        />
-      </div>
-      <div className="flex items-center gap-1 bg-muted p-1 rounded-md border-b pb-2 mb-4 flex-wrap">
-        <TooltipProvider>
-          <div className="flex items-center gap-1">
-            {historyActions.map((item, index) => (
-              <Tooltip key={index}>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={item.action} disabled={item.disabled}>
-                    <item.icon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{item.tooltip}</p></TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-          
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          <div className="flex items-center gap-1">
-            {textColors.map(color => (
-              <Tooltip key={color.name}>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => applyColor(color.code)}>
-                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color.code }} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{color.name}</p></TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
-      </div>
-
-      <div className="relative flex-1">
-        <div
-          ref={editorRef}
-          contentEditable
-          onInput={handleContentChange}
-          className={cn(
-            'absolute inset-0 z-10 overflow-auto w-full h-full p-0 m-0 text-base bg-transparent whitespace-pre-wrap break-words font-body outline-none'
-          )}
-          suppressContentEditableWarning={true}
-        />
-      </div>
+     <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+        <Construction className="w-16 h-16 mb-4 text-primary" />
+        <h2 className="text-2xl font-bold mb-2">Editor Under Construction</h2>
+        <p className="text-center">This feature is currently being developed and will be available soon.</p>
+        <p className="text-center mt-2">Thank you for your patience!</p>
     </div>
   );
 };
