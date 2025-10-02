@@ -63,10 +63,18 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       keyframes: {
-
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
       },
       animation: {
-
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
       typography: ({ theme }: { theme: (path: string) => string }) => ({
         DEFAULT: {
@@ -103,6 +111,17 @@ export default {
             '--tw-prose-invert-pre-bg': theme('colors.muted.DEFAULT'),
             '--tw-prose-invert-th-borders': theme('colors.border'),
             '--tw-prose-invert-td-borders': theme('colors.border'),
+            // Make the textarea blend in
+            'textarea': {
+              'backgroundColor': 'transparent',
+              'border': 'none',
+              'padding': '0',
+              'margin': '0',
+              '&:focus': {
+                'outline': 'none',
+                'box-shadow': 'none',
+              }
+            }
           },
         },
       }),
