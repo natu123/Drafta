@@ -196,10 +196,6 @@ export default function Home() {
     setChatMessages(prev => [...prev, newMessage]);
   };
   
-  const handleEditChatMessage = (id: string, content: string) => {
-    setChatMessages(prev => prev.map(msg => msg.id === id ? { ...msg, content } : msg));
-  };
-
   const [isClient, setIsClient] = React.useState(false);
   React.useEffect(() => {
     setIsClient(true);
@@ -324,3 +320,5 @@ export default function Home() {
     </>
   );
 }
+
+    
