@@ -38,3 +38,11 @@ export type ChatMessage = {
   content: string;
   timestamp: string;
 };
+
+export type HistoryItem = {
+  id: string;
+  type: 'note' | 'web';
+  title: string;
+  icon?: string;
+  accessedAt: string;
+}

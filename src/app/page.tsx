@@ -11,7 +11,7 @@ import NotesSidebar from '@/components/notes-sidebar';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import TalkView from '@/components/talk-view';
-import type { Note, Group, ChatMessage, Web } from '@/lib/types';
+import type { Note, Group, ChatMessage, Web, HistoryItem } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
@@ -129,6 +129,7 @@ export default function Home() {
   const [webSort, setWebSort] = React.useState<SortOption>('manual');
   const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
   const [webViewMode, setWebViewMode] = React.useState<ViewMode>('list');
+  const [history, setHistory] = React.useState<HistoryItem[]>([]);
   
   const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
@@ -137,6 +138,21 @@ export default function Home() {
     ...openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note).map(note => ({ ...note, type: 'note' as const })),
     ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const }))
   ];
+
+  const addToHistory = (item: Note | Web, type: 'note' | 'web') => {
+    setHistory(prev => {
+      const newHistory: HistoryItem = {
+        id: item.id,
+        type: type,
+        title: item.title,
+        icon: item.icon,
+        accessedAt: new Date().toISOString(),
+      };
+      // Remove previous entries of the same item and add the new one to the top.
+      const filtered = prev.filter(h => h.id !== item.id);
+      return [newHistory, ...filtered].slice(0, 15); // Limit history size
+    });
+  };
 
   const handleNoteUpdate = (updatedNote: Partial<Note>) => {
     if (activeContent?.type !== 'note') return;
@@ -160,6 +176,7 @@ export default function Home() {
       setOpenNoteIds([newNote.id, ...openNoteIds]);
     }
     setActiveContent({ type: 'note', id: newNote.id });
+    addToHistory(newNote, 'note');
   };
   
   const handleNewWeb = () => {
@@ -177,29 +194,54 @@ export default function Home() {
       setOpenWebIds([newWeb.id, ...openWebIds]);
     }
     setActiveContent({ type: 'web', id: newWeb.id });
+    addToHistory(newWeb, 'web');
   };
 
   const handleNoteSelect = (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+
     setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
     setActiveContent({ type: 'note', id });
     if (!openNoteIds.includes(id)) {
       setOpenNoteIds([id, ...openNoteIds]);
     }
+    addToHistory(note, 'note');
   };
 
   const handleWebSelect = (id: string) => {
+    const web = webs.find(w => w.id === id);
+    if (!web) return;
+
     setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
     setActiveContent({ type: 'web', id });
     if (!openWebIds.includes(id)) {
       setOpenWebIds([id, ...openWebIds]);
     }
+    addToHistory(web, 'web');
+  };
+  
+  const handleHistorySelect = (id: string, type: 'note' | 'web') => {
+    if (type === 'note') {
+      handleNoteSelect(id);
+    } else {
+      handleWebSelect(id);
+    }
   };
 
   const handleTabSelect = (id: string, type: 'note' | 'web') => {
     if (type === 'note') {
-      setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
+      const note = notes.find(n => n.id === id);
+      if (note) {
+        setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
+        addToHistory(note, 'note');
+      }
     } else {
-      setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
+       const web = webs.find(w => w.id === id);
+       if (web) {
+        setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
+        addToHistory(web, 'web');
+      }
     }
     setActiveContent({ type, id });
   };
@@ -298,6 +340,8 @@ export default function Home() {
         onNewNote={handleNewNote}
         onNewWeb={handleNewWeb}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        history={history}
+        onHistorySelect={handleHistorySelect}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -428,5 +472,3 @@ export default function Home() {
     </>
   );
 }
-
-    
