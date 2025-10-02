@@ -10,11 +10,14 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface TalkViewProps {
   chatMessages: ChatMessage[];
   onAddChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
 }
+
+const aiModels = ["Auto (Optimal)", "Perplexity", "ChatGPT", "Gemini"];
 
 const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) => {
   const [chatInput, setChatInput] = React.useState('');
@@ -22,6 +25,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
   const [isVoiceMode, setIsVoiceMode] = React.useState(false);
   const [stream, setStream] = React.useState<MediaStream | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = React.useState(aiModels[0]);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -94,15 +98,29 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
 
     // Mock AI response
     setTimeout(() => {
-      onAddChatMessage({ author: 'ai', content: "I'm a demo assistant! I can't process that, but you can use the tools below." });
+      const operator = selectedModel === "Auto (Optimal)" ? "Gemini" : selectedModel;
+      const responseContent = `[${operator}] I'm a demo assistant! I can't process that, but you can use the tools below.`;
+      onAddChatMessage({ author: 'ai', content: responseContent });
     }, 1000);
   };
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-4 border-b">
-        <Bot className="h-6 w-6 text-primary" />
-        <h2 className="text-lg font-bold font-headline">Prōla Talk</h2>
+      <div className="flex items-center justify-between gap-2 p-4 border-b">
+        <div className="flex items-center gap-2">
+            <Bot className="h-6 w-6 text-primary" />
+            <h2 className="text-lg font-bold font-headline">Prōla Talk</h2>
+        </div>
+        <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="w-[180px] h-9 text-sm">
+                <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent>
+                {aiModels.map(model => (
+                    <SelectItem key={model} value={model}>{model}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
       </div>
 
        {isSharing && (
@@ -110,7 +128,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
           <video ref={videoRef} autoPlay muted className="w-full rounded-md bg-black" />
            <div className="absolute top-6 right-6">
             <Button size="sm" variant="destructive" onClick={() => handleStopSharing()}>
-              <ScreenShareOff className="mr-2" />
+              <ScreenShareOff className="mr-2 h-4 w-4" />
               Stop Sharing
             </Button>
           </div>
