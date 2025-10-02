@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare } from 'lucide-react';
+import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
@@ -17,21 +17,26 @@ import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import WebView from '@/components/webview';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type ActiveContent = {
   id: string;
   type: 'note' | 'web';
 } | null;
 
-const HomeSectionProps = {
-  title: '',
-  icon: Notebook,
-  items: [] as (Note | Web)[],
-  onItemSelect: (id: string, type: 'note' | 'web') => {},
-  itemType: 'note' as 'note' | 'web',
-};
+type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
 
-const HomeSection: React.FC<typeof HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType }) => {
+interface HomeSectionProps {
+  title: string;
+  icon: React.ElementType;
+  items: (Note | Web)[];
+  onItemSelect: (id: string, type: 'note' | 'web') => void;
+  itemType: 'note' | 'web';
+  sortOption: SortOption;
+  onSortChange: (sortOption: SortOption) => void;
+}
+
+const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType, sortOption, onSortChange }) => {
   return (
     <Card className="flex-1 flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -40,6 +45,19 @@ const HomeSection: React.FC<typeof HomeSectionProps> = ({ title, icon: Icon, ite
           <span>{title}</span>
         </CardTitle>
         <div className="flex items-center gap-1">
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <ArrowDownUp className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onSelect={() => onSortChange('manual')}>Manual</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSortChange('newest')}>Newest First</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSortChange('oldest')}>Oldest First</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>Last Accessed</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
            <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
               <List className="w-4 h-4" />
            </Button>
@@ -83,6 +101,9 @@ export default function Home() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+
+  const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
+  const [webSort, setWebSort] = React.useState<SortOption>('manual');
   
   const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
@@ -107,6 +128,7 @@ export default function Home() {
       stars: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      lastAccessedAt: new Date().toISOString(),
     };
     setNotes([newNote, ...notes]);
     if (!openNoteIds.includes(newNote.id)) {
@@ -123,6 +145,7 @@ export default function Home() {
       icon: '🌐',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      lastAccessedAt: new Date().toISOString(),
     };
     setWebs([newWeb, ...webs]);
     if (!openWebIds.includes(newWeb.id)) {
@@ -132,6 +155,7 @@ export default function Home() {
   };
 
   const handleNoteSelect = (id: string) => {
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
     setActiveContent({ type: 'note', id });
     if (!openNoteIds.includes(id)) {
       setOpenNoteIds([id, ...openNoteIds]);
@@ -139,14 +163,19 @@ export default function Home() {
   };
 
   const handleWebSelect = (id: string) => {
+    setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
     setActiveContent({ type: 'web', id });
     if (!openWebIds.includes(id)) {
       setOpenWebIds([id, ...openWebIds]);
     }
   };
 
-
   const handleTabSelect = (id: string, type: 'note' | 'web') => {
+    if (type === 'note') {
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
+    } else {
+      setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
+    }
     setActiveContent({ type, id });
   };
 
@@ -197,6 +226,36 @@ export default function Home() {
   React.useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const sortedNotes = React.useMemo(() => {
+    const sorted = [...notes];
+    switch (noteSort) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case 'last-accessed':
+        return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
+      case 'manual':
+      default:
+        return notes;
+    }
+  }, [notes, noteSort]);
+
+  const sortedWebs = React.useMemo(() => {
+    const sorted = [...webs];
+    switch (webSort) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case 'last-accessed':
+        return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
+      case 'manual':
+      default:
+        return webs;
+    }
+  }, [webs, webSort]);
 
   return (
     <>
@@ -266,8 +325,24 @@ export default function Home() {
             ) : (
               <div className="p-4 md:p-8 h-full">
                 <div className="flex h-full gap-4">
-                  <HomeSection title="Notes" icon={Notebook} items={notes} onItemSelect={(id) => handleNoteSelect(id)} itemType="note" />
-                  <HomeSection title="Web" icon={Globe} items={webs} onItemSelect={(id) => handleWebSelect(id)} itemType="web" />
+                  <HomeSection 
+                    title="Notes" 
+                    icon={Notebook} 
+                    items={sortedNotes} 
+                    onItemSelect={(id) => handleNoteSelect(id)} 
+                    itemType="note"
+                    sortOption={noteSort}
+                    onSortChange={setNoteSort}
+                  />
+                  <HomeSection 
+                    title="Web" 
+                    icon={Globe} 
+                    items={sortedWebs} 
+                    onItemSelect={(id) => handleWebSelect(id)} 
+                    itemType="web"
+                    sortOption={webSort}
+                    onSortChange={setWebSort}
+                  />
                   <Card className="flex-1 flex flex-col">
                     <CardHeader className="flex flex-row items-center justify-between">
                        <CardTitle className="text-lg flex items-center gap-2">

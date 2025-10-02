@@ -8,6 +8,7 @@ export type Note = {
   isPinned?: boolean;
   createdAt: string;
   updatedAt: string;
+  lastAccessedAt?: string;
   parentId?: string;
   children?: Note[];
 };
@@ -19,6 +20,7 @@ export type Web = {
   icon?: string;
   createdAt: string;
   updatedAt: string;
+  lastAccessedAt?: string;
   parentId?: string;
   children?: Web[];
 }

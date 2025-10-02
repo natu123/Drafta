@@ -32,6 +32,7 @@ Let's build the future together!
     isPinned: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     updatedAt: new Date().toISOString(),
+    lastAccessedAt: new Date().toISOString(),
   },
   {
     id: 'note-2',
@@ -71,6 +72,7 @@ function hello() {
     stars: 2,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     parentId: 'note-1',
   },
   {
@@ -82,6 +84,7 @@ function hello() {
     stars: 1,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
   },
   {
     id: 'note-4',
@@ -92,6 +95,7 @@ function hello() {
     stars: 0,
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
   },
     {
     id: 'note-5',
@@ -102,6 +106,7 @@ function hello() {
     stars: 0,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
     parentId: 'note-3',
   },
 ];
