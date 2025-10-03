@@ -30,7 +30,7 @@ const colors = [
   { name: 'Blue', value: '#51A2FF' },
   { name: 'Purple', value: '#AD46FF' },
   { name: 'Rose', value: '#FF6467' },
-  { name: 'Gold', value: '#FFB93B' },
+  { name: 'Orange', value: '#C49547' },
 ];
 
 const extensions = [
