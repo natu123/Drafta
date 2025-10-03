@@ -419,9 +419,15 @@ export default function Home() {
       case 'manual':
       default:
         const itemMap = new Map(items.map(item => [item.id, item]));
-        return openTabsForType
-            .map(tab => itemMap.get(tab.id))
-            .filter((item): item is T => !!item);
+        const orderedItems = openTabsForType
+          .map(tab => itemMap.get(tab.id))
+          .filter((item): item is T => !!item);
+        
+        // Add items that are in `items` but not in `openTabsForType` to the end
+        const openTabIds = new Set(openTabsForType.map(t => t.id));
+        const remainingItems = items.filter(item => !openTabIds.has(item.id));
+        
+        return [...orderedItems, ...remainingItems];
     }
   };
 
@@ -549,6 +555,8 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
 
