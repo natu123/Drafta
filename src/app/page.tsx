@@ -295,7 +295,15 @@ export default function Home() {
   
   const handleQuoteNote = (noteContent: string) => {
     const quoteText = `> **Note: ${activeNote?.title || 'Untitled'}**:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
-    setChatInput(prev => quoteText + prev);
+    setChatInput(prev => (currentInput: string, textarea: HTMLTextAreaElement | null) => {
+        if (textarea) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            return currentInput.slice(0, start) + quoteText + currentInput.slice(end);
+        }
+        return prev + quoteText;
+    });
+
     if (!openSpecialTabs.includes('talk')) {
         setOpenSpecialTabs(prev => [...prev, 'talk']);
     }
@@ -473,5 +481,7 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
