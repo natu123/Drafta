@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { emojis } from './tiptap-editor';
+import { Input } from './ui/input';
 
 
 type ChatInputState = string | ((prev: string) => string) | ((prev: string) => { text: string, currentInput: string });
@@ -26,16 +27,19 @@ interface TalkViewProps {
   chatInput: ChatInputState;
   setChatInput: (value: ChatInputState) => void;
   onIconChange: (id: string, icon: string) => void;
+  onTitleChange: (id: string, title: string) => void;
 }
 
 const aiModels = ["Auto (Optimal)", "Perplexity", "ChatGPT", "Gemini"];
 
-const TalkView: React.FC<TalkViewProps> = ({ talk, onAddChatMessage, chatInput, setChatInput, onIconChange }) => {
+const TalkView: React.FC<TalkViewProps> = ({ talk, onAddChatMessage, chatInput, setChatInput, onIconChange, onTitleChange }) => {
   const [isSharing, setIsSharing] = React.useState(false);
   const [isVoiceMode, setIsVoiceMode] = React.useState(false);
   const [stream, setStream] = React.useState<MediaStream | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedModel, setSelectedModel] = React.useState(aiModels[0]);
+  const [title, setTitle] = React.useState(talk.title);
+
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -185,10 +189,25 @@ const TalkView: React.FC<TalkViewProps> = ({ talk, onAddChatMessage, chatInput, 
     setChatInput(e.target.value);
   }
 
+  const handleTitleBlur = () => {
+    if (title !== talk.title) {
+        onTitleChange(talk.id, title);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        handleTitleBlur();
+        e.currentTarget.blur();
+    }
+  };
+
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between gap-2 p-4 border-b">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
             <Popover>
               <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0">
@@ -211,7 +230,13 @@ const TalkView: React.FC<TalkViewProps> = ({ talk, onAddChatMessage, chatInput, 
                   </div>
               </PopoverContent>
           </Popover>
-            <h2 className="text-lg font-bold font-headline">{talk.title}</h2>
+          <Input 
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            className="text-lg font-bold font-headline border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
+          />
         </div>
         <div className="flex items-center gap-2">
         <Select value={selectedModel} onValueChange={setSelectedModel}>

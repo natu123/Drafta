@@ -336,6 +336,13 @@ export default function Home() {
     }
   };
 
+  const handleTitleChange = (id: string, title: string, type: 'note' | 'web' | 'talk') => {
+    if (type === 'talk') {
+      setTalks(talks.map(talk => talk.id === id ? { ...talk, title } : talk));
+    }
+    // Add similar logic for 'note' and 'web' if needed
+  };
+
   const handleAddChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     if (activeContent?.type !== 'talk') return;
 
@@ -504,6 +511,7 @@ export default function Home() {
             chatInput={chatInput}
             setChatInput={setChatInput}
             onIconChange={(id, icon) => handleIconChange(id, icon, 'talk')}
+            onTitleChange={(id, title) => handleTitleChange(id, title, 'talk')}
           />
         ) : null;
       default:
