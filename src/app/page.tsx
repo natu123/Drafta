@@ -38,7 +38,7 @@ interface HomeSectionProps {
 
 const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType, sortOption, onSortChange, viewMode, onViewModeChange }) => {
   return (
-    <Card className="flex-1 flex flex-col">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <Icon className="w-5 h-5 text-primary" />
@@ -315,22 +315,33 @@ export default function Home() {
   
   const handleReorderTabs = (reorderedTabs: OpenTab[]) => {
     setOpenTabs(reorderedTabs);
-    const reorderedNotes = reorderedTabs
-        .filter(t => t.type === 'note')
-        .map(t => notes.find(n => n.id === t.id))
-        .filter((n): n is Note => !!n);
-    const reorderedWebs = reorderedTabs
-        .filter(t => t.type === 'web')
-        .map(t => webs.find(w => w.id === t.id))
-        .filter((w): w is Web => !!w);
-    const reorderedTalks = reorderedTabs
-        .filter(t => t.type === 'talk')
-        .map(t => talks.find(t => t.id === t.id))
-        .filter((t): t is Talk => !!t);
 
-    setNotes(prev => [...reorderedNotes, ...prev.filter(n => !reorderedNotes.find(rn => rn.id === n.id))]);
-    setWebs(prev => [...reorderedWebs, ...prev.filter(w => !reorderedWebs.find(rw => rw.id === w.id))]);
-    setTalks(prev => [...reorderedTalks, ...prev.filter(t => !reorderedTalks.find(rt => rt.id === t.id))]);
+    const reorderedNoteIds = reorderedTabs.filter(t => t.type === 'note').map(t => t.id);
+    if(reorderedNoteIds.length > 0) {
+      setNoteSort('manual');
+      setNotes(prev => {
+          const noteMap = new Map(prev.map(n => [n.id, n]));
+          return reorderedNoteIds.map(id => noteMap.get(id)).filter((n): n is Note => !!n);
+      });
+    }
+
+    const reorderedWebIds = reorderedTabs.filter(t => t.type === 'web').map(t => t.id);
+    if (reorderedWebIds.length > 0) {
+        setWebSort('manual');
+        setWebs(prev => {
+            const webMap = new Map(prev.map(w => [w.id, w]));
+            return reorderedWebIds.map(id => webMap.get(id)).filter((w): w is Web => !!w);
+        });
+    }
+
+    const reorderedTalkIds = reorderedTabs.filter(t => t.type === 'talk').map(t => t.id);
+    if (reorderedTalkIds.length > 0) {
+        setTalkSort('manual');
+        setTalks(prev => {
+            const talkMap = new Map(prev.map(t => [t.id, t]));
+            return reorderedTalkIds.map(id => talkMap.get(id)).filter((t): t is Talk => !!t);
+        });
+    }
   };
 
   const handleStarNote = (id: string, stars: number) => {
@@ -408,6 +419,7 @@ export default function Home() {
   const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: string; lastAccessedAt?: string }>(
     items: T[], 
     sortOption: SortOption, 
+    openTabsForType: OpenTab[]
   ): T[] => {
     
     switch (sortOption) {
@@ -419,13 +431,16 @@ export default function Home() {
         return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
       case 'manual':
       default:
-        return items;
+        const itemMap = new Map(items.map(item => [item.id, item]));
+        return openTabsForType
+            .map(tab => itemMap.get(tab.id))
+            .filter((item): item is T => !!item);
     }
   };
 
-  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort), [notes, noteSort]);
-  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort), [webs, webSort]);
-  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort), [talks, talkSort]);
+  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note')), [notes, noteSort, openTabs]);
+  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, openTabs.filter(t => t.type === 'web')), [webs, webSort, openTabs]);
+  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, openTabs.filter(t => t.type === 'talk')), [talks, talkSort, openTabs]);
 
 
   const isScreenTabActive = activeContent?.type === 'notes';
@@ -547,7 +562,5 @@ export default function Home() {
     </>
   );
 }
-
-    
 
     
