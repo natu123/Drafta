@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { Bot, FilePlus, PanelLeft, Globe, History, Settings } from 'lucide-react';
+import { Bot, FilePlus, PanelLeftOpen, PanelLeftClose, Globe, History, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -89,6 +89,8 @@ interface HeaderProps {
   onOpenSettings: () => void;
   history: HistoryItem[];
   onHistorySelect: (id: string, type: 'note' | 'web' | 'talk') => void;
+  isTabBarVisible: boolean;
+  onToggleTabBar: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -99,6 +101,8 @@ const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   history,
   onHistorySelect,
+  isTabBarVisible,
+  onToggleTabBar,
 }) => {
   return (
     <header className="flex items-center justify-between h-14 px-4 border-b bg-background z-10">
@@ -111,14 +115,14 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onOpenNotes}
+                onClick={onToggleTabBar}
                 className="hidden md:flex"
               >
-                <PanelLeft className="h-5 w-5" />
+                {isTabBarVisible ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Screen Tab</p>
+              <p>{isTabBarVisible ? 'Display Tab' : 'Tab Bar'}</p>
             </TooltipContent>
           </Tooltip>
           
