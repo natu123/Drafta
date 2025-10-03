@@ -24,6 +24,34 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
 type ViewMode = 'list' | 'grid';
 
+const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: string; lastAccessedAt?: string }>(
+  items: T[], 
+  sortOption: SortOption, 
+  openTabsForType: OpenTab[]
+): T[] => {
+  switch (sortOption) {
+    case 'newest':
+      return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    case 'oldest':
+      return [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    case 'last-accessed':
+      return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
+    case 'manual':
+    default:
+      const itemMap = new Map(items.map(item => [item.id, item]));
+      
+      const orderedItems = openTabsForType
+        .map(tab => itemMap.get(tab.id))
+        .filter((item): item is T => !!item);
+      
+      const openTabIds = new Set(openTabsForType.map(t => t.id));
+      const remainingItems = items.filter(item => !openTabIds.has(item.id));
+      
+      return [...orderedItems, ...remainingItems];
+  }
+};
+
+
 interface HomeSectionProps {
   title: string;
   icon: React.ElementType;
@@ -136,21 +164,21 @@ export default function Home() {
   const activeTalk = activeContent?.type === 'talk' ? talks.find((talk) => talk.id === activeContent.id) ?? null : null;
 
   const openTabDetails = React.useMemo(() => {
-    return openTabs.map(tab => {
-        if (tab.type === 'note') {
-            const note = notes.find(n => n.id === tab.id);
-            return note ? { ...note, type: 'note' as const } : null;
-        }
-        if (tab.type === 'web') {
-            const web = webs.find(w => w.id === tab.id);
-            return web ? { ...web, type: 'web' as const } : null;
-        }
-        if (tab.type === 'talk') {
-            const talk = talks.find(t => t.id === tab.id);
-            return talk ? { ...talk, type: 'talk' as const } : null;
-        }
-        return null;
-    }).filter((item): item is (Note & {type: 'note'}) | (Web & {type: 'web'}) | (Talk & {type: 'talk'}) => !!item);
+    const itemMap = new Map([
+        ...notes.map(item => [item.id, {...item, type: 'note' as const}]),
+        ...webs.map(item => [item.id, {...item, type: 'web' as const}]),
+        ...talks.map(item => [item.id, {...item, type: 'talk' as const}]),
+    ]);
+
+    return openTabs
+        .map(tab => {
+            const item = itemMap.get(tab.id);
+            if (item && item.type === tab.type) {
+                return item;
+            }
+            return null;
+        })
+        .filter((item): item is (Note & {type: 'note'}) | (Web & {type: 'web'}) | (Talk & {type: 'talk'}) => !!item);
   }, [openTabs, notes, webs, talks]);
 
   const addToHistory = (item: Note | Web | Talk, type: 'note' | 'web' | 'talk') => {
@@ -404,33 +432,6 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: string; lastAccessedAt?: string }>(
-    items: T[], 
-    sortOption: SortOption, 
-    openTabsForType: OpenTab[]
-  ): T[] => {
-    switch (sortOption) {
-      case 'newest':
-        return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case 'oldest':
-        return [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      case 'last-accessed':
-        return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
-      case 'manual':
-      default:
-        const itemMap = new Map(items.map(item => [item.id, item]));
-        
-        const orderedItems = openTabsForType
-          .map(tab => itemMap.get(tab.id))
-          .filter((item): item is T => !!item);
-        
-        const openTabIds = new Set(openTabsForType.map(t => t.id));
-        const remainingItems = items.filter(item => !openTabIds.has(item.id));
-        
-        return [...orderedItems, ...remainingItems];
-    }
-  };
-
   const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note')), [notes, noteSort, openTabs]);
   const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, openTabs.filter(t => t.type === 'web')), [webs, webSort, openTabs]);
   const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, openTabs.filter(t => t.type === 'talk')), [talks, talkSort, openTabs]);
@@ -555,11 +556,3 @@ export default function Home() {
     </>
   );
 }
-
-    
-
-    
-
-    
-
-    
