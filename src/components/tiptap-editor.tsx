@@ -41,10 +41,10 @@ const extensions = [
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
-      if (node.type.name === 'heading' && node.parent.firstChild === node) {
+      if (node.type.name === 'heading' && node.parent && node.parent.firstChild === node) {
         return 'Untitled Note';
       }
-      if (node.type.name === 'paragraph' && !node.content.size && node.parent.childCount <= 1) {
+      if (node.type.name === 'paragraph' && node.parent && !node.content.size && node.parent.childCount <= 1) {
          return 'Start writing your note here...';
       }
       return '';
@@ -209,3 +209,5 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
 };
 
 export default TiptapEditor;
+
+    
