@@ -528,12 +528,14 @@ export default function Home() {
 
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex overflow-hidden relative">
-           <VerticalTabs
-              items={openTabs}
-              activeId={activeContent?.id}
-              onTabSelect={handleTabSelect}
-              onTabClose={handleTabClose}
-           />
+          {activeContent?.type !== 'notes' && (
+            <VerticalTabs
+                items={openTabs}
+                activeId={activeContent?.id}
+                onTabSelect={handleTabSelect}
+                onTabClose={handleTabClose}
+            />
+          )}
           <div className="flex-1 overflow-y-auto">
             {renderContent()}
           </div>

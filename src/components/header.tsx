@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { Bot, FilePlus, PanelLeft, Globe, History, Settings, Notebook } from 'lucide-react';
+import { Bot, FilePlus, PanelLeft, Globe, History, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -114,11 +114,11 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenNotes}
                 className="hidden md:flex"
               >
-                <Notebook className="h-5 w-5" />
+                <PanelLeft className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Note List</p>
+              <p>Screen Tab</p>
             </TooltipContent>
           </Tooltip>
           
