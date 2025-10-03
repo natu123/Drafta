@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'Prōla',
-  description: 'A revolutionary I/O application integrating notes, a web browser, and a conversational AI.',
+  description: '“All your ideas, one seamless hub.”',
 };
 
 export default function RootLayout({
