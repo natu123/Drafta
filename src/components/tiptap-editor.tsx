@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, generateHTML } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -33,29 +33,31 @@ const colors = [
   { name: 'Gold', value: '#FFB93B' },
 ];
 
+const extensions = [
+  StarterKit.configure({
+    heading: {
+      levels: [1, 2, 3],
+    },
+  }),
+  Placeholder.configure({
+    placeholder: ({ node }) => {
+      if (node.type.name === 'heading' && node.parent.firstChild === node) {
+        return 'Untitled Note';
+      }
+      if (node.type.name === 'paragraph' && !node.content.size && node.parent.childCount <= 1) {
+         return 'Start writing your note here...';
+      }
+      return '';
+    },
+  }),
+  TextStyle,
+  Color,
+];
+
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdate, onQuote, onIconChange, noteIcon }) => {
 
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-      Placeholder.configure({
-        placeholder: ({ node }) => {
-          if (node.type.name === 'heading' && node.parent.firstChild === node) {
-            return 'Untitled Note';
-          }
-          if (node.type.name === 'paragraph' && node.parent.childCount === 1) {
-             return 'Start writing your note here...';
-          }
-          return '';
-        },
-      }),
-      TextStyle,
-      Color,
-    ],
+    extensions,
     // Combine title and content for the editor
     content: `<h1>${title}</h1>${content}`,
     onBlur: ({ editor }) => {
@@ -74,7 +76,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
           
           const contentNodes = editorContent.slice(titleNodeIndex + 1);
           if (contentNodes.length > 0) {
-            newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+            newContent = generateHTML({ type: 'doc', content: contentNodes }, extensions);
           }
         } else if (editorContent.length > 0) {
           // Fallback if no h1 is found, treat first block as title
@@ -82,7 +84,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
           newTitle = firstNode.content?.map(c => c.text).join('') || '';
           const contentNodes = editorContent.slice(1);
           if (contentNodes.length > 0) {
-            newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+            newContent = generateHTML({ type: 'doc', content: contentNodes }, extensions);
           }
         }
       }
