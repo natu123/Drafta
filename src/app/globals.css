@@ -115,7 +115,7 @@
   }
 
 
-  .ProseMirror h1:first-of-type::before {
+  .ProseMirror h1.is-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
     color: hsl(var(--muted-foreground));

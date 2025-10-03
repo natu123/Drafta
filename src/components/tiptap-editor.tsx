@@ -44,10 +44,13 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
       }),
       Placeholder.configure({
         placeholder: ({ node }) => {
-          if (node.type.name === 'heading' && node.parent?.isFirstChild) {
+          if (node.type.name === 'heading' && node.parent.firstChild === node) {
             return 'Untitled Note';
           }
-          return 'Start writing your note here...';
+          if (node.type.name === 'paragraph' && node.parent.childCount === 1) {
+             return 'Start writing your note here...';
+          }
+          return '';
         },
       }),
       TextStyle,
@@ -56,7 +59,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
     // Combine title and content for the editor
     content: `<h1>${title}</h1>${content}`,
     onBlur: ({ editor }) => {
-      const editorContent = editor.getJSON().content;
+      const editorContentJSON = editor.getJSON();
+      const editorContent = editorContentJSON.content;
       
       let newTitle = '';
       let newContent = '';
@@ -67,13 +71,19 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
         if (titleNodeIndex !== -1) {
           const titleNode = editorContent[titleNodeIndex];
           newTitle = titleNode.content?.map(c => c.text).join('') || '';
+          
           const contentNodes = editorContent.slice(titleNodeIndex + 1);
-          newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
-        } else {
+          if (contentNodes.length > 0) {
+            newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+          }
+        } else if (editorContent.length > 0) {
+          // Fallback if no h1 is found, treat first block as title
           const firstNode = editorContent[0];
           newTitle = firstNode.content?.map(c => c.text).join('') || '';
           const contentNodes = editorContent.slice(1);
-          newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+          if (contentNodes.length > 0) {
+            newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+          }
         }
       }
       
