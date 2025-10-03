@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
+import { Textarea } from './ui/textarea';
 
 interface TiptapEditorProps {
   title: string;
@@ -35,10 +36,14 @@ const colors = [
 ];
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChange, onContentChange, onQuote, onIconChange, noteIcon }) => {
-  const [currentTitle, setCurrentTitle] = React.useState(title);
+  const titleTextareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
-    setCurrentTitle(title);
+    // Adjust textarea height on title change
+    if (titleTextareaRef.current) {
+      titleTextareaRef.current.style.height = 'auto';
+      titleTextareaRef.current.style.height = `${titleTextareaRef.current.scrollHeight}px`;
+    }
   }, [title]);
 
   const editor = useEditor({
@@ -60,18 +65,16 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-neutral dark:prose-invert max-w-none focus:outline-none p-8 flex-1',
+        class: 'prose dark:prose-invert max-w-none focus:outline-none p-8 flex-1',
       },
     },
   });
 
-  const handleTitleBlur = () => {
-    if(currentTitle !== title) {
-        onTitleChange(currentTitle);
-    }
+  const handleTitleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onTitleChange(e.target.value);
   };
 
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       editor?.commands.focus();
@@ -92,7 +95,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
          <div className="p-4 border-b flex items-start">
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 mt-1">
+                    <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 mt-1 shrink-0">
                         {noteIcon}
                     </Button>
                 </PopoverTrigger>
@@ -112,15 +115,14 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
                     </div>
                 </PopoverContent>
             </Popover>
-            <div 
-              className="w-full text-4xl font-bold p-2 focus:outline-none"
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) => setCurrentTitle(e.currentTarget.textContent || '')}
-              onBlur={handleTitleBlur}
+            <Textarea
+              ref={titleTextareaRef}
+              value={title}
+              onChange={handleTitleChange}
               onKeyDown={handleTitleKeyDown}
-              dangerouslySetInnerHTML={{ __html: currentTitle }}
-              data-placeholder="Untitled Note"
+              placeholder="Untitled Note"
+              className="w-full text-4xl font-bold p-2 focus:outline-none resize-none overflow-hidden border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+              rows={1}
             />
       </div>
         <div className="p-2 border-b flex items-center gap-1 flex-wrap">
@@ -157,10 +159,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
                         <Button
                             variant="outline"
                             size="icon"
-                            className={cn("w-6 h-6 rounded-full", editor.isActive('textStyle', { color: color.value }) && "ring-2 ring-primary ring-offset-2")}
+                            className={cn("w-6 h-6 rounded-full p-0", editor.isActive('textStyle', { color: color.value }) && "ring-2 ring-primary ring-offset-2")}
                             style={{ backgroundColor: color.value }}
                             onClick={() => handleSetColor(color.value)}
                         >
+                          <span className="sr-only">{color.name}</span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent><p>{color.name}</p></TooltipContent>
