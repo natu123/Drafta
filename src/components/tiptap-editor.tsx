@@ -26,7 +26,7 @@ interface TiptapEditorProps {
 const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒'];
 const colors = [
   { name: 'Black', value: '#000000' },
-  { name: 'Green', value: '#7AD67A' },
+  { name: 'Green', value: '#64A364' },
   { name: 'Blue', value: '#51A2FF' },
   { name: 'Purple', value: '#AD46FF' },
   { name: 'Rose', value: '#FF6467' },
@@ -41,7 +41,7 @@ const extensions = [
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
-      if (node.type.name === 'heading' && node.parent && node.parent.firstChild === node) {
+      if (node.type.name === 'heading' && node.parent?.firstChild === node) {
         return 'Untitled Note';
       }
       if (node.type.name === 'paragraph' && node.parent && !node.content.size && node.parent.childCount <= 1) {
