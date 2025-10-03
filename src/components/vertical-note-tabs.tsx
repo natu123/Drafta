@@ -4,16 +4,16 @@ import * as React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Note, Web } from '@/lib/types';
+import type { Note, Web, Talk } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
-type TabItem = (Note | Web) & { type: 'note' | 'web' };
+type TabItem = (Note | Web | Talk) & { type: 'note' | 'web' | 'talk' };
 
 interface VerticalTabsProps {
   items: TabItem[];
   activeId: string | null;
-  onTabSelect: (id: string, type: 'note' | 'web') => void;
-  onTabClose: (id: string, type: 'note' | 'web') => void;
+  onTabSelect: (id: string, type: 'note' | 'web' | 'talk') => void;
+  onTabClose: (id: string, type: 'note' | 'web' | 'talk') => void;
 }
 
 const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose }) => {
@@ -34,6 +34,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
   const getIcon = (item: TabItem) => {
     if (item.type === 'note') return item.icon || '📝';
     if (item.type === 'web') return item.icon || '🌐';
+    if (item.type === 'talk') return item.icon || '💬';
     return '❓';
   };
 
@@ -50,7 +51,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
       >
         <div className="flex flex-col pt-2 overflow-y-auto h-full">
           {items.map(item => (
-            <Tooltip key={item.id} disableHoverableContent={isExpanded}>
+            <Tooltip key={`${item.id}-${item.type}`} disableHoverableContent={isExpanded}>
               <TooltipTrigger asChild>
                 <button
                   ref={item.id === activeId ? activeTabRef : null}

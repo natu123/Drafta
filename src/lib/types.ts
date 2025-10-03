@@ -30,6 +30,17 @@ export type Web = {
   thumbnailUrl?: string;
 }
 
+export type Talk = {
+  id: string;
+  title: string;
+  icon?: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+  lastAccessedAt?: string;
+  thumbnailUrl?: string;
+};
+
 export type Group = {
   id: string;
   name: string;
@@ -38,14 +49,14 @@ export type Group = {
 export type ChatMessage = {
   id:string;
   author: 'user' | 'ai';
-  authorName?: string; // To display AI model names
+  authorName: string; // To display AI model names
   content: string;
   timestamp: string;
 };
 
 export type HistoryItem = {
   id: string;
-  type: 'note' | 'web';
+  type: 'note' | 'web' | 'talk';
   title: string;
   icon?: string;
   accessedAt: string;

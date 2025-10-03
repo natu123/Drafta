@@ -19,11 +19,11 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
     onNoteUpdate(updates);
   }, [onNoteUpdate]);
 
-  const handleIconSelect = (icon: string) => {
+  const handleIconSelect = React.useCallback((icon: string) => {
     onIconChange(note.id, icon);
-  };
+  }, [onIconChange, note.id]);
 
-  const handleQuoteClick = () => {
+  const handleQuoteClick = React.useCallback(() => {
     const selection = window.getSelection()?.toString().trim();
     if (selection) {
       onQuoteNote(selection);
@@ -35,7 +35,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
       const textContent = tempDiv.textContent || tempDiv.innerText || '';
       onQuoteNote(textContent);
     }
-  };
+  }, [onQuoteNote, note.title, note.content]);
   
 
   return (

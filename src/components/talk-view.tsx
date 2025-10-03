@@ -2,11 +2,11 @@
 "use client";
 
 import * as React from 'react';
-import { Bot, Send, ScreenShare, ScreenShareOff, Mic, MicOff, MessageSquareQuote } from 'lucide-react';
+import { Bot, Send, ScreenShare, ScreenShareOff, Mic, MicOff, MessageSquareQuote, MessageSquare, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, Talk } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -14,20 +14,23 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { User } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { emojis } from './tiptap-editor';
 
 
 type ChatInputState = string | ((prev: string) => string) | ((prev: string) => { text: string, currentInput: string });
 
 interface TalkViewProps {
-  chatMessages: ChatMessage[];
+  talk: Talk;
   onAddChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   chatInput: ChatInputState;
   setChatInput: (value: ChatInputState) => void;
+  onIconChange: (id: string, icon: string) => void;
 }
 
 const aiModels = ["Auto (Optimal)", "Perplexity", "ChatGPT", "Gemini"];
 
-const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, chatInput, setChatInput }) => {
+const TalkView: React.FC<TalkViewProps> = ({ talk, onAddChatMessage, chatInput, setChatInput, onIconChange }) => {
   const [isSharing, setIsSharing] = React.useState(false);
   const [isVoiceMode, setIsVoiceMode] = React.useState(false);
   const [stream, setStream] = React.useState<MediaStream | null>(null);
@@ -42,7 +45,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [chatMessages]);
+  }, [talk.messages]);
 
   React.useEffect(() => {
     if (videoRef.current && stream) {
@@ -130,7 +133,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 
     const selection = window.getSelection()?.toString().trim();
     const contentToQuote = selection || message.content;
-    const authorName = message.author === 'user' ? 'You' : message.authorName || 'Prōla';
+    const authorName = message.author === 'user' ? 'You' : message.authorName;
     const quoteText = `> ${authorName}:\n> ${contentToQuote.replace(/\n/g, '\n> ')}\n\n`;
     
     const start = textarea.selectionStart;
@@ -186,9 +189,31 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between gap-2 p-4 border-b">
         <div className="flex items-center gap-2">
-            <Bot className="h-6 w-6 text-primary" />
-            <h2 className="text-lg font-bold font-headline">Talk</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0">
+                      {talk.icon || '💬'}
+                  </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2">
+                  <div className="grid grid-cols-5 gap-2">
+                      {emojis.map((emoji) => (
+                      <Button
+                          key={emoji}
+                          variant="ghost"
+                          size="icon"
+                          className={cn("text-xl rounded-md", talk.icon === emoji && "bg-primary/20")}
+                          onClick={() => onIconChange(talk.id, emoji)}
+                      >
+                          {emoji}
+                      </Button>
+                      ))}
+                  </div>
+              </PopoverContent>
+          </Popover>
+            <h2 className="text-lg font-bold font-headline">{talk.title}</h2>
         </div>
+        <div className="flex items-center gap-2">
         <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger className="w-[180px] h-9 text-sm">
                 <SelectValue placeholder="Select model" />
@@ -199,6 +224,8 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
                 ))}
             </SelectContent>
         </Select>
+        <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
+        </div>
       </div>
 
        {isSharing && (
@@ -224,7 +251,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
       
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
-          {chatMessages.map(msg => (
+          {talk.messages.map(msg => (
              <div key={msg.id} className={cn('flex items-start gap-4 group relative', msg.author === 'user' && 'bg-secondary/50 p-4 rounded-lg')}>
                 <Avatar className="w-8 h-8 shrink-0 mt-1">
                   {msg.author === 'ai' ? (
@@ -240,7 +267,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
               
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-bold">{msg.author === 'user' ? 'You' : msg.authorName || 'Prōla'}</span>
+                    <span className="font-bold">{msg.author === 'user' ? 'You' : msg.authorName}</span>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(msg.timestamp), 'HH:mm (yyyy-MM-dd)')}
                     </span>

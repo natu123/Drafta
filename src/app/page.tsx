@@ -11,8 +11,8 @@ import NotesSidebar from '@/components/notes-sidebar';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import TalkView from '@/components/talk-view';
-import type { Note, Group, ChatMessage, Web, HistoryItem } from '@/lib/types';
-import { notes as initialNotes, groups as initialGroups, chatMessages as initialChatMessages } from '@/lib/data';
+import type { Note, Group, ChatMessage, Web, HistoryItem, Talk } from '@/lib/types';
+import { notes as initialNotes, groups as initialGroups, talks as initialTalks } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -32,9 +32,9 @@ type ViewMode = 'list' | 'grid';
 interface HomeSectionProps {
   title: string;
   icon: React.ElementType;
-  items: (Note | Web)[];
-  onItemSelect: (id: string, type: 'note' | 'web') => void;
-  itemType: 'note' | 'web';
+  items: (Note | Web | Talk)[];
+  onItemSelect: (id: string, type: 'note' | 'web' | 'talk') => void;
+  itemType: 'note' | 'web' | 'talk';
   sortOption: SortOption;
   onSortChange: (sortOption: SortOption) => void;
   viewMode: ViewMode;
@@ -113,35 +113,39 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [webs, setWebs] = React.useState<Web[]>([]);
+  const [talks, setTalks] = React.useState<Talk[]>(initialTalks);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
-  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([notes[0]?.id ?? 'note-1'].filter(Boolean));
+  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([]);
   const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
-  const [openSpecialTabs, setOpenSpecialTabs] = React.useState<('talk')[]>([]);
+  const [openTalkIds, setOpenTalkIds] = React.useState<string[]>(['talk-1']);
   
-  const [activeContent, setActiveContent] = React.useState<ActiveContent>(notes[0] ? { type: 'note', id: notes[0].id } : null);
+  const [activeContent, setActiveContent] = React.useState<ActiveContent>({ type: 'note', id: 'note-1' });
   
-  const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
   const [chatInput, setChatInput] = React.useState<string | ((prev: string) => string)>('');
   
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
   const [webSort, setWebSort] = React.useState<SortOption>('manual');
+  const [talkSort, setTalkSort] = React.useState<SortOption>('manual');
   const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
   const [webViewMode, setWebViewMode] = React.useState<ViewMode>('list');
+  const [talkViewMode, setTalkViewMode] = React.useState<ViewMode>('list');
+
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
   
   const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
+  const activeTalk = activeContent?.type === 'talk' ? talks.find((talk) => talk.id === activeContent.id) ?? null : null;
 
   const openTabs = [
-    ...openSpecialTabs.map(type => ({ id: type, type, title: 'Talk', icon: '💬' })),
     ...openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note).map(note => ({ ...note, type: 'note' as const })),
-    ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const }))
+    ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const })),
+    ...openTalkIds.map(id => talks.find(talk => talk.id === id)).filter((talk): talk is Talk => !!talk).map(talk => ({ ...talk, type: 'talk' as const }))
   ];
 
-  const addToHistory = (item: Note | Web, type: 'note' | 'web') => {
+  const addToHistory = (item: Note | Web | Talk, type: 'note' | 'web' | 'talk') => {
     setHistory(prev => {
       const newHistory: HistoryItem = {
         id: item.id,
@@ -199,6 +203,30 @@ export default function Home() {
     addToHistory(newWeb, 'web');
   };
 
+  const handleNewTalk = () => {
+    const newTalk: Talk = {
+      id: `talk-${Date.now()}`,
+      title: 'New Conversation',
+      icon: '💬',
+      messages: [{
+        id: 'chat-1',
+        author: 'ai',
+        authorName: 'Prōla',
+        content: 'Hello! How can I assist you today?',
+        timestamp: new Date().toISOString(),
+      }],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastAccessedAt: new Date().toISOString(),
+    };
+    setTalks([newTalk, ...talks]);
+    if (!openTalkIds.includes(newTalk.id)) {
+      setOpenTalkIds([newTalk.id, ...openTalkIds]);
+    }
+    setActiveContent({ type: 'talk', id: newTalk.id });
+    addToHistory(newTalk, 'talk');
+  };
+
   const handleNoteSelect = (id: string) => {
     const note = notes.find(n => n.id === id);
     if (!note) return;
@@ -222,12 +250,26 @@ export default function Home() {
     }
     addToHistory(web, 'web');
   };
+
+  const handleTalkSelect = (id: string) => {
+    const talk = talks.find(t => t.id === id);
+    if (!talk) return;
+
+    setTalks(prev => prev.map(t => t.id === id ? { ...t, lastAccessedAt: new Date().toISOString() } : t));
+    setActiveContent({ type: 'talk', id });
+    if (!openTalkIds.includes(id)) {
+      setOpenTalkIds([id, ...openTalkIds]);
+    }
+    addToHistory(talk, 'talk');
+  };
   
-  const handleHistorySelect = (id: string, type: 'note' | 'web') => {
+  const handleHistorySelect = (id: string, type: 'note' | 'web' | 'talk') => {
     if (type === 'note') {
       handleNoteSelect(id);
-    } else {
+    } else if (type === 'web') {
       handleWebSelect(id);
+    } else if (type === 'talk') {
+      handleTalkSelect(id);
     }
   };
 
@@ -244,6 +286,12 @@ export default function Home() {
         setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
         addToHistory(web, 'web');
       }
+    } else if (type === 'talk') {
+        const talk = talks.find(t => t.id === id);
+        if (talk) {
+            setTalks(prev => prev.map(t => t.id === id ? { ...t, lastAccessedAt: new Date().toISOString() } : t));
+            addToHistory(talk, 'talk');
+        }
     }
     setActiveContent({ type, id });
   };
@@ -257,7 +305,7 @@ export default function Home() {
     } else if (type === 'web') {
       setOpenWebIds(prev => prev.filter(webId => webId !== id));
     } else if (type === 'talk') {
-        setOpenSpecialTabs(prev => prev.filter(tabType => tabType !== id));
+        setOpenTalkIds(prev => prev.filter(talkId => talkId !== id));
     }
     
     if (activeContent?.id === id && activeContent.type === type) {
@@ -279,18 +327,28 @@ export default function Home() {
     setNotes(notes.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note));
   };
 
-  const handleIconChange = (id: string, icon: string) => {
-    if (activeContent?.type !== 'note') return;
-    setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
+  const handleIconChange = (id: string, icon: string, type: 'note' | 'talk') => {
+    if (type === 'note') {
+        setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
+    } else if (type === 'talk') {
+        setTalks(talks.map(talk => talk.id === id ? { ...talk, icon } : talk));
+    }
   };
 
   const handleAddChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    if (activeContent?.type !== 'talk') return;
+
     const newMessage: ChatMessage = {
       ...message,
       id: `msg-${Date.now()}`,
       timestamp: new Date().toISOString(),
     };
-    setChatMessages(prev => [...prev, newMessage]);
+    
+    setTalks(prevTalks => prevTalks.map(talk => 
+        talk.id === activeContent.id
+        ? { ...talk, messages: [...talk.messages, newMessage], updatedAt: new Date().toISOString() }
+        : talk
+    ));
   };
   
   const handleQuoteNote = (noteContent: string) => {
@@ -304,21 +362,17 @@ export default function Home() {
       });
     });
 
-    if (!openSpecialTabs.includes('talk')) {
-        setOpenSpecialTabs(prev => [...prev, 'talk']);
+    if (openTalkIds.length === 0) {
+      handleNewTalk();
+    } else {
+      // If there's an active talk, switch to it. Otherwise, use the first one.
+      const targetTalkId = activeTalk?.id || openTalkIds[0];
+      setActiveContent({ type: 'talk', id: targetTalkId });
     }
-    setActiveContent({ type: 'talk', id: 'talk' });
   };
   
   const handleOpenNotes = () => {
     setActiveContent({ type: 'notes', id: 'notes' });
-  };
-
-  const handleOpenTalk = () => {
-    if (!openSpecialTabs.includes('talk')) {
-      setOpenSpecialTabs(prev => ['talk', ...prev]);
-    }
-    setActiveContent({ type: 'talk', id: 'talk' });
   };
 
 
@@ -362,6 +416,21 @@ export default function Home() {
     }
   }, [webs, webSort]);
 
+  const sortedTalks = React.useMemo(() => {
+    const sorted = [...talks];
+    switch (talkSort) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case 'last-accessed':
+        return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
+      case 'manual':
+      default:
+        return talks;
+    }
+  }, [talks, talkSort]);
+
   const renderContent = () => {
     if (!activeContent) {
       return (
@@ -389,25 +458,17 @@ export default function Home() {
               viewMode={webViewMode}
               onViewModeChange={setWebViewMode}
             />
-            <Card className="flex-1 flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                  <span>Talks</span>
-                </CardTitle>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                      <List className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                      <LayoutGrid className="w-4 h-4" />
-                    </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Talks feature coming soon.</p>
-              </CardContent>
-            </Card>
+            <HomeSection 
+              title="Talks" 
+              icon={MessageSquare} 
+              items={sortedTalks} 
+              onItemSelect={(id) => handleTalkSelect(id)} 
+              itemType="talk"
+              sortOption={talkSort}
+              onSortChange={setTalkSort}
+              viewMode={talkViewMode}
+              onViewModeChange={setTalkViewMode}
+            />
           </div>
         </div>
       );
@@ -420,7 +481,7 @@ export default function Home() {
             key={activeNote.id} 
             note={activeNote} 
             onNoteUpdate={handleNoteUpdate}
-            onIconChange={handleIconChange}
+            onIconChange={(id, icon) => handleIconChange(id, icon, 'note')}
             onQuoteNote={handleQuoteNote}
           />
         ) : null;
@@ -437,14 +498,16 @@ export default function Home() {
           />
         );
       case 'talk':
-        return (
+        return activeTalk ? (
           <TalkView
-            chatMessages={chatMessages}
+            key={activeTalk.id}
+            talk={activeTalk}
             onAddChatMessage={handleAddChatMessage}
             chatInput={chatInput}
             setChatInput={setChatInput}
+            onIconChange={(id, icon) => handleIconChange(id, icon, 'talk')}
           />
-        );
+        ) : null;
       default:
         return null;
     }
@@ -455,7 +518,7 @@ export default function Home() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <Header
         onOpenNotes={handleOpenNotes}
-        onOpenTalk={handleOpenTalk}
+        onNewTalk={handleNewTalk}
         onNewNote={handleNewNote}
         onNewWeb={handleNewWeb}
         onOpenSettings={() => setIsSettingsOpen(true)}

@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface HistoryNavProps {
   history: HistoryItem[];
-  onHistorySelect: (id: string, type: 'note' | 'web') => void;
+  onHistorySelect: (id: string, type: 'note' | 'web' | 'talk') => void;
 }
 
 const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => {
@@ -66,7 +66,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
         <DropdownMenuSeparator />
         {history.map(item => (
           <DropdownMenuItem key={item.id} onSelect={() => onHistorySelect(item.id, item.type)}>
-            <span className="mr-2 text-lg">{item.type === 'note' ? item.icon || '📝' : '🌐'}</span>
+            <span className="mr-2 text-lg">{item.icon || (item.type === 'note' ? '📝' : item.type === 'web' ? '🌐' : '💬')}</span>
             <div className="flex flex-col">
               <span className="font-medium truncate">{item.title}</span>
               <span className="text-xs text-muted-foreground">
@@ -83,17 +83,17 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 
 interface HeaderProps {
   onOpenNotes: () => void;
-  onOpenTalk: () => void;
+  onNewTalk: () => void;
   onNewNote: () => void;
   onNewWeb: () => void;
   onOpenSettings: () => void;
   history: HistoryItem[];
-  onHistorySelect: (id: string, type: 'note' | 'web') => void;
+  onHistorySelect: (id: string, type: 'note' | 'web' | 'talk') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   onOpenNotes,
-  onOpenTalk,
+  onNewTalk,
   onNewNote,
   onNewWeb,
   onOpenSettings,
@@ -149,7 +149,7 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onOpenTalk}
+                onClick={onNewTalk}
               >
                 <Bot className="h-5 w-5 text-accent" />
               </Button>
