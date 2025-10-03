@@ -90,7 +90,10 @@
     height: 0;
   }
   
-  .ProseMirror p {
+  .ProseMirror p,
+  .ProseMirror h1,
+  .ProseMirror h2,
+  .ProseMirror h3 {
     @apply my-0;
   }
 
@@ -110,5 +113,13 @@
 
   .ProseMirror ul, .ProseMirror ol {
     @apply list-inside;
+  }
+
+  .ProseMirror h1:first-of-type::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    height: 0;
   }
 }

@@ -15,12 +15,8 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuoteNote }) => {
   
-  const handleContentChange = (htmlContent: string) => {
-    onNoteUpdate({ content: htmlContent });
-  };
-  
-  const handleTitleChange = (newTitle: string) => {
-    onNoteUpdate({ title: newTitle });
+  const handleContentUpdate = (updates: { title: string, content: string }) => {
+    onNoteUpdate(updates);
   };
 
   const handleIconSelect = (icon: string) => {
@@ -30,7 +26,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
   const handleQuoteClick = () => {
     // Basic conversion of HTML to text for quoting.
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = note.content;
+    // The editor content is now title + content
+    tempDiv.innerHTML = `<h1>${note.title}</h1>${note.content}`;
     const textContent = tempDiv.textContent || tempDiv.innerText || '';
     onQuoteNote(textContent);
   };
@@ -41,8 +38,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
         <TiptapEditor
           title={note.title}
           content={note.content}
-          onTitleChange={handleTitleChange}
-          onContentChange={handleContentChange}
+          onNoteUpdate={handleContentUpdate}
           onQuote={handleQuoteClick}
           onIconChange={handleIconSelect}
           noteIcon={note.icon || '📝'}

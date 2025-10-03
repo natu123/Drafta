@@ -13,13 +13,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
-import { Textarea } from './ui/textarea';
 
 interface TiptapEditorProps {
   title: string;
   content: string;
-  onTitleChange: (newTitle: string) => void;
-  onContentChange: (htmlContent: string) => void;
+  onNoteUpdate: (updatedNote: { title: string; content: string }) => void;
   onQuote: () => void;
   onIconChange: (icon: string) => void;
   noteIcon: string;
@@ -35,16 +33,7 @@ const colors = [
   { name: 'Gold', value: '#FFB93B' },
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChange, onContentChange, onQuote, onIconChange, noteIcon }) => {
-  const titleTextareaRef = React.useRef<HTMLTextAreaElement>(null);
-
-  React.useEffect(() => {
-    // Adjust textarea height on title change
-    if (titleTextareaRef.current) {
-      titleTextareaRef.current.style.height = 'auto';
-      titleTextareaRef.current.style.height = `${titleTextareaRef.current.scrollHeight}px`;
-    }
-  }, [title]);
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdate, onQuote, onIconChange, noteIcon }) => {
 
   const editor = useEditor({
     extensions: [
@@ -54,14 +43,49 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
         },
       }),
       Placeholder.configure({
-        placeholder: 'Start writing your note here...',
+        placeholder: ({ node }) => {
+          if (node.type.name === 'heading' && node.parent?.isFirstChild) {
+            return 'Untitled Note';
+          }
+          return 'Start writing your note here...';
+        },
       }),
       TextStyle,
       Color,
     ],
-    content: content,
+    // Combine title and content for the editor
+    content: `<h1>${title}</h1>${content}`,
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML());
+      const editorContent = editor.getJSON().content;
+      
+      let newTitle = '';
+      let newContent = '';
+
+      if (editorContent && editorContent.length > 0) {
+        // Find the first heading, treat it as the title
+        const titleNodeIndex = editorContent.findIndex(node => node.type === 'heading' && node.attrs?.level === 1);
+
+        if (titleNodeIndex !== -1) {
+          const titleNode = editorContent[titleNodeIndex];
+          newTitle = titleNode.content?.map(c => c.text).join('') || '';
+
+          // The rest is the content
+          const contentNodes = editorContent.slice(titleNodeIndex + 1);
+          newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+
+        } else {
+          // No h1, so maybe the user deleted it.
+          // For now, let's treat the first line as title, and rest as content.
+          // A more robust solution might enforce an h1.
+          const firstNode = editorContent[0];
+          newTitle = firstNode.content?.map(c => c.text).join('') || '';
+          
+          const contentNodes = editorContent.slice(1);
+          newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
+        }
+      }
+      
+      onNoteUpdate({ title: newTitle, content: newContent });
     },
     editorProps: {
       attributes: {
@@ -69,17 +93,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
       },
     },
   });
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onTitleChange(e.target.value);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      editor?.commands.focus();
-    }
-  };
 
   const handleSetColor = (color: string) => {
     editor?.chain().focus().setColor(color).run();
@@ -92,40 +105,29 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-         <div className="p-4 border-b flex items-start">
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 mt-1 shrink-0">
-                        {noteIcon}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-2">
-                    <div className="grid grid-cols-5 gap-2">
-                        {emojis.map((emoji) => (
-                        <Button
-                            key={emoji}
-                            variant="ghost"
-                            size="icon"
-                            className={cn("text-xl rounded-md", noteIcon === emoji && "bg-primary/20")}
-                            onClick={() => onIconChange(emoji)}
-                        >
-                            {emoji}
-                        </Button>
-                        ))}
-                    </div>
-                </PopoverContent>
-            </Popover>
-            <Textarea
-              ref={titleTextareaRef}
-              value={title}
-              onChange={handleTitleChange}
-              onKeyDown={handleTitleKeyDown}
-              placeholder="Untitled Note"
-              className="w-full text-4xl font-bold p-2 focus:outline-none resize-none overflow-hidden border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
-              rows={1}
-            />
-      </div>
-        <div className="p-2 border-b flex items-center gap-1 flex-wrap">
+         <div className="p-2 border-b flex items-center gap-1 flex-wrap">
+          <Popover>
+              <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 shrink-0">
+                      {noteIcon}
+                  </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2">
+                  <div className="grid grid-cols-5 gap-2">
+                      {emojis.map((emoji) => (
+                      <Button
+                          key={emoji}
+                          variant="ghost"
+                          size="icon"
+                          className={cn("text-xl rounded-md", noteIcon === emoji && "bg-primary/20")}
+                          onClick={() => onIconChange(emoji)}
+                      >
+                          {emoji}
+                      </Button>
+                      ))}
+                  </div>
+              </PopoverContent>
+          </Popover>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
