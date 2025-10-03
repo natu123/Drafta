@@ -13,19 +13,7 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Prōla',
     icon: '👋',
-    content: `Prōla is your all-in-one idea hub: 
-"where notes, the web, and AI connect seamlessly."
-
-With Prōla, you can:
-● Capture notes any way you like—handwriting, voice, or markdown.
-● Browse and organize multiple web pages in a clean, organized way.
-● Chat with AI to summarize, create, and explore ideas instantly.
-
-No more switching between apps.
-Everything you need to collect, connect, and create, all in Prōla.
-
-Prōla shapes raw thoughts into brilliant ideas.
-    `,
+    content: `<p>Prōla is your all-in-one idea hub: </p><p>"where notes, the web, and AI connect seamlessly."</p><p></p><p>With Prōla, you can:</p><p>● Capture notes any way you like—handwriting, voice, or markdown.</p><p>● Browse and organize multiple web pages in a clean, organized way.</p><p>● Chat with AI to summarize, create, and explore ideas instantly.</p><p></p><p>No more switching between apps.</p><p>Everything you need to collect, connect, and create, all in Prōla.</p><p></p><p>Prōla shapes raw thoughts into brilliant ideas.</p>`,
     group: 'general',
     stars: 3,
     isPinned: true,
@@ -38,17 +26,7 @@ Prōla shapes raw thoughts into brilliant ideas.
     id: 'note-2',
     title: 'Quick Reference',
     icon: '📝',
-    content: `
-This is a quick reference for text formatting.
-
-You can use the toolbar to apply formatting like bold, italic, and strikethrough.
-
-- This is an unordered list item.
-- You can create lists to organize your thoughts.
-
-1. This is an ordered list item.
-2. Use them for step-by-step instructions.
-    `,
+    content: `<p>This is a quick reference for text formatting.</p><p></p><p>You can use the toolbar to apply formatting like bold, italic, and strikethrough.</p><p></p><ul><li><p>This is an unordered list item.</p></li><li><p>You can create lists to organize your thoughts.</p></li></ul><p></p><ol><li><p>This is an ordered list item.</p></li><li><p>Use them for step-by-step instructions.</p></li></ol>`,
     group: 'general',
     stars: 2,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),

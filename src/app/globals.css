@@ -90,15 +90,14 @@
     height: 0;
   }
   
-  .ProseMirror p,
-  .ProseMirror h1,
-  .ProseMirror h2,
-  .ProseMirror h3 {
+  .ProseMirror p {
     @apply my-0;
   }
 
-  .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
-    @apply font-bold;
+  .ProseMirror h1,
+  .ProseMirror h2,
+  .ProseMirror h3 {
+    @apply my-0 font-bold;
   }
 
   .ProseMirror h1 {
@@ -112,8 +111,13 @@
   }
 
   .ProseMirror ul, .ProseMirror ol {
-    @apply list-inside;
+    @apply list-inside my-0;
   }
+
+  .ProseMirror ul p, .ProseMirror ol p {
+    @apply inline;
+  }
+
 
   .ProseMirror h1:first-of-type::before {
     content: attr(data-placeholder);

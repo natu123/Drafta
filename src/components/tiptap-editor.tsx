@@ -100,18 +100,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
 
   React.useEffect(() => {
     if (editor) {
-      const isPlainText = !content.trim().startsWith('<');
-      let finalContent = content;
-
-      if (isPlainText) {
-        finalContent = content
-          .split('\n')
-          .map(line => line.trim() === '' ? '<p></p>' : `<p>${line}</p>`)
-          .join('');
-      }
-
-      const fullContent = `<h1>${title}</h1>${finalContent}`;
+      const fullContent = `<h1>${title}</h1>${content}`;
       if (editor.getHTML() !== fullContent) {
+        // Set content without triggering an update, to prevent loops
         editor.commands.setContent(fullContent, false);
       }
     }
