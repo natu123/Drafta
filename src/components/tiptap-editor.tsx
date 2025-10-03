@@ -55,31 +55,23 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
     ],
     // Combine title and content for the editor
     content: `<h1>${title}</h1>${content}`,
-    onUpdate: ({ editor }) => {
+    onBlur: ({ editor }) => {
       const editorContent = editor.getJSON().content;
       
       let newTitle = '';
       let newContent = '';
 
       if (editorContent && editorContent.length > 0) {
-        // Find the first heading, treat it as the title
         const titleNodeIndex = editorContent.findIndex(node => node.type === 'heading' && node.attrs?.level === 1);
 
         if (titleNodeIndex !== -1) {
           const titleNode = editorContent[titleNodeIndex];
           newTitle = titleNode.content?.map(c => c.text).join('') || '';
-
-          // The rest is the content
           const contentNodes = editorContent.slice(titleNodeIndex + 1);
           newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
-
         } else {
-          // No h1, so maybe the user deleted it.
-          // For now, let's treat the first line as title, and rest as content.
-          // A more robust solution might enforce an h1.
           const firstNode = editorContent[0];
           newTitle = firstNode.content?.map(c => c.text).join('') || '';
-          
           const contentNodes = editorContent.slice(1);
           newContent = editor.getHTMLFromJSON({ type: 'doc', content: contentNodes });
         }
@@ -97,16 +89,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
   const handleSetColor = (color: string) => {
     editor?.chain().focus().setColor(color).run();
   };
-
-  React.useEffect(() => {
-    if (editor) {
-      const fullContent = `<h1>${title}</h1>${content}`;
-      if (editor.getHTML() !== fullContent) {
-        // Set content without triggering an update, to prevent loops
-        editor.commands.setContent(fullContent, false);
-      }
-    }
-  }, [title, content, editor]);
 
   if (!editor) {
     return null;

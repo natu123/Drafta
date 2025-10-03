@@ -15,9 +15,9 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuoteNote }) => {
   
-  const handleContentUpdate = (updates: { title: string, content: string }) => {
+  const handleContentUpdate = React.useCallback((updates: { title: string, content: string }) => {
     onNoteUpdate(updates);
-  };
+  }, [onNoteUpdate]);
 
   const handleIconSelect = (icon: string) => {
     onIconChange(note.id, icon);
