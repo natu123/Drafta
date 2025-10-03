@@ -1,3 +1,4 @@
+
 import type { Note, Group, ChatMessage } from './types';
 
 export const groups: Group[] = [
@@ -12,18 +13,17 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Prōla',
     icon: '👋',
-    content: `
-# Welcome to Prōla!
+    content: `Welcome to Prōla!
 
 This is your first note. Prōla is a revolutionary I/O application that integrates note-taking, web browsing, and a conversational AI.
 
 Here's a quick guide to get you started:
 
-- **Create notes:** Use the **+ New Note** button in the left sidebar.
-- **Organize:** Notes are automatically grouped. You can manage groups later.
-- **Rich Text:** Use Markdown for formatting. A toolbar is available above the editor.
-- **AI Integration:** Use the Prōla AI panel on the right to interact with the AI. Summarize your notes, generate new content, or start a chat session.
-- **Bookmarks:** Use the star icons to bookmark your important notes.
+- Create notes: Use the + New Note button in the left sidebar.
+- Organize: Notes are automatically grouped. You can manage groups later.
+- Rich Text: Use the toolbar above the editor for formatting.
+- AI Integration: Use the Prōla AI panel on the right to interact with the AI. Summarize your notes, generate new content, or start a chat session.
+- Bookmarks: Use the star icons to bookmark your important notes.
 
 Let's build the future together!
     `,
@@ -37,37 +37,22 @@ Let's build the future together!
   },
   {
     id: 'note-2',
-    title: 'Markdown Cheatsheet',
+    title: 'Text Formatting',
     icon: '📝',
     content: `
-## Basic Syntax
+Basic Syntax Guide
 
-# H1
-## H2
-### H3
+You can use the toolbar to apply formatting.
 
-**Bold Text** or __Bold Text__
-*Italic Text* or _Italic Text_
-~~Strikethrough~~
-
-> Blockquote
+Bold Text
+Italic Text
+Strikethrough
 
 - Unordered List Item 1
 - Unordered List Item 2
 
 1. Ordered List Item 1
 2. Ordered List Item 2
-
-\`inline code\`
-
-\`\`\`
-// code block
-function hello() {
-  console.log("Hello, World!");
-}
-\`\`\`
-
----
     `,
     group: 'general',
     stars: 2,
