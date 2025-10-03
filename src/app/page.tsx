@@ -135,8 +135,6 @@ export default function Home() {
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
   
-  const [isTabBarVisible, setIsTabBarVisible] = React.useState(true);
-
   const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
   const activeTalk = activeContent?.type === 'talk' ? talks.find((talk) => talk.id === activeContent.id) ?? null : null;
@@ -377,10 +375,6 @@ export default function Home() {
     setActiveContent({ type: 'notes', id: 'notes' });
   };
 
-  const handleToggleTabBar = () => {
-    setIsTabBarVisible(!isTabBarVisible);
-  };
-
   const [isClient, setIsClient] = React.useState(false);
   React.useEffect(() => {
     setIsClient(true);
@@ -529,13 +523,11 @@ export default function Home() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         history={history}
         onHistorySelect={handleHistorySelect}
-        isTabBarVisible={isTabBarVisible}
-        onToggleTabBar={handleToggleTabBar}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex overflow-hidden relative">
-          {activeContent?.type !== 'notes' && isTabBarVisible && (
+          {activeContent?.type !== 'notes' && (
             <VerticalTabs
                 items={openTabs}
                 activeId={activeContent?.id}
