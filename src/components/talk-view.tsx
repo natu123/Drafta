@@ -55,21 +55,25 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
     if (!textarea) return;
 
     if (typeof chatInput === 'function') {
-      const result = chatInput(textarea.value);
-      if (typeof result === 'object' && 'text' in result) {
-        const { text, currentInput } = result;
-        const start = textarea.selectionStart;
-        const newText = currentInput.slice(0, start) + text + currentInput.slice(start);
-        textarea.value = newText;
-        setChatInput(newText);
-        textarea.focus();
-        textarea.selectionStart = textarea.selectionEnd = start + text.length;
-      } else if (typeof result === 'string') {
-        textarea.value = result;
-        setChatInput(result);
-      }
-    } else {
-      textarea.value = chatInput;
+        const result = (chatInput as Function)(textarea.value);
+        if (typeof result === 'object' && result !== null && 'text' in result) {
+            const { text, currentInput } = result;
+            const start = textarea.selectionStart;
+            const newText = currentInput.slice(0, start) + text + currentInput.slice(start);
+            textarea.value = newText;
+            setChatInput(newText);
+            textarea.focus();
+            // Move cursor to the end of the inserted text
+            setTimeout(() => {
+              textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            }, 0);
+        } else {
+            const currentVal = String(result);
+            textarea.value = currentVal;
+            setChatInput(currentVal);
+        }
+    } else if (typeof chatInput === 'string') {
+        textarea.value = chatInput;
     }
   }, [chatInput, setChatInput]);
 
@@ -126,7 +130,8 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 
     const selection = window.getSelection()?.toString().trim();
     const contentToQuote = selection || message.content;
-    const quoteText = `> ${message.author === 'user' ? 'You' : 'Prōla'}:\n> ${contentToQuote.replace(/\n/g, '\n> ')}\n\n`;
+    const authorName = message.author === 'user' ? 'You' : message.authorName || 'Prōla';
+    const quoteText = `> ${authorName}:\n> ${contentToQuote.replace(/\n/g, '\n> ')}\n\n`;
     
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
@@ -146,13 +151,19 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
     e.preventDefault();
     const currentVal = textareaRef.current?.value || '';
     if (!currentVal.trim()) return;
-    onAddChatMessage({ author: 'user', content: currentVal });
+    onAddChatMessage({ author: 'user', content: currentVal, authorName: 'You' });
     setChatInput('');
 
     setTimeout(() => {
-      const operator = selectedModel === "Auto (Optimal)" ? "[DEMO] DeepSeek-V3 (Auto)" : `[${selectedModel}]`;
-      const responseContent = `${operator} I'm a demo assistant! I can't process that, but you can use the tools below.`;
-      onAddChatMessage({ author: 'ai', content: responseContent });
+        let aiAuthorName = 'Prōla';
+        if (selectedModel === "Auto (Optimal)") {
+            aiAuthorName = "[DEMO] DeepSeek-V3 (Auto)";
+        } else if (selectedModel === "Perplexity") {
+            aiAuthorName = "Perplexity";
+        }
+        
+        const responseContent = `${aiAuthorName} I'm a demo assistant! I can't process that, but you can use the tools below.`;
+        onAddChatMessage({ author: 'ai', content: responseContent, authorName: aiAuthorName });
     }, 1000);
   };
 
@@ -201,31 +212,29 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
       )}
       
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
-        <div className="space-y-6 p-4">
+        <div className="p-4 space-y-4">
           {chatMessages.map(msg => (
              <div key={msg.id} className={cn('flex items-start gap-4 group relative', msg.author === 'user' && 'bg-secondary/50 p-4 rounded-lg')}>
-                {msg.author === 'ai' ? (
-                  <Avatar className="w-8 h-8 shrink-0">
+                <Avatar className="w-8 h-8 shrink-0 mt-1">
+                  {msg.author === 'ai' ? (
                     <AvatarFallback className="bg-primary/20">
                       <Bot className="w-5 h-5 text-primary" />
                     </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <Avatar className="w-8 h-8 shrink-0">
+                  ) : (
                     <AvatarFallback>
                       <User className="w-5 h-5" />
                     </AvatarFallback>
-                  </Avatar>
-                )}
+                  )}
+                </Avatar>
               
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-bold">{msg.author === 'user' ? 'You' : 'Prōla'}</span>
+                    <span className="font-bold">{msg.author === 'user' ? 'You' : msg.authorName || 'Prōla'}</span>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(msg.timestamp), 'HH:mm (yyyy-MM-dd)')}
                     </span>
                   </div>
-                  <p className="text-sm whitespace-pre-wrap mt-1">{msg.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 </div>
                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-6 w-6 bg-background hover:bg-secondary rounded-full shadow" onClick={() => handleQuoteMessage(msg)}>
@@ -269,5 +278,3 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 };
 
 export default TalkView;
-
-    

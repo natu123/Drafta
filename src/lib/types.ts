@@ -38,6 +38,7 @@ export type Group = {
 export type ChatMessage = {
   id:string;
   author: 'user' | 'ai';
+  authorName?: string; // To display AI model names
   content: string;
   timestamp: string;
 };

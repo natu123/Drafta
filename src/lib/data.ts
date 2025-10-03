@@ -37,22 +37,18 @@ Let's build the future together!
   },
   {
     id: 'note-2',
-    title: 'Text Formatting',
+    title: 'Quick Reference',
     icon: '📝',
     content: `
-Basic Syntax Guide
+This is a quick reference for text formatting.
 
-You can use the toolbar to apply formatting.
+You can use the toolbar to apply formatting like bold, italic, and strikethrough.
 
-Bold Text
-Italic Text
-Strikethrough
+- This is an unordered list item.
+- You can create lists to organize your thoughts.
 
-- Unordered List Item 1
-- Unordered List Item 2
-
-1. Ordered List Item 1
-2. Ordered List Item 2
+1. This is an ordered list item.
+2. Use them for step-by-step instructions.
     `,
     group: 'general',
     stars: 2,
@@ -103,6 +99,7 @@ export const chatMessages: ChatMessage[] = [
     {
         id: 'chat-1',
         author: 'ai',
+        authorName: 'Prōla',
         content: 'Hello! How can I assist you today? You can ask me to summarize the current note, generate a new draft, or just chat.',
         timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
     },
