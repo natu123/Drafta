@@ -132,7 +132,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
       </div>
       <div className="p-2 border-b">
         <TooltipProvider>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo}>
@@ -184,51 +184,38 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
                 <p>Quote Note</p>
               </TooltipContent>
             </Tooltip>
-             <Popover>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                         <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Palette />
+            <Separator orientation="vertical" className="h-6 mx-2" />
+             <RadioGroup value={colorTarget} onValueChange={(value) => setColorTarget(value as 'title' | 'content')} className="flex gap-2 items-center">
+                <Label className="text-sm font-medium">Color:</Label>
+                <div className="flex items-center gap-1">
+                    <RadioGroupItem value="title" id="r-title" />
+                    <Label htmlFor="r-title" className="text-sm font-normal">Title</Label>
+                </div>
+                <div className="flex items-center gap-1">
+                    <RadioGroupItem value="content" id="r-content" />
+                    <Label htmlFor="r-content" className="text-sm font-normal">Content</Label>
+                </div>
+            </RadioGroup>
+            <div className="flex gap-1 ml-1">
+                {colors.map(color => (
+                    <Tooltip key={color.name}>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className={cn("w-6 h-6 rounded-full", currentTargetColor === color.value && "ring-2 ring-primary ring-offset-2")}
+                                style={{ backgroundColor: color.value || 'hsl(var(--foreground))' }}
+                                onClick={() => handleColorSelect(color.value)}
+                            >
+                                {color.value === '' && <X className="w-3 h-3 text-background"/>}
                             </Button>
-                        </PopoverTrigger>
-                    </TooltipTrigger>
-                     <TooltipContent>
-                        <p>Text Color</p>
-                    </TooltipContent>
-                </Tooltip>
-                <PopoverContent className="w-auto p-4">
-                     <div className="space-y-4">
-                        <div>
-                             <Label className="text-sm font-medium">Apply to</Label>
-                             <RadioGroup value={colorTarget} onValueChange={(value) => setColorTarget(value as 'title' | 'content')} className="flex gap-4 mt-2">
-                                <div>
-                                    <RadioGroupItem value="title" id="r-title" />
-                                    <Label htmlFor="r-title" className="ml-2">Title</Label>
-                                </div>
-                                <div>
-                                    <RadioGroupItem value="content" id="r-content" />
-                                    <Label htmlFor="r-content" className="ml-2">Content</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                         <div className="flex gap-2">
-                            {colors.map(color => (
-                                <Button
-                                    key={color.name}
-                                    variant="outline"
-                                    size="icon"
-                                    className={cn("w-8 h-8 rounded-full", currentTargetColor === color.value && "ring-2 ring-primary ring-offset-2")}
-                                    style={{ backgroundColor: color.value || 'hsl(var(--foreground))' }}
-                                    onClick={() => handleColorSelect(color.value)}
-                                >
-                                    {color.value === '' && <X className="w-4 h-4 text-background"/>}
-                                </Button>
-                            ))}
-                        </div>
-                     </div>
-                </PopoverContent>
-            </Popover>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>{color.name}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                ))}
+            </div>
           </div>
         </TooltipProvider>
       </div>
