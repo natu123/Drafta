@@ -116,7 +116,7 @@ export default function Home() {
   const [talks, setTalks] = React.useState<Talk[]>([]);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
-  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>(['note-1']);
+  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>(['note-1', 'note-2', 'note-3', 'note-4', 'note-5']);
   const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
   const [openTalkIds, setOpenTalkIds] = React.useState<string[]>([]);
   
@@ -545,6 +545,8 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
 
