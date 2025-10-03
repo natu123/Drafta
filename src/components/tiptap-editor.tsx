@@ -7,7 +7,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, MessageSquareQuote, Bold, Italic, Strikethrough, Code } from 'lucide-react';
+import { Undo, Redo, MessageSquareQuote, Bold, Italic, Strikethrough } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -15,8 +15,10 @@ import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
 
 interface TiptapEditorProps {
+  title: string;
   content: string;
-  onChange: (htmlContent: string) => void;
+  onTitleChange: (newTitle: string) => void;
+  onContentChange: (htmlContent: string) => void;
   onQuote: () => void;
   onIconChange: (icon: string) => void;
   noteIcon: string;
@@ -32,23 +34,31 @@ const colors = [
   { name: 'Gold', value: '#FFB93B' },
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, onQuote, onIconChange, noteIcon }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChange, onContentChange, onQuote, onIconChange, noteIcon }) => {
+  const [currentTitle, setCurrentTitle] = React.useState(title);
+
+  React.useEffect(() => {
+    setCurrentTitle(title);
+  }, [title]);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3],
         },
+        // Disable document to use a custom one, so title is not part of the editor
+        document: false, 
       }),
-      TextStyle,
-      Color,
       Placeholder.configure({
         placeholder: 'Start writing your note here...',
       }),
+      TextStyle,
+      Color,
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onContentChange(editor.getHTML());
     },
     editorProps: {
       attributes: {
@@ -56,6 +66,19 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, onQuote,
       },
     },
   });
+
+  const handleTitleBlur = () => {
+    if(currentTitle !== title) {
+        onTitleChange(currentTitle);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      editor?.commands.focus();
+    }
+  };
 
   const handleSetColor = (color: string) => {
     editor?.chain().focus().setColor(color).run();
@@ -68,39 +91,39 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, onQuote,
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-         <div className="p-4 border-b">
-            <div className="flex items-center gap-2">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-2xl w-12 h-12">
-                            {noteIcon}
+         <div className="p-4 border-b flex items-start">
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 mt-1">
+                        {noteIcon}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2">
+                    <div className="grid grid-cols-5 gap-2">
+                        {emojis.map((emoji) => (
+                        <Button
+                            key={emoji}
+                            variant="ghost"
+                            size="icon"
+                            className={cn("text-xl rounded-md", noteIcon === emoji && "bg-primary/20")}
+                            onClick={() => onIconChange(emoji)}
+                        >
+                            {emoji}
                         </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-2">
-                        <div className="grid grid-cols-5 gap-2">
-                            {emojis.map((emoji) => (
-                            <Button
-                                key={emoji}
-                                variant="ghost"
-                                size="icon"
-                                className={cn("text-xl rounded-md", noteIcon === emoji && "bg-primary/20")}
-                                onClick={() => onIconChange(emoji)}
-                            >
-                                {emoji}
-                            </Button>
-                            ))}
-                        </div>
-                    </PopoverContent>
-                </Popover>
-                 <div className="w-full text-2xl font-bold p-2 focus:outline-none"
-                    // This is a simple way to have an editable title. For a real app,
-                    // you would want to use a separate TipTap instance or handle this more robustly.
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => onChange(editor.getHTML())} // A bit of a hack to trigger save
-                    dangerouslySetInnerHTML={{ __html: editor.getJSON().content?.[0]?.content?.[0]?.text || 'Untitled Note' }}
-                />
-            </div>
+                        ))}
+                    </div>
+                </PopoverContent>
+            </Popover>
+            <div 
+              className="w-full text-4xl font-bold p-2 focus:outline-none"
+              contentEditable
+              suppressContentEditableWarning
+              onInput={(e) => setCurrentTitle(e.currentTarget.textContent || '')}
+              onBlur={handleTitleBlur}
+              onKeyDown={handleTitleKeyDown}
+              dangerouslySetInnerHTML={{ __html: currentTitle }}
+              data-placeholder="Untitled Note"
+            />
       </div>
         <div className="p-2 border-b flex items-center gap-1 flex-wrap">
           <Tooltip>

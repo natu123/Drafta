@@ -3,12 +3,6 @@
 
 import * as React from 'react';
 import type { Note } from '@/lib/types';
-import { Undo, Redo, MessageSquareQuote, Palette } from 'lucide-react';
-import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { Separator } from './ui/separator';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { cn } from '@/lib/utils';
 import TiptapEditor from './tiptap-editor';
 
 
@@ -19,14 +13,16 @@ interface EditorProps {
   onQuoteNote: (noteContent: string) => void;
 }
 
-const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒'];
-
-
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuoteNote }) => {
+  
   const handleContentChange = (htmlContent: string) => {
     onNoteUpdate({ content: htmlContent });
   };
   
+  const handleTitleChange = (newTitle: string) => {
+    onNoteUpdate({ title: newTitle });
+  };
+
   const handleIconSelect = (icon: string) => {
     onIconChange(note.id, icon);
   };
@@ -43,8 +39,10 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
   return (
     <div className="flex flex-col h-full">
         <TiptapEditor
+          title={note.title}
           content={note.content}
-          onChange={handleContentChange}
+          onTitleChange={handleTitleChange}
+          onContentChange={handleContentChange}
           onQuote={handleQuoteClick}
           onIconChange={handleIconSelect}
           noteIcon={note.icon || '📝'}

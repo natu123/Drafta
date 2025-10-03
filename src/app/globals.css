@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -88,6 +89,14 @@
     pointer-events: none;
     height: 0;
   }
+  
+  [contenteditable][data-placeholder]:empty:before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    display: block; /* Required for a div */
+  }
+
 
   .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
     @apply font-bold;
