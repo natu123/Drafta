@@ -319,28 +319,16 @@ export default function Home() {
     const reorderedNoteIds = reorderedTabs.filter(t => t.type === 'note').map(t => t.id);
     if(reorderedNoteIds.length > 0) {
       setNoteSort('manual');
-      setNotes(prev => {
-          const noteMap = new Map(prev.map(n => [n.id, n]));
-          return reorderedNoteIds.map(id => noteMap.get(id)).filter((n): n is Note => !!n);
-      });
     }
 
     const reorderedWebIds = reorderedTabs.filter(t => t.type === 'web').map(t => t.id);
     if (reorderedWebIds.length > 0) {
         setWebSort('manual');
-        setWebs(prev => {
-            const webMap = new Map(prev.map(w => [w.id, w]));
-            return reorderedWebIds.map(id => webMap.get(id)).filter((w): w is Web => !!w);
-        });
     }
 
     const reorderedTalkIds = reorderedTabs.filter(t => t.type === 'talk').map(t => t.id);
     if (reorderedTalkIds.length > 0) {
         setTalkSort('manual');
-        setTalks(prev => {
-            const talkMap = new Map(prev.map(t => [t.id, t]));
-            return reorderedTalkIds.map(id => talkMap.get(id)).filter((t): t is Talk => !!t);
-        });
     }
   };
 
@@ -421,7 +409,6 @@ export default function Home() {
     sortOption: SortOption, 
     openTabsForType: OpenTab[]
   ): T[] => {
-    
     switch (sortOption) {
       case 'newest':
         return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -562,5 +549,7 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
