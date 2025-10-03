@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { Bot, FilePlus, Globe, History, Settings, Notebook, PanelLeft } from 'lucide-react';
+import { Bot, FilePlus, Globe, History, Settings, PanelLeft, PanelRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -82,7 +82,8 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 
 
 interface HeaderProps {
-  onOpenNotes: () => void;
+  onToggleScreenTab: () => void;
+  isScreenTabActive: boolean;
   onNewTalk: () => void;
   onNewNote: () => void;
   onNewWeb: () => void;
@@ -92,7 +93,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({
-  onOpenNotes,
+  onToggleScreenTab,
+  isScreenTabActive,
   onNewTalk,
   onNewNote,
   onNewWeb,
@@ -111,14 +113,14 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onOpenNotes}
+                onClick={onToggleScreenTab}
                 className="hidden md:flex"
               >
-                <Notebook className="h-5 w-5" />
+                {isScreenTabActive ? <PanelRight className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Note List</p>
+              <p>{isScreenTabActive ? 'Tab Bar' : 'Screen Tab'}</p>
             </TooltipContent>
           </Tooltip>
           
@@ -180,3 +182,5 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 export default Header;
+
+    

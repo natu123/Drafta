@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp, PanelLeftOpen, PanelLeftClose, PanelLeft, PanelRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
@@ -121,6 +121,7 @@ export default function Home() {
   const [openTalkIds, setOpenTalkIds] = React.useState<string[]>([]);
   
   const [activeContent, setActiveContent] = React.useState<ActiveContent>({ type: 'note', id: 'note-1' });
+  const [lastActiveContent, setLastActiveContent] = React.useState<ActiveContent>(activeContent);
   
   const [chatInput, setChatInput] = React.useState<string | ((prev: string) => string)>('');
   
@@ -371,8 +372,13 @@ export default function Home() {
     }
   };
   
-  const handleOpenNotes = () => {
-    setActiveContent({ type: 'notes', id: 'notes' });
+  const handleToggleScreenTab = () => {
+    if (activeContent?.type === 'notes') {
+      setActiveContent(lastActiveContent);
+    } else {
+      setLastActiveContent(activeContent);
+      setActiveContent({ type: 'notes', id: 'notes' });
+    }
   };
 
   const [isClient, setIsClient] = React.useState(false);
@@ -430,9 +436,11 @@ export default function Home() {
     }
   }, [talks, talkSort]);
 
+  const isScreenTabActive = activeContent?.type === 'notes';
+
   const renderContent = () => {
-    if (!activeContent) {
-      return (
+    if (isScreenTabActive) {
+        return (
         <div className="p-4 md:p-8 h-full">
           <div className="flex h-full gap-4">
             <HomeSection 
@@ -473,7 +481,8 @@ export default function Home() {
       );
     }
 
-    switch (activeContent.type) {
+
+    switch (activeContent?.type) {
       case 'note':
         return activeNote ? (
           <Editor 
@@ -486,16 +495,6 @@ export default function Home() {
         ) : null;
       case 'web':
         return activeWeb ? <WebView key={activeWeb.id} web={activeWeb} /> : null;
-      case 'notes':
-        return (
-          <NotesSidebar
-            notes={notes}
-            activeNoteId={null} // No note is active inside the list view
-            onNoteSelect={handleNoteSelect}
-            onStarNote={handleStarNote}
-            onPinNote={handlePinNote}
-          />
-        );
       case 'talk':
         return activeTalk ? (
           <TalkView
@@ -516,7 +515,8 @@ export default function Home() {
     <>
     <div className="flex h-screen flex-col bg-background text-foreground">
       <Header
-        onOpenNotes={handleOpenNotes}
+        onToggleScreenTab={handleToggleScreenTab}
+        isScreenTabActive={isScreenTabActive}
         onNewTalk={handleNewTalk}
         onNewNote={handleNewNote}
         onNewWeb={handleNewWeb}
@@ -527,7 +527,7 @@ export default function Home() {
 
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex overflow-hidden relative">
-          {activeContent?.type !== 'notes' && (
+          {!isScreenTabActive && (
             <VerticalTabs
                 items={openTabs}
                 activeId={activeContent?.id}
@@ -545,3 +545,5 @@ export default function Home() {
     </>
   );
 }
+
+    
