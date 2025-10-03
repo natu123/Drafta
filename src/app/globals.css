@@ -90,10 +90,6 @@
     height: 0;
   }
   
-  .ProseMirror p {
-    @apply my-0;
-  }
-
   .ProseMirror h1,
   .ProseMirror h2,
   .ProseMirror h3 {

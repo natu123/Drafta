@@ -111,6 +111,10 @@ export default {
             '--tw-prose-invert-pre-bg': theme('colors.muted.DEFAULT'),
             '--tw-prose-invert-th-borders': theme('colors.border'),
             '--tw-prose-invert-td-borders': theme('colors.border'),
+            p: {
+              marginTop: '0',
+              marginBottom: '0',
+            },
             // Make the textarea blend in
             'textarea': {
               'backgroundColor': 'transparent',
