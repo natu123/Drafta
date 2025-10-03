@@ -98,6 +98,27 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
     editor?.chain().focus().setColor(color).run();
   };
 
+  React.useEffect(() => {
+    if (editor) {
+      // Check if the content is just plain text with newlines
+      const isPlainText = !content.trim().startsWith('<');
+      let finalContent = content;
+
+      if (isPlainText) {
+        // If it's plain text, wrap lines in <p> tags
+        finalContent = content
+          .split('\n')
+          .map(line => line.trim() === '' ? '<p></p>' : `<p>${line}</p>`)
+          .join('');
+      }
+
+      const fullContent = `<h1>${title}</h1>${finalContent}`;
+      if (editor.getHTML() !== fullContent) {
+        editor.commands.setContent(fullContent, false);
+      }
+    }
+  }, [title, content, editor]);
+
   if (!editor) {
     return null;
   }
