@@ -47,8 +47,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onTitleChan
         heading: {
           levels: [1, 2, 3],
         },
-        // Disable document to use a custom one, so title is not part of the editor
-        document: false, 
       }),
       Placeholder.configure({
         placeholder: 'Start writing your note here...',
