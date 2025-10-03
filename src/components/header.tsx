@@ -114,7 +114,7 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenNotes}
                 className="hidden md:flex"
               >
-                <Notebook className="h-5 w-5 text-accent" />
+                <Notebook className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
