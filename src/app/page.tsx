@@ -193,7 +193,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setNotes(prev => [newNote, ...prev]);
+    setNotes(prev => [...prev, newNote]);
     openTab(newNote.id, 'note');
     addToHistory(newNote, 'note');
   };
@@ -208,7 +208,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setWebs(prev => [newWeb, ...prev]);
+    setWebs(prev => [...prev, newWeb]);
     openTab(newWeb.id, 'web');
     addToHistory(newWeb, 'web');
   };
@@ -229,7 +229,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setTalks(prev => [newTalk, ...prev]);
+    setTalks(prev => [...prev, newTalk]);
     openTab(newTalk.id, 'talk');
     addToHistory(newTalk, 'talk');
   };
@@ -392,8 +392,7 @@ export default function Home() {
   const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: string; lastAccessedAt?: string }>(
     items: T[], 
     sortOption: SortOption, 
-    type: 'note' | 'web' | 'talk',
-    openTabs: OpenTab[]
+    type: 'note' | 'web' | 'talk'
   ): T[] => {
     
     switch (sortOption) {
@@ -405,16 +404,32 @@ export default function Home() {
         return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
       case 'manual':
       default:
+        // Create a map of open tab indices for the specific type
         const openTabsOfType = openTabs.filter(tab => tab.type === type);
-        const orderedItems = openTabsOfType.map(tab => items.find(item => item.id === tab.id)).filter((item): item is T => !!item);
-        const remainingItems = items.filter(item => !openTabsOfType.some(tab => tab.id === item.id));
-        return [...orderedItems, ...remainingItems];
+        const indexMap = new Map(openTabsOfType.map((tab, index) => [tab.id, index]));
+        
+        const sortedItems = [...items].sort((a, b) => {
+          const aIndex = indexMap.get(a.id);
+          const bIndex = indexMap.get(b.id);
+          
+          if (aIndex !== undefined && bIndex !== undefined) {
+            return aIndex - bIndex; // Both are in openTabs, sort by their order
+          }
+          if (aIndex !== undefined) {
+            return -1; // a is in openTabs, b is not. a comes first.
+          }
+          if (bIndex !== undefined) {
+            return 1; // b is in openTabs, a is not. b comes first.
+          }
+          return 0; // Neither are in openTabs, keep original order relative to each other
+        });
+        return sortedItems;
     }
   };
 
-  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, 'note', openTabs), [notes, noteSort, openTabs]);
-  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, 'web', openTabs), [webs, webSort, openTabs]);
-  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, 'talk', openTabs), [talks, talkSort, openTabs]);
+  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, 'note'), [notes, noteSort, openTabs]);
+  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, 'web'), [webs, webSort, openTabs]);
+  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, 'talk'), [talks, talkSort, openTabs]);
 
 
   const isScreenTabActive = activeContent?.type === 'notes';
@@ -536,5 +551,7 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
