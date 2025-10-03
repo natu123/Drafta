@@ -13,19 +13,18 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Prōla',
     icon: '👋',
-    content: `Welcome to Prōla!
+    content: `Prōla is your all-in-one idea hub: 
+"where notes, the web, and AI connect seamlessly."
 
-This is your first note. Prōla is a revolutionary I/O application that integrates note-taking, web browsing, and a conversational AI.
+With Prōla, you can:
+● Capture notes any way you like—handwriting, voice, or markdown.
+● Browse and organize multiple web pages in a clean, organized way.
+● Chat with AI to summarize, create, and explore ideas instantly.
 
-Here's a quick guide to get you started:
+No more switching between apps.
+Everything you need to collect, connect, and create, all in Prōla.
 
-- Create notes: Use the + New Note button in the left sidebar.
-- Organize: Notes are automatically grouped. You can manage groups later.
-- Rich Text: Use the toolbar above the editor for formatting.
-- AI Integration: Use the Prōla AI panel on the right to interact with the AI. Summarize your notes, generate new content, or start a chat session.
-- Bookmarks: Use the star icons to bookmark your important notes.
-
-Let's build the future together!
+Prōla shapes raw thoughts into brilliant ideas.
     `,
     group: 'general',
     stars: 3,
