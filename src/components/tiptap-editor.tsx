@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useEditor, EditorContent, BubbleMenu, generateHTML } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
+import { Input } from './ui/input';
 
 interface TiptapEditorProps {
   title: string;
@@ -36,71 +37,76 @@ const colors = [
 const extensions = [
   StarterKit.configure({
     heading: {
-      levels: [1, 2, 3],
+        levels: [2, 3], // h1 is now outside the editor
     },
+    document: true, // Allow document node
+    paragraph: true,
   }),
   Placeholder.configure({
-    placeholder: ({ node }) => {
-      if (node.type.name === 'heading' && node.parent?.firstChild === node) {
-        return 'Untitled Note';
-      }
-      if (node.type.name === 'paragraph' && node.parent && !node.content.size && node.parent.childCount <= 1) {
-         return 'Start writing your note here...';
-      }
-      return '';
-    },
+    placeholder: 'Start writing your note here...',
   }),
   TextStyle,
   Color,
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdate, onQuote, onIconChange, noteIcon }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, content, onNoteUpdate, onQuote, onIconChange, noteIcon }) => {
+
+  const [currentTitle, setCurrentTitle] = React.useState(initialTitle);
+  const isSavingRef = React.useRef(false);
+  const contentRef = React.useRef(content);
 
   const editor = useEditor({
     extensions,
-    // Combine title and content for the editor
-    content: `<h1>${title}</h1>${content}`,
-    onBlur: ({ editor }) => {
-      const editorContentJSON = editor.getJSON();
-      const editorContent = editorContentJSON.content;
-      
-      let newTitle = '';
-      let newContent = '';
-
-      if (editorContent && editorContent.length > 0) {
-        const titleNodeIndex = editorContent.findIndex(node => node.type === 'heading' && node.attrs?.level === 1);
-
-        if (titleNodeIndex !== -1) {
-          const titleNode = editorContent[titleNodeIndex];
-          newTitle = titleNode.content?.map(c => c.text).join('') || '';
-          
-          const contentNodes = editorContent.slice(titleNodeIndex + 1);
-          if (contentNodes.length > 0) {
-            newContent = generateHTML({ type: 'doc', content: contentNodes }, extensions);
-          }
-        } else if (editorContent.length > 0) {
-          // Fallback if no h1 is found, treat first block as title
-          const firstNode = editorContent[0];
-          newTitle = firstNode.content?.map(c => c.text).join('') || '';
-          const contentNodes = editorContent.slice(1);
-          if (contentNodes.length > 0) {
-            newContent = generateHTML({ type: 'doc', content: contentNodes }, extensions);
-          }
-        }
-      }
-      
-      onNoteUpdate({ title: newTitle, content: newContent });
+    content: content,
+    onUpdate: ({ editor }) => {
+        contentRef.current = editor.getHTML();
+        handleSave();
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none p-8 flex-1',
+        class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-4 pb-8 flex-1',
       },
     },
   });
+  
+  // Debounced save function
+  const handleSave = React.useCallback(() => {
+    if (!isSavingRef.current) {
+        isSavingRef.current = true;
+        setTimeout(() => {
+            onNoteUpdate({ title: currentTitle, content: contentRef.current });
+            isSavingRef.current = false;
+        }, 500); // 500ms delay
+    }
+  }, [currentTitle, onNoteUpdate]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentTitle(e.target.value);
+  };
+  
+  const handleTitleBlur = () => {
+    handleSave();
+  };
 
   const handleSetColor = (color: string) => {
     editor?.chain().focus().setColor(color).run();
   };
+
+  // Sync external changes
+  React.useEffect(() => {
+    if (initialTitle !== currentTitle) {
+      setCurrentTitle(initialTitle);
+    }
+  }, [initialTitle]);
+
+  React.useEffect(() => {
+    if (editor && content !== contentRef.current) {
+      const { from, to } = editor.state.selection;
+      editor.commands.setContent(content, false);
+      editor.commands.setTextSelection({ from, to });
+      contentRef.current = content;
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;
@@ -202,12 +208,20 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
             </Button>
         </BubbleMenu>
 
-        <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
+        <div className="flex-1 overflow-y-auto">
+            <Input 
+                value={currentTitle}
+                onChange={handleTitleChange}
+                onBlur={handleTitleBlur}
+                placeholder="Untitled Note"
+                className="text-4xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-8 pb-4 h-auto"
+            />
+            <Separator className="mx-8 w-auto" />
+            <EditorContent editor={editor} />
+        </div>
       </div>
     </TooltipProvider>
   );
 };
 
 export default TiptapEditor;
-
-    

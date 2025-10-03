@@ -30,10 +30,10 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
     } else {
       // Basic conversion of HTML to text for quoting if nothing is selected.
       const tempDiv = document.createElement('div');
-      // The editor content is now title + content
-      tempDiv.innerHTML = `<h1>${note.title}</h1>${note.content}`;
+      tempDiv.innerHTML = note.content;
       const textContent = tempDiv.textContent || tempDiv.innerText || '';
-      onQuoteNote(textContent);
+      const fullContentToQuote = `${note.title}\n\n${textContent}`;
+      onQuoteNote(fullContentToQuote);
     }
   }, [onQuoteNote, note.title, note.content]);
   
