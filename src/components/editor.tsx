@@ -23,7 +23,7 @@ interface EditorProps {
   onQuoteNote: (noteContent: string) => void;
 }
 
-const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '🔥', '🤖', '🤔', '👨‍💻', '👩‍💻'];
+const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '🔥', '💎', '⭐️', '🌈', '🪒'];
 
 // Regex to find URLs that are not already in a markdown link
 const URL_REGEX = /(?<!\[.*\]\()https?:\/\/[^\s\)]+/g;
@@ -202,5 +202,3 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
 };
 
 export default Editor;
-
-    
