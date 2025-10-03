@@ -32,7 +32,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
             <TooltipTrigger asChild>
                 <div className="relative">
                      <Button variant="ghost" size="icon" disabled>
-                        <History className="h-5 w-5 text-accent" />
+                        <History className="h-5 w-5" />
                     </Button>
                 </div>
             </TooltipTrigger>
@@ -51,7 +51,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
-                <History className="h-5 w-5 text-accent" />
+                <History className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -115,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={onToggleLeftSidebar}
                 className="hidden md:flex"
               >
-                <PanelLeft className="h-5 w-5 text-accent" />
+                <PanelLeft className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -167,7 +167,7 @@ const Header: React.FC<HeaderProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" onClick={onOpenSettings}>
-                    <Settings className="h-5 w-5 text-accent" />
+                    <Settings className="h-5 w-5" />
                 </Button>
             </TooltipTrigger>
             <TooltipContent>
