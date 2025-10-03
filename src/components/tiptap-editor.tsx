@@ -23,7 +23,7 @@ interface TiptapEditorProps {
   noteIcon: string;
 }
 
-const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒'];
+const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒'];
 const colors = [
   { name: 'Black', value: '#000000' },
   { name: 'Green', value: '#31D492' },
