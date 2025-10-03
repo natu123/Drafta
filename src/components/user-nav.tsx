@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Settings } from 'lucide-react';
 
 interface UserNavProps {
@@ -24,7 +25,11 @@ export function UserNav({ onOpenSettings }: UserNavProps) {
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Settings className="h-5 w-5" />
+                <Avatar className="h-8 w-8">
+                    {/* In a real app, you'd have user data here */}
+                    {isLoggedIn ? <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="@shadcn" /> : null}
+                    <AvatarFallback>{isLoggedIn ? 'U' : '?'}</AvatarFallback>
+                </Avatar>
             </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>

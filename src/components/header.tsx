@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bot, FilePlus, PanelLeft, Globe, History } from 'lucide-react';
+import { Bot, FilePlus, PanelLeft, Globe, History, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -145,13 +145,7 @@ const Header: React.FC<HeaderProps> = ({
               <p>New Web</p>
             </TooltipContent>
           </Tooltip>
-          
-          <HistoryNav history={history} onHistorySelect={onHistorySelect} />
 
-        </TooltipProvider>
-      </div>
-      <div className="flex items-center gap-2">
-         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -164,6 +158,21 @@ const Header: React.FC<HeaderProps> = ({
             </TooltipTrigger>
             <TooltipContent>
               <p>New Talk</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <div className="flex items-center gap-2">
+         <HistoryNav history={history} onHistorySelect={onHistorySelect} />
+         <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full" onClick={onOpenSettings}>
+                    <Settings className="h-5 w-5 text-accent" />
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+                <p>Settings</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
