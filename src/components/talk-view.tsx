@@ -98,7 +98,9 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
   }
 
   const handleQuoteMessage = (message: ChatMessage) => {
-    const quoteText = `> **${message.author === 'user' ? 'You' : 'Prōla'}**:\n> ${message.content.replace(/\n/g, '\n> ')}\n\n`;
+    const selection = window.getSelection()?.toString().trim();
+    const contentToQuote = selection || message.content;
+    const quoteText = `> **${message.author === 'user' ? 'You' : 'Prōla'}**:\n> ${contentToQuote.replace(/\n/g, '\n> ')}\n\n`;
     setChatInput(prev => quoteText + prev);
     textareaRef.current?.focus();
   };

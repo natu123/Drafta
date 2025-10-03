@@ -24,12 +24,17 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
   };
 
   const handleQuoteClick = () => {
-    // Basic conversion of HTML to text for quoting.
-    const tempDiv = document.createElement('div');
-    // The editor content is now title + content
-    tempDiv.innerHTML = `<h1>${note.title}</h1>${note.content}`;
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-    onQuoteNote(textContent);
+    const selection = window.getSelection()?.toString().trim();
+    if (selection) {
+      onQuoteNote(selection);
+    } else {
+      // Basic conversion of HTML to text for quoting if nothing is selected.
+      const tempDiv = document.createElement('div');
+      // The editor content is now title + content
+      tempDiv.innerHTML = `<h1>${note.title}</h1>${note.content}`;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      onQuoteNote(textContent);
+    }
   };
   
 
