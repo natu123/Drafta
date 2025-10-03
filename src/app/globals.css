@@ -71,4 +71,39 @@
   ::selection {
     background-color: hsl(var(--primary) / 0.2);
   }
+
+  /* Tiptap styles */
+  .ProseMirror {
+    @apply min-h-[calc(100vh-200px)];
+  }
+  
+  .ProseMirror-focused {
+    @apply outline-none;
+  }
+  
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    height: 0;
+  }
+
+  .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+    @apply font-bold;
+  }
+
+  .ProseMirror h1 {
+    @apply text-4xl;
+  }
+  .ProseMirror h2 {
+    @apply text-3xl;
+  }
+  .ProseMirror h3 {
+    @apply text-2xl;
+  }
+
+  .ProseMirror ul, .ProseMirror ol {
+    @apply list-inside;
+  }
 }

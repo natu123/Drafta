@@ -2,7 +2,7 @@ export type Note = {
   id: string;
   title: string;
   icon?: string;
-  content: string;
+  content: string; // Can be HTML content from Tiptap
   group: string;
   stars: 0 | 1 | 2 | 3;
   isPinned?: boolean;
@@ -12,6 +12,7 @@ export type Note = {
   parentId?: string;
   children?: Note[];
   thumbnailUrl?: string;
+  // titleColor and contentColor are deprecated in favor of rich text content
   titleColor?: string;
   contentColor?: string;
 };
