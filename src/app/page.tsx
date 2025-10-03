@@ -419,11 +419,11 @@ export default function Home() {
       case 'manual':
       default:
         const itemMap = new Map(items.map(item => [item.id, item]));
+        
         const orderedItems = openTabsForType
           .map(tab => itemMap.get(tab.id))
           .filter((item): item is T => !!item);
         
-        // Add items that are in `items` but not in `openTabsForType` to the end
         const openTabIds = new Set(openTabsForType.map(t => t.id));
         const remainingItems = items.filter(item => !openTabIds.has(item.id));
         
@@ -442,7 +442,7 @@ export default function Home() {
     if (isScreenTabActive) {
         return (
         <div className="p-4 md:p-8 h-full">
-          <div className="flex h-full gap-4">
+          <div className="grid md:grid-cols-3 h-full gap-4">
             <HomeSection 
               title="Notes" 
               icon={Notebook} 
@@ -555,6 +555,8 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
 
