@@ -122,7 +122,7 @@ export default function Home() {
   const [activeContent, setActiveContent] = React.useState<ActiveContent>(notes[0] ? { type: 'note', id: notes[0].id } : null);
   
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
-  const [chatInput, setChatInput] = React.useState('');
+  const [chatInput, setChatInput] = React.useState<string | ((prev: string) => string)>('');
   
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
@@ -294,14 +294,14 @@ export default function Home() {
   };
   
   const handleQuoteNote = (noteContent: string) => {
-    const quoteText = `> **Note: ${activeNote?.title || 'Untitled'}**:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
-    setChatInput(prev => (currentInput: string, textarea: HTMLTextAreaElement | null) => {
-        if (textarea) {
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            return currentInput.slice(0, start) + quoteText + currentInput.slice(end);
-        }
-        return prev + quoteText;
+    const quoteText = `> Note: ${activeNote?.title || 'Untitled'}:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
+    setChatInput(prev => {
+      // This function will be executed by React, passing the current state
+      // We pass another function to TalkView to handle the cursor position
+      return (currentInput: string) => ({
+        text: quoteText,
+        currentInput,
+      });
     });
 
     if (!openSpecialTabs.includes('talk')) {

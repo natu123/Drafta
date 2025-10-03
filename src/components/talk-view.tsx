@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
-type ChatInputState = string | ((current: string, textarea: HTMLTextAreaElement | null) => string);
+type ChatInputState = string | ((prev: string) => string) | ((prev: string) => { text: string, currentInput: string });
 
 interface TalkViewProps {
   chatMessages: ChatMessage[];
@@ -35,11 +35,6 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  const currentChatInput = typeof chatInput === 'function' 
-    ? chatInput(textareaRef.current?.value ?? '', textareaRef.current) 
-    : chatInput;
-
-
   React.useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -53,20 +48,27 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
   }, [stream]);
   
   React.useEffect(() => {
-    if (typeof chatInput === 'function') {
-      const currentVal = textareaRef.current?.value ?? '';
-      const newVal = chatInput(currentVal, textareaRef.current);
-      if (textareaRef.current) {
-        textareaRef.current.value = newVal;
-      }
-    }
-  }, [chatInput]);
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-  React.useEffect(() => {
-    if (typeof chatInput === 'string') {
-        textareaRef.current?.focus();
+    if (typeof chatInput === 'function') {
+      const result = chatInput(textarea.value);
+      if (typeof result === 'object' && 'text' in result) {
+        const { text, currentInput } = result;
+        const start = textarea.selectionStart;
+        const newText = currentInput.slice(0, start) + text + currentInput.slice(start);
+        textarea.value = newText;
+        setChatInput(newText);
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+      } else if (typeof result === 'string') {
+        textarea.value = result;
+        setChatInput(result);
+      }
+    } else {
+      textarea.value = chatInput;
     }
-  }, [chatInput]);
+  }, [chatInput, setChatInput]);
 
 
   const handleStartSharing = async () => {
@@ -121,7 +123,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 
     const selection = window.getSelection()?.toString().trim();
     const contentToQuote = selection || message.content;
-    const quoteText = `> **${message.author === 'user' ? 'You' : 'Prōla'}**:\n> ${contentToQuote.replace(/\n/g, '\n> ')}\n\n`;
+    const quoteText = `> ${message.author === 'user' ? 'You' : 'Prōla'}:\n> ${contentToQuote.replace(/\n/g, '\n> ')}\n\n`;
     
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
@@ -139,13 +141,14 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentChatInput.trim()) return;
-    onAddChatMessage({ author: 'user', content: currentChatInput });
+    const currentVal = textareaRef.current?.value || '';
+    if (!currentVal.trim()) return;
+    onAddChatMessage({ author: 'user', content: currentVal });
     setChatInput('');
 
     setTimeout(() => {
-      const operator = selectedModel === "Auto (Optimal)" ? "Gemini" : selectedModel;
-      const responseContent = `[${operator}] I'm a demo assistant! I can't process that, but you can use the tools below.`;
+      const operator = selectedModel === "Auto (Optimal)" ? "[DEMO] DeepSeek-V3 (Auto)" : `[${selectedModel}]`;
+      const responseContent = `${operator} I'm a demo assistant! I can't process that, but you can use the tools below.`;
       onAddChatMessage({ author: 'ai', content: responseContent });
     }, 1000);
   };
@@ -225,7 +228,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
             placeholder="Chat with Prōla..."
             className="flex-1 resize-none"
             rows={1}
-            value={currentChatInput}
+            defaultValue={typeof chatInput === 'string' ? chatInput : ''}
             onChange={handleInputChange}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -240,7 +243,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
           <Button type="button" size="icon" variant={isSharing ? "destructive" : "ghost"} onClick={toggleScreenSharing}>
              {isSharing ? <ScreenShareOff className="h-4 w-4" /> : <ScreenShare className="h-4 w-4" />}
           </Button>
-          <Button type="submit" size="icon" disabled={!currentChatInput.trim()}>
+          <Button type="submit" disabled={!textareaRef.current?.value.trim()}>
             <Send className="h-4 w-4" />
           </Button>
         </form>
