@@ -12,7 +12,7 @@ export const notes: Note[] = [
   {
     id: 'note-1',
     title: 'Welcome to Prōla',
-    icon: '👋',
+    icon: '🌱',
     content: `<p>Prōla is your all-in-one idea hub: </p><p>"where notes, the web, and AI connect seamlessly."</p><p></p><p>With Prōla, you can:</p><p>● Capture notes any way you like—handwriting, voice, or markdown.</p><p>● Browse and organize multiple web pages in a clean, organized way.</p><p>● Chat with AI to summarize, create, and explore ideas instantly.</p><p></p><p>No more switching between apps.</p><p>Everything you need to collect, connect, and create, all in Prōla.</p><p></p><p>Prōla shapes raw thoughts into brilliant ideas.</p>`,
     group: 'general',
     stars: 3,
