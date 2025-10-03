@@ -99,7 +99,7 @@ export const chatMessages: ChatMessage[] = [
     {
         id: 'chat-1',
         author: 'ai',
-        authorName: 'Prōla',
+        authorName: '[DEMO] DeepSeek-V3 (Auto)',
         content: 'Hello! How can I assist you today? You can ask me to summarize the current note, generate a new draft, or just chat.',
         timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
     },

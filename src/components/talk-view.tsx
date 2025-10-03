@@ -156,13 +156,24 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 
     setTimeout(() => {
         let aiAuthorName = 'Prōla';
-        if (selectedModel === "Auto (Optimal)") {
-            aiAuthorName = "[DEMO] DeepSeek-V3 (Auto)";
-        } else if (selectedModel === "Perplexity") {
-            aiAuthorName = "Perplexity";
+        switch (selectedModel) {
+            case "Auto (Optimal)":
+                aiAuthorName = "[DEMO] DeepSeek-V3 (Auto)";
+                break;
+            case "Perplexity":
+                aiAuthorName = "[DEMO] Perplexity";
+                break;
+            case "ChatGPT":
+                aiAuthorName = "[DEMO] ChatGPT";
+                break;
+            case "Gemini":
+                aiAuthorName = "[DEMO] Gemini";
+                break;
+            default:
+                aiAuthorName = `[DEMO] ${selectedModel}`;
         }
         
-        const responseContent = `${aiAuthorName} I'm a demo assistant! I can't process that, but you can use the tools below.`;
+        const responseContent = `${aiAuthorName.split(' ')[0]} I'm a demo assistant! I can't process that, but you can use the tools below.`;
         onAddChatMessage({ author: 'ai', content: responseContent, authorName: aiAuthorName });
     }, 1000);
   };
