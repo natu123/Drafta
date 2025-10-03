@@ -112,7 +112,7 @@ export default function Home() {
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
-    initialNotes.map(n => ({ id: n.id, type: 'note' }))
+    initialNotes.map(n => ({ id: n.id, type: 'note' as const }))
   );
   
   const [activeContent, setActiveContent] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
@@ -193,7 +193,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setNotes([newNote, ...notes]);
+    setNotes(prev => [...prev, newNote]);
     openTab(newNote.id, 'note');
     addToHistory(newNote, 'note');
   };
@@ -208,7 +208,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setWebs([newWeb, ...webs]);
+    setWebs(prev => [...prev, newWeb]);
     openTab(newWeb.id, 'web');
     addToHistory(newWeb, 'web');
   };
@@ -229,7 +229,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setTalks([newTalk, ...talks]);
+    setTalks(prev => [...prev, newTalk]);
     openTab(newTalk.id, 'talk');
     addToHistory(newTalk, 'talk');
   };
@@ -389,9 +389,9 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  const sortedNotes = React.useMemo(() => {
-    const sorted = [...notes];
-    switch (noteSort) {
+  const getSortedItems = <T extends { id: string; createdAt: string; lastAccessedAt?: string }>(items: T[], sortOption: SortOption, type: 'note' | 'web' | 'talk'): T[] => {
+    const sorted = [...items];
+    switch (sortOption) {
       case 'newest':
         return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       case 'oldest':
@@ -400,44 +400,17 @@ export default function Home() {
         return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
       case 'manual':
       default:
-        // Pinned items first, then by updated date
-        return sorted.sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-        });
+        const openTabsOfType = openTabs.filter(tab => tab.type === type);
+        const orderedItems = openTabsOfType.map(tab => sorted.find(item => item.id === tab.id)).filter((item): item is T => !!item);
+        const remainingItems = sorted.filter(item => !openTabsOfType.some(tab => tab.id === item.id));
+        return [...orderedItems, ...remainingItems];
     }
-  }, [notes, noteSort]);
+  };
 
-  const sortedWebs = React.useMemo(() => {
-    const sorted = [...webs];
-    switch (webSort) {
-      case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case 'oldest':
-        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      case 'last-accessed':
-        return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
-      case 'manual':
-      default:
-        return webs;
-    }
-  }, [webs, webSort]);
+  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, 'note'), [notes, noteSort, openTabs]);
+  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, 'web'), [webs, webSort, openTabs]);
+  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, 'talk'), [talks, talkSort, openTabs]);
 
-  const sortedTalks = React.useMemo(() => {
-    const sorted = [...talks];
-    switch (talkSort) {
-      case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case 'oldest':
-        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      case 'last-accessed':
-        return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
-      case 'manual':
-      default:
-        return talks;
-    }
-  }, [talks, talkSort]);
 
   const isScreenTabActive = activeContent?.type === 'notes';
 
@@ -511,7 +484,15 @@ export default function Home() {
           />
         ) : null;
       default:
-        return null;
+        return (
+          <div className="p-4 md:p-8 h-full">
+            <div className="flex h-full gap-4">
+               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-secondary/30 rounded-lg">
+                  <p>Select an item to view or create a new one.</p>
+               </div>
+            </div>
+          </div>
+        )
     }
   };
 
