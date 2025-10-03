@@ -25,7 +25,7 @@ interface EditorProps {
   onQuoteNote: (noteContent: string) => void;
 }
 
-const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '🔥', '💎', '⭐️', '🌈', '🪒'];
+const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒'];
 
 const colors = [
   { name: 'Default', value: '' },
@@ -186,7 +186,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
             </Tooltip>
             <Separator orientation="vertical" className="h-6 mx-2" />
              <RadioGroup value={colorTarget} onValueChange={(value) => setColorTarget(value as 'title' | 'content')} className="flex gap-2 items-center">
-                <Label className="text-sm font-medium">Color:</Label>
                 <div className="flex items-center gap-1">
                     <RadioGroupItem value="title" id="r-title" />
                     <Label htmlFor="r-title" className="text-sm font-normal">Title</Label>
