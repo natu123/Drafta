@@ -116,9 +116,9 @@ export default function Home() {
   const [talks, setTalks] = React.useState<Talk[]>(initialTalks);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
-  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([]);
+  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>(['note-1']);
   const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
-  const [openTalkIds, setOpenTalkIds] = React.useState<string[]>(['talk-1']);
+  const [openTalkIds, setOpenTalkIds] = React.useState<string[]>([]);
   
   const [activeContent, setActiveContent] = React.useState<ActiveContent>({ type: 'note', id: 'note-1' });
   
@@ -160,10 +160,10 @@ export default function Home() {
     });
   };
 
-  const handleNoteUpdate = (updatedNote: Partial<Note>) => {
+  const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note>) => {
     if (activeContent?.type !== 'note') return;
-    setNotes(notes.map(note => note.id === activeContent.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
-  };
+    setNotes(notes => notes.map(note => note.id === activeContent.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
+  }, [activeContent]);
   
   const handleNewNote = () => {
     const newNote: Note = {
