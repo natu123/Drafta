@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -211,3 +212,5 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
 };
 
 export default TalkView;
+
+    
