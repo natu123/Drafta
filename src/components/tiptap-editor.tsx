@@ -100,12 +100,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title, content, onNoteUpdat
 
   React.useEffect(() => {
     if (editor) {
-      // Check if the content is just plain text with newlines
       const isPlainText = !content.trim().startsWith('<');
       let finalContent = content;
 
       if (isPlainText) {
-        // If it's plain text, wrap lines in <p> tags
         finalContent = content
           .split('\n')
           .map(line => line.trim() === '' ? '<p></p>' : `<p>${line}</p>`)
