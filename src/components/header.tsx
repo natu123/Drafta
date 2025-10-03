@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { Bot, FilePlus, Globe, History, Settings, AppWindow } from 'lucide-react';
+import { Bot, FilePlus, Globe, History, Settings, PanelLeft, PanelRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -116,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={onToggleScreenTab}
                 className="hidden md:flex"
               >
-                <AppWindow className="h-5 w-5" />
+                {isScreenTabActive ? <PanelRight className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -182,5 +182,3 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 export default Header;
-
-    
