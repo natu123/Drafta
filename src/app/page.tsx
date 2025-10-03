@@ -11,7 +11,7 @@ import NotesSidebar from '@/components/notes-sidebar';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import TalkView from '@/components/talk-view';
-import type { Note, Group, ChatMessage, Web, HistoryItem, Talk } from '@/lib/types';
+import type { Note, Group, ChatMessage, Web, HistoryItem, Talk, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
@@ -19,11 +19,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import WebView from '@/components/webview';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-
-type ActiveContent = {
-  id: string;
-  type: 'note' | 'web' | 'notes' | 'talk';
-} | null;
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
@@ -116,12 +111,12 @@ export default function Home() {
   const [talks, setTalks] = React.useState<Talk[]>([]);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
-  const [openNoteIds, setOpenNoteIds] = React.useState<string[]>(['note-1', 'note-2', 'note-3', 'note-4', 'note-5']);
-  const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
-  const [openTalkIds, setOpenTalkIds] = React.useState<string[]>([]);
+  const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
+    initialNotes.map(n => ({ id: n.id, type: 'note' }))
+  );
   
-  const [activeContent, setActiveContent] = React.useState<ActiveContent>({ type: 'note', id: 'note-1' });
-  const [lastActiveContent, setLastActiveContent] = React.useState<ActiveContent>(activeContent);
+  const [activeContent, setActiveContent] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
+  const [lastActiveContent, setLastActiveContent] = React.useState<OpenTab | null>(activeContent);
   
   const [chatInput, setChatInput] = React.useState<string | ((prev: string) => string)>('');
   
@@ -140,11 +135,23 @@ export default function Home() {
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
   const activeTalk = activeContent?.type === 'talk' ? talks.find((talk) => talk.id === activeContent.id) ?? null : null;
 
-  const openTabs = [
-    ...openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note).map(note => ({ ...note, type: 'note' as const })),
-    ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const })),
-    ...openTalkIds.map(id => talks.find(talk => talk.id === id)).filter((talk): talk is Talk => !!talk).map(talk => ({ ...talk, type: 'talk' as const }))
-  ];
+  const openTabDetails = React.useMemo(() => {
+    return openTabs.map(tab => {
+        if (tab.type === 'note') {
+            const note = notes.find(n => n.id === tab.id);
+            return note ? { ...note, type: 'note' as const } : null;
+        }
+        if (tab.type === 'web') {
+            const web = webs.find(w => w.id === tab.id);
+            return web ? { ...web, type: 'web' as const } : null;
+        }
+        if (tab.type === 'talk') {
+            const talk = talks.find(t => t.id === tab.id);
+            return talk ? { ...talk, type: 'talk' as const } : null;
+        }
+        return null;
+    }).filter((item): item is (Note & {type: 'note'}) | (Web & {type: 'web'}) | (Talk & {type: 'talk'}) => !!item);
+  }, [openTabs, notes, webs, talks]);
 
   const addToHistory = (item: Note | Web | Talk, type: 'note' | 'web' | 'talk') => {
     setHistory(prev => {
@@ -166,6 +173,14 @@ export default function Home() {
     setNotes(notes => notes.map(note => note.id === activeContent.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
   }, [activeContent]);
   
+  const openTab = (id: string, type: 'note' | 'web' | 'talk') => {
+    const isAlreadyOpen = openTabs.some(tab => tab.id === id && tab.type === type);
+    if (!isAlreadyOpen) {
+        setOpenTabs(prev => [...prev, { id, type }]);
+    }
+    setActiveContent({ type, id });
+  };
+  
   const handleNewNote = () => {
     const newNote: Note = {
       id: `note-${Date.now()}`,
@@ -179,10 +194,7 @@ export default function Home() {
       lastAccessedAt: new Date().toISOString(),
     };
     setNotes([newNote, ...notes]);
-    if (!openNoteIds.includes(newNote.id)) {
-      setOpenNoteIds([newNote.id, ...openNoteIds]);
-    }
-    setActiveContent({ type: 'note', id: newNote.id });
+    openTab(newNote.id, 'note');
     addToHistory(newNote, 'note');
   };
   
@@ -197,10 +209,7 @@ export default function Home() {
       lastAccessedAt: new Date().toISOString(),
     };
     setWebs([newWeb, ...webs]);
-    if (!openWebIds.includes(newWeb.id)) {
-      setOpenWebIds([newWeb.id, ...openWebIds]);
-    }
-    setActiveContent({ type: 'web', id: newWeb.id });
+    openTab(newWeb.id, 'web');
     addToHistory(newWeb, 'web');
   };
 
@@ -221,46 +230,31 @@ export default function Home() {
       lastAccessedAt: new Date().toISOString(),
     };
     setTalks([newTalk, ...talks]);
-    if (!openTalkIds.includes(newTalk.id)) {
-      setOpenTalkIds([newTalk.id, ...openTalkIds]);
-    }
-    setActiveContent({ type: 'talk', id: newTalk.id });
+    openTab(newTalk.id, 'talk');
     addToHistory(newTalk, 'talk');
   };
 
   const handleNoteSelect = (id: string) => {
     const note = notes.find(n => n.id === id);
     if (!note) return;
-
     setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
-    setActiveContent({ type: 'note', id });
-    if (!openNoteIds.includes(id)) {
-      setOpenNoteIds([id, ...openNoteIds]);
-    }
+    openTab(id, 'note');
     addToHistory(note, 'note');
   };
 
   const handleWebSelect = (id: string) => {
     const web = webs.find(w => w.id === id);
     if (!web) return;
-
     setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
-    setActiveContent({ type: 'web', id });
-    if (!openWebIds.includes(id)) {
-      setOpenWebIds([id, ...openWebIds]);
-    }
+    openTab(id, 'web');
     addToHistory(web, 'web');
   };
 
   const handleTalkSelect = (id: string) => {
     const talk = talks.find(t => t.id === id);
     if (!talk) return;
-
     setTalks(prev => prev.map(t => t.id === id ? { ...t, lastAccessedAt: new Date().toISOString() } : t));
-    setActiveContent({ type: 'talk', id });
-    if (!openTalkIds.includes(id)) {
-      setOpenTalkIds([id, ...openTalkIds]);
-    }
+    openTab(id, 'talk');
     addToHistory(talk, 'talk');
   };
   
@@ -274,50 +268,53 @@ export default function Home() {
     }
   };
 
-  const handleTabSelect = (id: string, type: 'note' | 'web' | 'notes' | 'talk') => {
-    if (type === 'note') {
+  const handleTabSelect = (id: string, type: OpenTab['type']) => {
+    const itemType = type;
+    if (itemType === 'note') {
       const note = notes.find(n => n.id === id);
       if (note) {
         setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
         addToHistory(note, 'note');
       }
-    } else if (type === 'web') {
+    } else if (itemType === 'web') {
        const web = webs.find(w => w.id === id);
        if (web) {
         setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
         addToHistory(web, 'web');
       }
-    } else if (type === 'talk') {
+    } else if (itemType === 'talk') {
         const talk = talks.find(t => t.id === id);
         if (talk) {
             setTalks(prev => prev.map(t => t.id === id ? { ...t, lastAccessedAt: new Date().toISOString() } : t));
             addToHistory(talk, 'talk');
         }
     }
-    setActiveContent({ type, id });
+    setActiveContent({ type: itemType, id });
   };
 
-  const handleTabClose = (id: string, type: 'note' | 'web' | 'notes' | 'talk') => {
-    let newOpenTabs = [...openTabs];
-    let closingTabIndex = newOpenTabs.findIndex(tab => tab.id === id && tab.type === type);
+  const handleTabClose = (id: string, type: OpenTab['type']) => {
+    let closingTabIndex = openTabs.findIndex(tab => tab.id === id && tab.type === type);
     
-    if (type === 'note') {
-      setOpenNoteIds(prev => prev.filter(noteId => noteId !== id));
-    } else if (type === 'web') {
-      setOpenWebIds(prev => prev.filter(webId => webId !== id));
-    } else if (type === 'talk') {
-        setOpenTalkIds(prev => prev.filter(talkId => talkId !== id));
-    }
+    setOpenTabs(prev => prev.filter(tab => !(tab.id === id && tab.type === type)));
     
     if (activeContent?.id === id && activeContent.type === type) {
-      newOpenTabs.splice(closingTabIndex, 1);
+      const newOpenTabs = openTabs.filter(tab => !(tab.id === id && tab.type === type));
       if (newOpenTabs.length > 0) {
+        // Try to select the next tab, or the previous one if closing the last tab
         const nextTab = newOpenTabs[closingTabIndex] || newOpenTabs[closingTabIndex - 1] || newOpenTabs[0];
-        setActiveContent({ id: nextTab.id, type: nextTab.type });
+        if (nextTab) {
+          setActiveContent({ id: nextTab.id, type: nextTab.type });
+        } else {
+          setActiveContent(null);
+        }
       } else {
         setActiveContent(null);
       }
     }
+  };
+  
+  const handleReorderTabs = (reorderedTabs: OpenTab[]) => {
+    setOpenTabs(reorderedTabs);
   };
 
   const handleStarNote = (id: string, stars: number) => {
@@ -332,15 +329,16 @@ export default function Home() {
     if (type === 'note') {
         setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
     } else if (type === 'talk') {
-        setTalks(talks.map(talk => talk.id === id ? { ...talk, icon } : note));
+        setTalks(talks.map(talk => talk.id === id ? { ...talk, icon } : talk));
     }
   };
 
   const handleTitleChange = (id: string, title: string, type: 'note' | 'web' | 'talk') => {
     if (type === 'talk') {
       setTalks(talks.map(talk => talk.id === id ? { ...talk, title } : talk));
+    } else if (type === 'note') {
+      setNotes(notes.map(note => note.id === id ? {...note, title} : note));
     }
-    // Add similar logic for 'note' and 'web' if needed
   };
 
   const handleAddChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
@@ -362,19 +360,17 @@ export default function Home() {
   const handleQuoteNote = (noteContent: string) => {
     const quoteText = `> Note: ${activeNote?.title || 'Untitled'}:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
     setChatInput(prev => {
-      // This function will be executed by React, passing the current state
-      // We pass another function to TalkView to handle the cursor position
       return (currentInput: string) => ({
         text: quoteText,
         currentInput,
       });
     });
 
-    if (openTalkIds.length === 0) {
+    const openTalks = openTabs.filter(t => t.type === 'talk');
+    if (openTalks.length === 0) {
       handleNewTalk();
     } else {
-      // If there's an active talk, switch to it. Otherwise, use the first one.
-      const targetTalkId = activeTalk?.id || openTalkIds[0];
+      const targetTalkId = activeTalk?.id || openTalks[0].id;
       setActiveContent({ type: 'talk', id: targetTalkId });
     }
   };
@@ -537,10 +533,11 @@ export default function Home() {
         <main className="flex-1 flex overflow-hidden relative">
           {!isScreenTabActive && (
             <VerticalTabs
-                items={openTabs}
+                items={openTabDetails}
                 activeId={activeContent?.id}
                 onTabSelect={handleTabSelect}
                 onTabClose={handleTabClose}
+                onReorderTabs={handleReorderTabs}
             />
           )}
           <div className="flex-1 overflow-y-auto">
@@ -553,9 +550,3 @@ export default function Home() {
     </>
   );
 }
-
-    
-
-    
-
-    

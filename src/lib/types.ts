@@ -61,3 +61,8 @@ export type HistoryItem = {
   icon?: string;
   accessedAt: string;
 }
+
+export type OpenTab = {
+    id: string;
+    type: 'note' | 'web' | 'talk' | 'notes';
+}
