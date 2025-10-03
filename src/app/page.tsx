@@ -120,6 +120,7 @@ export default function Home() {
   const [activeContent, setActiveContent] = React.useState<ActiveContent>(notes[0] ? { type: 'note', id: notes[0].id } : null);
   
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
+  const [chatInput, setChatInput] = React.useState('');
   
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
@@ -289,6 +290,12 @@ export default function Home() {
     setChatMessages(prev => [...prev, newMessage]);
   };
   
+  const handleQuoteNote = (noteContent: string) => {
+    const quoteText = `> **Note: ${activeNote?.title || 'Untitled'}**:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
+    setChatInput(prev => quoteText + prev);
+    setIsRightSidebarOpen(true);
+  };
+
   const [isClient, setIsClient] = React.useState(false);
   React.useEffect(() => {
     setIsClient(true);
@@ -393,6 +400,7 @@ export default function Home() {
                 note={activeNote} 
                 onNoteUpdate={handleNoteUpdate}
                 onIconChange={handleIconChange}
+                onQuoteNote={handleQuoteNote}
               />
             ) : activeContent?.type === 'web' && activeWeb ? (
               <WebView key={activeWeb.id} web={activeWeb} />
@@ -453,6 +461,8 @@ export default function Home() {
               <TalkView
                 chatMessages={chatMessages}
                 onAddChatMessage={handleAddChatMessage}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
               />
             </SheetContent>
           </Sheet>
@@ -463,6 +473,8 @@ export default function Home() {
               <TalkView
                 chatMessages={chatMessages}
                 onAddChatMessage={handleAddChatMessage}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
               />
             )}
           </aside>
@@ -472,3 +484,5 @@ export default function Home() {
     </>
   );
 }
+
+    

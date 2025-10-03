@@ -16,12 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 interface TalkViewProps {
   chatMessages: ChatMessage[];
   onAddChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  chatInput: string;
+  setChatInput: (input: string) => void;
 }
 
 const aiModels = ["Auto (Optimal)", "Perplexity", "ChatGPT", "Gemini"];
 
-const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) => {
-  const [chatInput, setChatInput] = React.useState('');
+const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, chatInput, setChatInput }) => {
   const [isSharing, setIsSharing] = React.useState(false);
   const [isVoiceMode, setIsVoiceMode] = React.useState(false);
   const [stream, setStream] = React.useState<MediaStream | null>(null);
@@ -43,6 +44,12 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
       videoRef.current.srcObject = stream;
     }
   }, [stream]);
+
+  React.useEffect(() => {
+    if (chatInput) {
+      textareaRef.current?.focus();
+    }
+  }, [chatInput]);
 
   const handleStartSharing = async () => {
     setError(null);
@@ -205,3 +212,5 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage }) =
 };
 
 export default TalkView;
+
+    

@@ -1,9 +1,10 @@
+
 "use client";
 
 import * as React from 'react';
 import type { Note } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Undo, Redo, Smile, Eye, PenSquare, X } from 'lucide-react';
+import { Undo, Redo, Smile, Eye, PenSquare, X, MessageSquareQuote } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
@@ -19,6 +20,7 @@ interface EditorProps {
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (id: string, icon: string) => void;
+  onQuoteNote: (noteContent: string) => void;
 }
 
 const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '🔥', '🤖', '🤔', '👨‍💻', '👩‍💻'];
@@ -27,7 +29,7 @@ const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤�
 const URL_REGEX = /(?<!\[.*\]\()https?:\/\/[^\s\)]+/g;
 
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuoteNote }) => {
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset } = useHistory(note.content || '');
   const [viewMode, setViewMode] = React.useState<'write' | 'preview'>('write');
   const [detectedUrl, setDetectedUrl] = React.useState<string | null>(null);
@@ -65,6 +67,10 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
       onNoteUpdate({ content: newContent });
       setDetectedUrl(null);
     }
+  };
+
+  const handleQuoteClick = () => {
+    onQuoteNote(content);
   };
 
 
@@ -146,6 +152,16 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
                     <p>Preview</p>
                 </TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={handleQuoteClick}>
+                  <MessageSquareQuote />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Quote Note</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </div>
@@ -186,3 +202,5 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
 };
 
 export default Editor;
+
+    
