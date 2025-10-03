@@ -8,7 +8,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { UserNav } from './user-nav';
 import type { HistoryItem } from '@/lib/types';
 import {
   DropdownMenu,
@@ -167,7 +166,7 @@ const Header: React.FC<HeaderProps> = ({
          <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full" onClick={onOpenSettings}>
+                <Button variant="ghost" size="icon" onClick={onOpenSettings}>
                     <Settings className="h-5 w-5 text-accent" />
                 </Button>
             </TooltipTrigger>
@@ -176,7 +175,6 @@ const Header: React.FC<HeaderProps> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <UserNav onOpenSettings={onOpenSettings} />
       </div>
     </header>
   );
