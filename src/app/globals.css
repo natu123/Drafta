@@ -70,7 +70,7 @@
     border-width: 0;
   }
   ::selection {
-    background-color: hsl(var(--primary) / 0.2);
+    background-color: hsl(var(--primary) / 0.1);
   }
 
   /* Tiptap styles */
