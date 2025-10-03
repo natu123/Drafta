@@ -12,6 +12,9 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { User } from 'lucide-react';
+
 
 type ChatInputState = string | ((prev: string) => string) | ((prev: string) => { text: string, currentInput: string });
 
@@ -197,25 +200,38 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
         </div>
       )}
       
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
+        <div className="space-y-6 p-4">
           {chatMessages.map(msg => (
-            <div key={msg.id} className={cn('flex items-start gap-3 group', msg.author === 'user' ? 'justify-end' : 'justify-start')}>
-              {msg.author === 'ai' && <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0"><Bot className="w-5 h-5 text-primary" /></div>}
-              <div className={cn(
-                'p-3 rounded-lg max-w-xs relative', 
-                msg.author === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-              )}>
-                 <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+             <div key={msg.id} className={cn('flex items-start gap-4 group relative', msg.author === 'user' && 'bg-secondary/50 p-4 rounded-lg')}>
+                {msg.author === 'ai' ? (
+                  <Avatar className="w-8 h-8 shrink-0">
+                    <AvatarFallback className="bg-primary/20">
+                      <Bot className="w-5 h-5 text-primary" />
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <Avatar className="w-8 h-8 shrink-0">
+                    <AvatarFallback>
+                      <User className="w-5 h-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-bold">{msg.author === 'user' ? 'You' : 'Prōla'}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(msg.timestamp), 'HH:mm (yyyy-MM-dd)')}
+                    </span>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap mt-1">{msg.content}</p>
+                </div>
+                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-6 w-6 bg-background hover:bg-secondary rounded-full shadow" onClick={() => handleQuoteMessage(msg)}>
                         <MessageSquareQuote className="h-3 w-3 text-muted-foreground" />
                     </Button>
                  </div>
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                <p className={cn('text-xs mt-1', msg.author === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                  {format(new Date(msg.timestamp), 'p')}
-                </p>
-              </div>
             </div>
           ))}
         </div>
