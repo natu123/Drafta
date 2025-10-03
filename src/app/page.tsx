@@ -193,7 +193,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setNotes(prev => [...prev, newNote]);
+    setNotes(prev => [newNote, ...prev]);
     openTab(newNote.id, 'note');
     addToHistory(newNote, 'note');
   };
@@ -208,7 +208,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setWebs(prev => [...prev, newWeb]);
+    setWebs(prev => [newWeb, ...prev]);
     openTab(newWeb.id, 'web');
     addToHistory(newWeb, 'web');
   };
@@ -229,7 +229,7 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setTalks(prev => [...prev, newTalk]);
+    setTalks(prev => [newTalk, ...prev]);
     openTab(newTalk.id, 'talk');
     addToHistory(newTalk, 'talk');
   };
@@ -389,27 +389,32 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  const getSortedItems = <T extends { id: string; createdAt: string; lastAccessedAt?: string }>(items: T[], sortOption: SortOption, type: 'note' | 'web' | 'talk'): T[] => {
-    const sorted = [...items];
+  const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: string; lastAccessedAt?: string }>(
+    items: T[], 
+    sortOption: SortOption, 
+    type: 'note' | 'web' | 'talk',
+    openTabs: OpenTab[]
+  ): T[] => {
+    
     switch (sortOption) {
       case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       case 'oldest':
-        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        return [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       case 'last-accessed':
-        return sorted.sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
+        return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
       case 'manual':
       default:
         const openTabsOfType = openTabs.filter(tab => tab.type === type);
-        const orderedItems = openTabsOfType.map(tab => sorted.find(item => item.id === tab.id)).filter((item): item is T => !!item);
-        const remainingItems = sorted.filter(item => !openTabsOfType.some(tab => tab.id === item.id));
+        const orderedItems = openTabsOfType.map(tab => items.find(item => item.id === tab.id)).filter((item): item is T => !!item);
+        const remainingItems = items.filter(item => !openTabsOfType.some(tab => tab.id === item.id));
         return [...orderedItems, ...remainingItems];
     }
   };
 
-  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, 'note'), [notes, noteSort, openTabs]);
-  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, 'web'), [webs, webSort, openTabs]);
-  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, 'talk'), [talks, talkSort, openTabs]);
+  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, 'note', openTabs), [notes, noteSort, openTabs]);
+  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, 'web', openTabs), [webs, webSort, openTabs]);
+  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, 'talk', openTabs), [talks, talkSort, openTabs]);
 
 
   const isScreenTabActive = activeContent?.type === 'notes';
@@ -531,3 +536,5 @@ export default function Home() {
     </>
   );
 }
+
+    

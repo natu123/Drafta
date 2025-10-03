@@ -76,8 +76,8 @@ const initialChatMessages: ChatMessage[] = [
     {
         id: 'chat-1',
         author: 'ai',
-        authorName: '[DEMO] DeepSeek-V3 (Auto)',
-        content: 'Hello! How can I assist you today? You can ask me to summarize the current note, generate a new draft, or just chat.',
+        authorName: 'Prōla',
+        content: 'Hello! How can I assist you today?',
         timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
     },
 ]
@@ -85,5 +85,7 @@ const initialChatMessages: ChatMessage[] = [
 export const talks: Talk[] = [];
 
 export const chatMessages: ChatMessage[] = initialChatMessages;
+
+    
 
     
