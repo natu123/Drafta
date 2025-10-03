@@ -12,6 +12,8 @@ export type Note = {
   parentId?: string;
   children?: Note[];
   thumbnailUrl?: string;
+  titleColor?: string;
+  contentColor?: string;
 };
 
 export type Web = {
@@ -33,7 +35,7 @@ export type Group = {
 };
 
 export type ChatMessage = {
-  id: string;
+  id:string;
   author: 'user' | 'ai';
   content: string;
   timestamp: string;

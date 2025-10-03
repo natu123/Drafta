@@ -4,7 +4,7 @@
 import * as React from 'react';
 import type { Note } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Undo, Redo, Smile, Eye, PenSquare, X, MessageSquareQuote } from 'lucide-react';
+import { Undo, Redo, Smile, Eye, PenSquare, X, MessageSquareQuote, Palette } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Label } from './ui/label';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 interface EditorProps {
   note: Note;
@@ -25,7 +27,15 @@ interface EditorProps {
 
 const emojis = ['📝', '💡', '🧠', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '🔥', '💎', '⭐️', '🌈', '🪒'];
 
-// Regex to find URLs that are not already in a markdown link
+const colors = [
+  { name: 'Default', value: '' },
+  { name: 'Green', value: '#31D492' },
+  { name: 'Blue', value: '#51A2FF' },
+  { name: 'Purple', value: '#AD46FF' },
+  { name: 'Rose', value: '#FF6467' },
+  { name: 'Gold', value: '#FFB93B' },
+];
+
 const URL_REGEX = /(?<!\[.*\]\()https?:\/\/[^\s\)]+/g;
 
 
@@ -33,6 +43,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
   const { state: content, set: setContent, undo, redo, canUndo, canRedo, reset } = useHistory(note.content || '');
   const [viewMode, setViewMode] = React.useState<'write' | 'preview'>('write');
   const [detectedUrl, setDetectedUrl] = React.useState<string | null>(null);
+  const [colorTarget, setColorTarget] = React.useState<'title' | 'content'>('content');
 
   React.useEffect(() => {
     reset(note.content || '');
@@ -73,6 +84,16 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
     onQuoteNote(content);
   };
 
+  const handleColorSelect = (colorValue: string) => {
+    if (colorTarget === 'title') {
+        onNoteUpdate({ titleColor: colorValue });
+    } else {
+        onNoteUpdate({ contentColor: colorValue });
+    }
+  };
+  
+  const currentTargetColor = colorTarget === 'title' ? note.titleColor : note.contentColor;
+
 
   return (
     <div className="flex flex-col h-full">
@@ -105,6 +126,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
                 onChange={handleTitleChange}
                 placeholder="Untitled Note"
                 className="text-2xl font-bold border-none shadow-none focus-visible:ring-0 p-2 h-auto"
+                style={{ color: note.titleColor }}
             />
         </div>
       </div>
@@ -162,6 +184,51 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
                 <p>Quote Note</p>
               </TooltipContent>
             </Tooltip>
+             <Popover>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Palette />
+                            </Button>
+                        </PopoverTrigger>
+                    </TooltipTrigger>
+                     <TooltipContent>
+                        <p>Text Color</p>
+                    </TooltipContent>
+                </Tooltip>
+                <PopoverContent className="w-auto p-4">
+                     <div className="space-y-4">
+                        <div>
+                             <Label className="text-sm font-medium">Apply to</Label>
+                             <RadioGroup value={colorTarget} onValueChange={(value) => setColorTarget(value as 'title' | 'content')} className="flex gap-4 mt-2">
+                                <div>
+                                    <RadioGroupItem value="title" id="r-title" />
+                                    <Label htmlFor="r-title" className="ml-2">Title</Label>
+                                </div>
+                                <div>
+                                    <RadioGroupItem value="content" id="r-content" />
+                                    <Label htmlFor="r-content" className="ml-2">Content</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                         <div className="flex gap-2">
+                            {colors.map(color => (
+                                <Button
+                                    key={color.name}
+                                    variant="outline"
+                                    size="icon"
+                                    className={cn("w-8 h-8 rounded-full", currentTargetColor === color.value && "ring-2 ring-primary ring-offset-2")}
+                                    style={{ backgroundColor: color.value || 'hsl(var(--foreground))' }}
+                                    onClick={() => handleColorSelect(color.value)}
+                                >
+                                    {color.value === '' && <X className="w-4 h-4 text-background"/>}
+                                </Button>
+                            ))}
+                        </div>
+                     </div>
+                </PopoverContent>
+            </Popover>
           </div>
         </TooltipProvider>
       </div>
@@ -185,16 +252,30 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
         </Alert>
       )}
 
-      <div className={cn("flex-1 overflow-y-auto p-8 prose prose-neutral dark:prose-invert max-w-none", detectedUrl && "pt-0")}>
+      <div className={cn("flex-1 overflow-y-auto p-8 prose prose-neutral dark:prose-invert max-w-none", detectedUrl && "pt-0")} style={{ color: note.contentColor }}>
         {viewMode === 'write' ? (
              <Textarea
                 value={content}
                 onChange={handleContentChange}
                 placeholder="Start writing..."
                 className="w-full h-full resize-none border-none focus-visible:ring-0 text-base p-0"
+                 style={{ color: 'inherit' }}
             />
         ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                p: ({node, ...props}) => <p style={{ color: 'inherit' }} {...props} />,
+                h1: ({node, ...props}) => <h1 style={{ color: 'inherit' }} {...props} />,
+                h2: ({node, ...props}) => <h2 style={{ color: 'inherit' }} {...props} />,
+                h3: ({node, ...props}) => <h3 style={{ color: 'inherit' }} {...props} />,
+                h4: ({node, ...props}) => <h4 style={{ color: 'inherit' }} {...props} />,
+                h5: ({node, ...props}) => <h5 style={{ color: 'inherit' }} {...props} />,
+                h6: ({node, ...props}) => <h6 style={{ color: 'inherit' }} {...props} />,
+                strong: ({node, ...props}) => <strong style={{ color: 'inherit' }} {...props} />,
+                em: ({node, ...props}) => <em style={{ color: 'inherit' }} {...props} />,
+                a: ({node, ...props}) => <a className="text-primary" {...props} />,
+                code: ({node, ...props}) => <code style={{ color: 'inherit' }} {...props} />,
+                li: ({node, ...props}) => <li style={{ color: 'inherit' }} {...props} />,
+            }}>{content}</ReactMarkdown>
         )}
       </div>
     </div>
