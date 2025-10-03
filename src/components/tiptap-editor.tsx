@@ -26,7 +26,7 @@ interface TiptapEditorProps {
 const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒'];
 const colors = [
   { name: 'Black', value: '#000000' },
-  { name: 'Green', value: '#31D492' },
+  { name: 'Green', value: '#7AD67A' },
   { name: 'Blue', value: '#51A2FF' },
   { name: 'Purple', value: '#AD46FF' },
   { name: 'Rose', value: '#FF6467' },
