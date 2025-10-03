@@ -117,7 +117,7 @@ export default function Home() {
   
   const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([notes[0]?.id ?? 'note-1'].filter(Boolean));
   const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
-  const [openSpecialTabs, setOpenSpecialTabs] = React.useState<('notes' | 'talk')[]>([]);
+  const [openSpecialTabs, setOpenSpecialTabs] = React.useState<('talk')[]>([]);
   
   const [activeContent, setActiveContent] = React.useState<ActiveContent>(notes[0] ? { type: 'note', id: notes[0].id } : null);
   
@@ -136,7 +136,7 @@ export default function Home() {
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
 
   const openTabs = [
-    ...openSpecialTabs.map(type => ({ id: type, type, title: type === 'notes' ? 'Notes' : 'Talk', icon: type === 'notes' ? '🗒️' : '💬' })),
+    ...openSpecialTabs.map(type => ({ id: type, type, title: 'Talk', icon: '💬' })),
     ...openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note).map(note => ({ ...note, type: 'note' as const })),
     ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const }))
   ];
@@ -256,7 +256,7 @@ export default function Home() {
       setOpenNoteIds(prev => prev.filter(noteId => noteId !== id));
     } else if (type === 'web') {
       setOpenWebIds(prev => prev.filter(webId => webId !== id));
-    } else if (type === 'notes' || type === 'talk') {
+    } else if (type === 'talk') {
         setOpenSpecialTabs(prev => prev.filter(tabType => tabType !== id));
     }
     
@@ -303,9 +303,6 @@ export default function Home() {
   };
   
   const handleOpenNotes = () => {
-    if (!openSpecialTabs.includes('notes')) {
-      setOpenSpecialTabs(prev => ['notes', ...prev]);
-    }
     setActiveContent({ type: 'notes', id: 'notes' });
   };
 
@@ -476,3 +473,5 @@ export default function Home() {
     </>
   );
 }
+
+    
