@@ -121,7 +121,7 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
       <div className="flex items-center justify-between gap-2 p-4 border-b">
         <div className="flex items-center gap-2">
             <Bot className="h-6 w-6 text-primary" />
-            <h2 className="text-lg font-bold font-headline">Prōla Talk</h2>
+            <h2 className="text-lg font-bold font-headline">Talk</h2>
         </div>
         <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger className="w-[180px] h-9 text-sm">
@@ -212,5 +212,3 @@ const TalkView: React.FC<TalkViewProps> = ({ chatMessages, onAddChatMessage, cha
 };
 
 export default TalkView;
-
-    

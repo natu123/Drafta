@@ -1,5 +1,6 @@
+
 import * as React from 'react';
-import { Bot, FilePlus, PanelLeft, Globe, History, Settings } from 'lucide-react';
+import { Bot, FilePlus, PanelLeft, Globe, History, Settings, Notebook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLogo } from '@/components/icons';
 import {
@@ -81,10 +82,8 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 
 
 interface HeaderProps {
-  onToggleLeftSidebar: () => void;
-  onToggleRightSidebar: () => void;
-  isLeftSidebarOpen: boolean;
-  isRightSidebarOpen: boolean;
+  onOpenNotes: () => void;
+  onOpenTalk: () => void;
   onNewNote: () => void;
   onNewWeb: () => void;
   onOpenSettings: () => void;
@@ -93,8 +92,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({
-  onToggleLeftSidebar,
-  onToggleRightSidebar,
+  onOpenNotes,
+  onOpenTalk,
   onNewNote,
   onNewWeb,
   onOpenSettings,
@@ -112,10 +111,10 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onToggleLeftSidebar}
+                onClick={onOpenNotes}
                 className="hidden md:flex"
               >
-                <PanelLeft className="h-5 w-5" />
+                <Notebook className="h-5 w-5 text-accent" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -150,7 +149,7 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onToggleRightSidebar}
+                onClick={onOpenTalk}
               >
                 <Bot className="h-5 w-5 text-accent" />
               </Button>

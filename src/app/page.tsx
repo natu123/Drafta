@@ -22,8 +22,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 type ActiveContent = {
   id: string;
-  type: 'note' | 'web';
+  type: 'note' | 'web' | 'notes' | 'talk';
 } | null;
+
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
 type ViewMode = 'list' | 'grid';
@@ -116,14 +117,13 @@ export default function Home() {
   
   const [openNoteIds, setOpenNoteIds] = React.useState<string[]>([notes[0]?.id ?? 'note-1'].filter(Boolean));
   const [openWebIds, setOpenWebIds] = React.useState<string[]>([]);
+  const [openSpecialTabs, setOpenSpecialTabs] = React.useState<('notes' | 'talk')[]>([]);
   
   const [activeContent, setActiveContent] = React.useState<ActiveContent>(notes[0] ? { type: 'note', id: notes[0].id } : null);
   
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>(initialChatMessages);
   const [chatInput, setChatInput] = React.useState('');
   
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = React.useState(true);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
@@ -136,6 +136,7 @@ export default function Home() {
   const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
 
   const openTabs = [
+    ...openSpecialTabs.map(type => ({ id: type, type, title: type === 'notes' ? 'Notes' : 'Talk', icon: type === 'notes' ? '🗒️' : '💬' })),
     ...openNoteIds.map(id => notes.find(note => note.id === id)).filter((note): note is Note => !!note).map(note => ({ ...note, type: 'note' as const })),
     ...openWebIds.map(id => webs.find(web => web.id === id)).filter((web): web is Web => !!web).map(web => ({ ...web, type: 'web' as const }))
   ];
@@ -230,14 +231,14 @@ export default function Home() {
     }
   };
 
-  const handleTabSelect = (id: string, type: 'note' | 'web') => {
+  const handleTabSelect = (id: string, type: 'note' | 'web' | 'notes' | 'talk') => {
     if (type === 'note') {
       const note = notes.find(n => n.id === id);
       if (note) {
         setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
         addToHistory(note, 'note');
       }
-    } else {
+    } else if (type === 'web') {
        const web = webs.find(w => w.id === id);
        if (web) {
         setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
@@ -247,7 +248,7 @@ export default function Home() {
     setActiveContent({ type, id });
   };
 
-  const handleTabClose = (id: string, type: 'note' | 'web') => {
+  const handleTabClose = (id: string, type: 'note' | 'web' | 'notes' | 'talk') => {
     let newOpenTabs = [...openTabs];
     let closingTabIndex = newOpenTabs.findIndex(tab => tab.id === id && tab.type === type);
     
@@ -255,6 +256,8 @@ export default function Home() {
       setOpenNoteIds(prev => prev.filter(noteId => noteId !== id));
     } else if (type === 'web') {
       setOpenWebIds(prev => prev.filter(webId => webId !== id));
+    } else if (type === 'notes' || type === 'talk') {
+        setOpenSpecialTabs(prev => prev.filter(tabType => tabType !== id));
     }
     
     if (activeContent?.id === id && activeContent.type === type) {
@@ -293,8 +296,26 @@ export default function Home() {
   const handleQuoteNote = (noteContent: string) => {
     const quoteText = `> **Note: ${activeNote?.title || 'Untitled'}**:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
     setChatInput(prev => quoteText + prev);
-    setIsRightSidebarOpen(true);
+    if (!openSpecialTabs.includes('talk')) {
+        setOpenSpecialTabs(prev => [...prev, 'talk']);
+    }
+    setActiveContent({ type: 'talk', id: 'talk' });
   };
+  
+  const handleOpenNotes = () => {
+    if (!openSpecialTabs.includes('notes')) {
+      setOpenSpecialTabs(prev => ['notes', ...prev]);
+    }
+    setActiveContent({ type: 'notes', id: 'notes' });
+  };
+
+  const handleOpenTalk = () => {
+    if (!openSpecialTabs.includes('talk')) {
+      setOpenSpecialTabs(prev => ['talk', ...prev]);
+    }
+    setActiveContent({ type: 'talk', id: 'talk' });
+  };
+
 
   const [isClient, setIsClient] = React.useState(false);
   React.useEffect(() => {
@@ -336,14 +357,100 @@ export default function Home() {
     }
   }, [webs, webSort]);
 
+  const renderContent = () => {
+    if (!activeContent) {
+      return (
+        <div className="p-4 md:p-8 h-full">
+          <div className="flex h-full gap-4">
+            <HomeSection 
+              title="Notes" 
+              icon={Notebook} 
+              items={sortedNotes} 
+              onItemSelect={(id) => handleNoteSelect(id)} 
+              itemType="note"
+              sortOption={noteSort}
+              onSortChange={setNoteSort}
+              viewMode={noteViewMode}
+              onViewModeChange={setNoteViewMode}
+            />
+            <HomeSection 
+              title="Web" 
+              icon={Globe} 
+              items={sortedWebs} 
+              onItemSelect={(id) => handleWebSelect(id)} 
+              itemType="web"
+              sortOption={webSort}
+              onSortChange={setWebSort}
+              viewMode={webViewMode}
+              onViewModeChange={setWebViewMode}
+            />
+            <Card className="flex-1 flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <span>Talks</span>
+                </CardTitle>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                      <List className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                      <LayoutGrid className="w-4 h-4" />
+                    </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Talks feature coming soon.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeContent.type) {
+      case 'note':
+        return activeNote ? (
+          <Editor 
+            key={activeNote.id} 
+            note={activeNote} 
+            onNoteUpdate={handleNoteUpdate}
+            onIconChange={handleIconChange}
+            onQuoteNote={handleQuoteNote}
+          />
+        ) : null;
+      case 'web':
+        return activeWeb ? <WebView key={activeWeb.id} web={activeWeb} /> : null;
+      case 'notes':
+        return (
+          <NotesSidebar
+            notes={notes}
+            activeNoteId={null} // No note is active inside the list view
+            onNoteSelect={handleNoteSelect}
+            onStarNote={handleStarNote}
+            onPinNote={handlePinNote}
+          />
+        );
+      case 'talk':
+        return (
+          <TalkView
+            chatMessages={chatMessages}
+            onAddChatMessage={handleAddChatMessage}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
     <div className="flex h-screen flex-col bg-background text-foreground">
       <Header
-        onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-        onToggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-        isLeftSidebarOpen={isLeftSidebarOpen}
-        isRightSidebarOpen={isRightSidebarOpen}
+        onOpenNotes={handleOpenNotes}
+        onOpenTalk={handleOpenTalk}
         onNewNote={handleNewNote}
         onNewWeb={handleNewWeb}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -352,40 +459,6 @@ export default function Home() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="md:hidden">
-           <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
-            <SheetContent side="left" className="p-0 w-80">
-              <NotesSidebar
-                notes={notes}
-                activeNoteId={activeNote?.id}
-                onNoteSelect={(id) => {
-                  handleNoteSelect(id);
-                  setIsLeftSidebarOpen(false); // Close sidebar on selection
-                }}
-                onStarNote={handleStarNote}
-                onPinNote={handlePinNote}
-              />
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        <aside
-          className={cn(
-            'hidden md:flex flex-col w-80 shrink-0 transition-all duration-300',
-            !isLeftSidebarOpen && 'w-0'
-          )}
-        >
-          {isLeftSidebarOpen && (
-            <NotesSidebar
-              notes={notes}
-              activeNoteId={activeNote?.id}
-              onNoteSelect={handleNoteSelect}
-              onStarNote={handleStarNote}
-              onPinNote={handlePinNote}
-            />
-          )}
-        </aside>
-
         <main className="flex-1 flex overflow-hidden relative">
            <VerticalTabs
               items={openTabs}
@@ -394,95 +467,12 @@ export default function Home() {
               onTabClose={handleTabClose}
            />
           <div className="flex-1 overflow-y-auto">
-            {activeContent?.type === 'note' && activeNote ? (
-              <Editor 
-                key={activeNote.id} 
-                note={activeNote} 
-                onNoteUpdate={handleNoteUpdate}
-                onIconChange={handleIconChange}
-                onQuoteNote={handleQuoteNote}
-              />
-            ) : activeContent?.type === 'web' && activeWeb ? (
-              <WebView key={activeWeb.id} web={activeWeb} />
-            ) : (
-              <div className="p-4 md:p-8 h-full">
-                <div className="flex h-full gap-4">
-                  <HomeSection 
-                    title="Notes" 
-                    icon={Notebook} 
-                    items={sortedNotes} 
-                    onItemSelect={(id) => handleNoteSelect(id)} 
-                    itemType="note"
-                    sortOption={noteSort}
-                    onSortChange={setNoteSort}
-                    viewMode={noteViewMode}
-                    onViewModeChange={setNoteViewMode}
-                  />
-                  <HomeSection 
-                    title="Web" 
-                    icon={Globe} 
-                    items={sortedWebs} 
-                    onItemSelect={(id) => handleWebSelect(id)} 
-                    itemType="web"
-                    sortOption={webSort}
-                    onSortChange={setWebSort}
-                    viewMode={webViewMode}
-                    onViewModeChange={setWebViewMode}
-                  />
-                  <Card className="flex-1 flex flex-col">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                       <CardTitle className="text-lg flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-primary" />
-                        <span>Talks</span>
-                      </CardTitle>
-                       <div className="flex items-center gap-1">
-                         <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                            <List className="w-4 h-4" />
-                         </Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                            <LayoutGrid className="w-4 h-4" />
-                          </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex items-center justify-center">
-                       <p className="text-sm text-muted-foreground">Talks feature coming soon.</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            )}
+            {renderContent()}
           </div>
         </main>
-        
-        <div className="md-hidden">
-          <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
-            <SheetContent side="right" className="p-0 w-80">
-               <SheetTitle className="sr-only">AI Assistant Sidebar</SheetTitle>
-              <TalkView
-                chatMessages={chatMessages}
-                onAddChatMessage={handleAddChatMessage}
-                chatInput={chatInput}
-                setChatInput={setChatInput}
-              />
-            </SheetContent>
-          </Sheet>
-        </div>
-
-         <aside className={cn("h-full bg-background border-l w-96 shrink-0 hidden md:flex flex-col transition-all duration-300", !isRightSidebarOpen && "w-0")}>
-            {isRightSidebarOpen && (
-              <TalkView
-                chatMessages={chatMessages}
-                onAddChatMessage={handleAddChatMessage}
-                chatInput={chatInput}
-                setChatInput={setChatInput}
-              />
-            )}
-          </aside>
       </div>
     </div>
     <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </>
   );
 }
-
-    
