@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp, PanelLeftOpen, PanelLeftClose, PanelLeft, PanelRight } from 'lucide-react';
+import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp, PanelLeftOpen, PanelLeftClose, PanelLeft, PanelRight, AppWindow } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
@@ -12,7 +12,7 @@ import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import TalkView from '@/components/talk-view';
 import type { Note, Group, ChatMessage, Web, HistoryItem, Talk } from '@/lib/types';
-import { notes as initialNotes, groups as initialGroups, talks as initialTalks } from '@/lib/data';
+import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -113,7 +113,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [webs, setWebs] = React.useState<Web[]>([]);
-  const [talks, setTalks] = React.useState<Talk[]>(initialTalks);
+  const [talks, setTalks] = React.useState<Talk[]>([]);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
   const [openNoteIds, setOpenNoteIds] = React.useState<string[]>(['note-1']);
@@ -332,7 +332,7 @@ export default function Home() {
     if (type === 'note') {
         setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
     } else if (type === 'talk') {
-        setTalks(talks.map(talk => talk.id === id ? { ...talk, icon } : talk));
+        setTalks(talks.map(talk => talk.id === id ? { ...talk, icon } : note));
     }
   };
 
@@ -545,5 +545,7 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     

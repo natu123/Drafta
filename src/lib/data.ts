@@ -82,17 +82,8 @@ const initialChatMessages: ChatMessage[] = [
     },
 ]
 
-export const talks: Talk[] = [
-  {
-    id: 'talk-1',
-    title: 'Initial Conversation',
-    icon: '💬',
-    messages: initialChatMessages,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastAccessedAt: new Date().toISOString(),
-    thumbnailUrl: 'https://picsum.photos/seed/talk1/600/400'
-  }
-];
+export const talks: Talk[] = [];
 
 export const chatMessages: ChatMessage[] = initialChatMessages;
+
+    
