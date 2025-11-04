@@ -204,7 +204,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
                 onChange={handleTitleChange}
                 onBlur={handleTitleBlur}
                 placeholder="Untitled Note"
-                className="text-4xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-8 pb-4 h-auto"
+                className="text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-8 pb-4 h-auto"
             />
             <Separator className="mx-8 w-auto" />
             <EditorContent editor={editor} />
