@@ -3,32 +3,28 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { Globe, Menu, List, LayoutGrid, Notebook, MessageSquare, ArrowDownUp, PanelLeftOpen, PanelLeftClose, PanelLeft, PanelRight, AppWindow } from 'lucide-react';
+import { List, LayoutGrid, Notebook, ArrowDownUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import Header from '@/components/header';
-import NotesSidebar from '@/components/notes-sidebar';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
-import TalkView from '@/components/talk-view';
-import type { Note, Group, ChatMessage, Web, HistoryItem, Talk, OpenTab } from '@/lib/types';
+import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import WebView from '@/components/webview';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
 type ViewMode = 'list' | 'grid';
 
-const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: string; lastAccessedAt?: string }>(
-  items: T[], 
+const getSortedItems = (
+  items: Note[], 
   sortOption: SortOption, 
   openTabsForType: OpenTab[]
-): T[] => {
+): Note[] => {
   switch (sortOption) {
     case 'newest':
       return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -42,7 +38,7 @@ const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: st
       
       const orderedItems = openTabsForType
         .map(tab => itemMap.get(tab.id))
-        .filter((item): item is T => !!item);
+        .filter((item): item is Note => !!item);
       
       const openTabIds = new Set(openTabsForType.map(t => t.id));
       const remainingItems = items.filter(item => !openTabIds.has(item.id));
@@ -55,9 +51,9 @@ const getSortedItems = <T extends { id: string; createdAt: string; updatedAt: st
 interface HomeSectionProps {
   title: string;
   icon: React.ElementType;
-  items: (Note | Web | Talk)[];
-  onItemSelect: (id: string, type: 'note' | 'web' | 'talk') => void;
-  itemType: 'note' | 'web' | 'talk';
+  items: Note[];
+  onItemSelect: (id: string, type: 'note') => void;
+  itemType: 'note';
   sortOption: SortOption;
   onSortChange: (sortOption: SortOption) => void;
   viewMode: ViewMode;
@@ -96,7 +92,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-full">
-            <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 gap-2')}>
+            <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2')}>
               {items.map(item => (
                 viewMode === 'list' ? (
                   <button 
@@ -135,8 +131,6 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
 
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
-  const [webs, setWebs] = React.useState<Web[]>([]);
-  const [talks, setTalks] = React.useState<Talk[]>([]);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
@@ -145,29 +139,19 @@ export default function Home() {
   
   const [activeContent, setActiveContent] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
   const [lastActiveContent, setLastActiveContent] = React.useState<OpenTab | null>(activeContent);
-  
-  const [chatInput, setChatInput] = React.useState<string | ((prev: string) => string)>('');
-  
+    
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
-  const [webSort, setWebSort] = React.useState<SortOption>('manual');
-  const [talkSort, setTalkSort] = React.useState<SortOption>('manual');
   const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
-  const [webViewMode, setWebViewMode] = React.useState<ViewMode>('list');
-  const [talkViewMode, setTalkViewMode] = React.useState<ViewMode>('list');
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
   
   const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
-  const activeWeb = activeContent?.type === 'web' ? webs.find((web) => web.id === activeContent.id) ?? null : null;
-  const activeTalk = activeContent?.type === 'talk' ? talks.find((talk) => talk.id === activeContent.id) ?? null : null;
 
   const openTabDetails = React.useMemo(() => {
     const itemMap = new Map([
         ...notes.map(item => [item.id, {...item, type: 'note' as const}]),
-        ...webs.map(item => [item.id, {...item, type: 'web' as const}]),
-        ...talks.map(item => [item.id, {...item, type: 'talk' as const}]),
     ]);
 
     return openTabs
@@ -178,10 +162,10 @@ export default function Home() {
             }
             return null;
         })
-        .filter((item): item is (Note & {type: 'note'}) | (Web & {type: 'web'}) | (Talk & {type: 'talk'}) => !!item);
-  }, [openTabs, notes, webs, talks]);
+        .filter((item): item is (Note & {type: 'note'}) => !!item);
+  }, [openTabs, notes]);
 
-  const addToHistory = (item: Note | Web | Talk, type: 'note' | 'web' | 'talk') => {
+  const addToHistory = (item: Note, type: 'note') => {
     setHistory(prev => {
       const newHistory: HistoryItem = {
         id: item.id,
@@ -201,7 +185,7 @@ export default function Home() {
     setNotes(notes => notes.map(note => note.id === activeContent.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
   }, [activeContent]);
   
-  const openTab = (id: string, type: 'note' | 'web' | 'talk') => {
+  const openTab = (id: string, type: 'note') => {
     const isAlreadyOpen = openTabs.some(tab => tab.id === id && tab.type === type);
     if (!isAlreadyOpen) {
         setOpenTabs(prev => [...prev, { id, type }]);
@@ -225,42 +209,6 @@ export default function Home() {
     openTab(newNote.id, 'note');
     addToHistory(newNote, 'note');
   };
-  
-  const handleNewWeb = () => {
-    const newWeb: Web = {
-      id: `web-${Date.now()}`,
-      title: 'New Tab',
-      url: 'https://www.google.com',
-      icon: '🌐',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastAccessedAt: new Date().toISOString(),
-    };
-    setWebs(prev => [...prev, newWeb]);
-    openTab(newWeb.id, 'web');
-    addToHistory(newWeb, 'web');
-  };
-
-  const handleNewTalk = () => {
-    const newTalk: Talk = {
-      id: `talk-${Date.now()}`,
-      title: 'New Conversation',
-      icon: '💬',
-      messages: [{
-        id: 'chat-1',
-        author: 'ai',
-        authorName: 'Prōla',
-        content: 'Hello! How can I assist you today?',
-        timestamp: new Date().toISOString(),
-      }],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastAccessedAt: new Date().toISOString(),
-    };
-    setTalks(prev => [...prev, newTalk]);
-    openTab(newTalk.id, 'talk');
-    addToHistory(newTalk, 'talk');
-  };
 
   const handleNoteSelect = (id: string) => {
     const note = notes.find(n => n.id === id);
@@ -269,30 +217,10 @@ export default function Home() {
     openTab(id, 'note');
     addToHistory(note, 'note');
   };
-
-  const handleWebSelect = (id: string) => {
-    const web = webs.find(w => w.id === id);
-    if (!web) return;
-    setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
-    openTab(id, 'web');
-    addToHistory(web, 'web');
-  };
-
-  const handleTalkSelect = (id: string) => {
-    const talk = talks.find(t => t.id === id);
-    if (!talk) return;
-    setTalks(prev => prev.map(t => t.id === id ? { ...t, lastAccessedAt: new Date().toISOString() } : t));
-    openTab(id, 'talk');
-    addToHistory(talk, 'talk');
-  };
   
-  const handleHistorySelect = (id: string, type: 'note' | 'web' | 'talk') => {
+  const handleHistorySelect = (id: string, type: 'note') => {
     if (type === 'note') {
       handleNoteSelect(id);
-    } else if (type === 'web') {
-      handleWebSelect(id);
-    } else if (type === 'talk') {
-      handleTalkSelect(id);
     }
   };
 
@@ -304,18 +232,6 @@ export default function Home() {
         setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
         addToHistory(note, 'note');
       }
-    } else if (itemType === 'web') {
-       const web = webs.find(w => w.id === id);
-       if (web) {
-        setWebs(prev => prev.map(w => w.id === id ? { ...w, lastAccessedAt: new Date().toISOString() } : w));
-        addToHistory(web, 'web');
-      }
-    } else if (itemType === 'talk') {
-        const talk = talks.find(t => t.id === id);
-        if (talk) {
-            setTalks(prev => prev.map(t => t.id === id ? { ...t, lastAccessedAt: new Date().toISOString() } : t));
-            addToHistory(talk, 'talk');
-        }
     }
     setActiveContent({ type: itemType, id });
   };
@@ -343,79 +259,14 @@ export default function Home() {
   
   const handleReorderTabs = (reorderedTabs: OpenTab[]) => {
     setOpenTabs(reorderedTabs);
-
     const reorderedNoteIds = reorderedTabs.filter(t => t.type === 'note').map(t => t.id);
     if(reorderedNoteIds.length > 0) {
       setNoteSort('manual');
     }
-
-    const reorderedWebIds = reorderedTabs.filter(t => t.type === 'web').map(t => t.id);
-    if (reorderedWebIds.length > 0) {
-        setWebSort('manual');
-    }
-
-    const reorderedTalkIds = reorderedTabs.filter(t => t.type === 'talk').map(t => t.id);
-    if (reorderedTalkIds.length > 0) {
-        setTalkSort('manual');
-    }
   };
 
-  const handleStarNote = (id: string, stars: number) => {
-    setNotes(notes.map(note => note.id === id ? { ...note, stars: (note.stars === stars ? 0 : stars) as Note['stars'] } : note));
-  };
-
-  const handlePinNote = (id: string) => {
-    setNotes(notes.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note));
-  };
-
-  const handleIconChange = (id: string, icon: string, type: 'note' | 'talk') => {
-    if (type === 'note') {
-        setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
-    } else if (type === 'talk') {
-        setTalks(talks.map(talk => talk.id === id ? { ...talk, icon } : talk));
-    }
-  };
-
-  const handleTitleChange = (id: string, title: string, type: 'note' | 'web' | 'talk') => {
-    if (type === 'talk') {
-      setTalks(talks.map(talk => talk.id === id ? { ...talk, title } : talk));
-    } else if (type === 'note') {
-      setNotes(notes.map(note => note.id === id ? {...note, title} : note));
-    }
-  };
-
-  const handleAddChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-    if (activeContent?.type !== 'talk') return;
-
-    const newMessage: ChatMessage = {
-      ...message,
-      id: `msg-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-    };
-    
-    setTalks(prevTalks => prevTalks.map(talk => 
-        talk.id === activeContent.id
-        ? { ...talk, messages: [...talk.messages, newMessage], updatedAt: new Date().toISOString() }
-        : talk
-    ));
-  };
-  
-  const handleQuoteNote = (noteContent: string) => {
-    const quoteText = `> Note: ${activeNote?.title || 'Untitled'}:\n> ${noteContent.replace(/\n/g, '\n> ')}\n\n`;
-    setChatInput(prev => {
-      return (currentInput: string) => ({
-        text: quoteText,
-        currentInput,
-      });
-    });
-
-    const openTalks = openTabs.filter(t => t.type === 'talk');
-    if (openTalks.length === 0) {
-      handleNewTalk();
-    } else {
-      const targetTalkId = activeTalk?.id || openTalks[0].id;
-      setActiveContent({ type: 'talk', id: targetTalkId });
-    }
+  const handleIconChange = (id: string, icon: string) => {
+    setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
   };
   
   const handleToggleScreenTab = () => {
@@ -427,15 +278,7 @@ export default function Home() {
     }
   };
 
-  const [isClient, setIsClient] = React.useState(false);
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note')), [notes, noteSort, openTabs]);
-  const sortedWebs = React.useMemo(() => getSortedItems(webs, webSort, openTabs.filter(t => t.type === 'web')), [webs, webSort, openTabs]);
-  const sortedTalks = React.useMemo(() => getSortedItems(talks, talkSort, openTabs.filter(t => t.type === 'talk')), [talks, talkSort, openTabs]);
-
 
   const isScreenTabActive = activeContent?.type === 'notes';
 
@@ -443,7 +286,7 @@ export default function Home() {
     if (isScreenTabActive) {
         return (
         <div className="p-4 md:p-8 h-full">
-          <div className="grid md:grid-cols-3 h-full gap-4">
+          <div className="grid md:grid-cols-1 h-full gap-4">
             <HomeSection 
               title="Notes" 
               icon={Notebook} 
@@ -454,28 +297,6 @@ export default function Home() {
               onSortChange={setNoteSort}
               viewMode={noteViewMode}
               onViewModeChange={setNoteViewMode}
-            />
-            <HomeSection 
-              title="Web" 
-              icon={Globe} 
-              items={sortedWebs} 
-              onItemSelect={(id) => handleWebSelect(id)} 
-              itemType="web"
-              sortOption={webSort}
-              onSortChange={setWebSort}
-              viewMode={webViewMode}
-              onViewModeChange={setWebViewMode}
-            />
-            <HomeSection 
-              title="Talks" 
-              icon={MessageSquare} 
-              items={sortedTalks} 
-              onItemSelect={(id) => handleTalkSelect(id)} 
-              itemType="talk"
-              sortOption={talkSort}
-              onSortChange={setTalkSort}
-              viewMode={talkViewMode}
-              onViewModeChange={setTalkViewMode}
             />
           </div>
         </div>
@@ -490,22 +311,7 @@ export default function Home() {
             key={activeNote.id} 
             note={activeNote} 
             onNoteUpdate={handleNoteUpdate}
-            onIconChange={(id, icon) => handleIconChange(id, icon, 'note')}
-            onQuoteNote={handleQuoteNote}
-          />
-        ) : null;
-      case 'web':
-        return activeWeb ? <WebView key={activeWeb.id} web={activeWeb} /> : null;
-      case 'talk':
-        return activeTalk ? (
-          <TalkView
-            key={activeTalk.id}
-            talk={activeTalk}
-            onAddChatMessage={handleAddChatMessage}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            onIconChange={(id, icon) => handleIconChange(id, icon, 'talk')}
-            onTitleChange={(id, title) => handleTitleChange(id, title, 'talk')}
+            onIconChange={(id, icon) => handleIconChange(id, icon)}
           />
         ) : null;
       default:
@@ -527,9 +333,7 @@ export default function Home() {
       <Header
         onToggleScreenTab={handleToggleScreenTab}
         isScreenTabActive={isScreenTabActive}
-        onNewTalk={handleNewTalk}
         onNewNote={handleNewNote}
-        onNewWeb={handleNewWeb}
         onOpenSettings={() => setIsSettingsOpen(true)}
         history={history}
         onHistorySelect={handleHistorySelect}

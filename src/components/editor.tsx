@@ -10,10 +10,9 @@ interface EditorProps {
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (id: string, icon: string) => void;
-  onQuoteNote: (noteContent: string) => void;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuoteNote }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
   
   const handleContentUpdate = React.useCallback((updates: { title: string, content: string }) => {
     onNoteUpdate(updates);
@@ -22,20 +21,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
   const handleIconSelect = React.useCallback((icon: string) => {
     onIconChange(note.id, icon);
   }, [onIconChange, note.id]);
-
-  const handleQuoteClick = React.useCallback(() => {
-    const selection = window.getSelection()?.toString().trim();
-    if (selection) {
-      onQuoteNote(selection);
-    } else {
-      // Basic conversion of HTML to text for quoting if nothing is selected.
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = note.content;
-      const textContent = tempDiv.textContent || tempDiv.innerText || '';
-      const fullContentToQuote = `${note.title}\n\n${textContent}`;
-      onQuoteNote(fullContentToQuote);
-    }
-  }, [onQuoteNote, note.title, note.content]);
   
 
   return (
@@ -44,7 +29,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, onQuo
           title={note.title}
           content={note.content}
           onNoteUpdate={handleContentUpdate}
-          onQuote={handleQuoteClick}
           onIconChange={handleIconSelect}
           noteIcon={note.icon || '📝'}
         />

@@ -5,16 +5,16 @@ import * as React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Note, Web, Talk, OpenTab } from '@/lib/types';
+import type { Note, OpenTab } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
-type TabItem = (Note | Web | Talk) & { type: 'note' | 'web' | 'talk' };
+type TabItem = Note & { type: 'note' };
 
 interface VerticalTabsProps {
   items: TabItem[];
   activeId: string | null;
-  onTabSelect: (id: string, type: 'note' | 'web' | 'talk') => void;
-  onTabClose: (id: string, type: 'note' | 'web' | 'talk') => void;
+  onTabSelect: (id: string, type: 'note') => void;
+  onTabClose: (id: string, type: 'note') => void;
   onReorderTabs: (reorderedTabs: OpenTab[]) => void;
 }
 
@@ -38,8 +38,6 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
 
   const getIcon = (item: TabItem) => {
     if (item.type === 'note') return item.icon || '📝';
-    if (item.type === 'web') return item.icon || '🌐';
-    if (item.type === 'talk') return item.icon || '💬';
     return '❓';
   };
   

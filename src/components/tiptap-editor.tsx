@@ -7,7 +7,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, MessageSquareQuote, Bold, Italic, Strikethrough } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -19,7 +19,6 @@ interface TiptapEditorProps {
   title: string;
   content: string;
   onNoteUpdate: (updatedNote: { title: string; content: string }) => void;
-  onQuote: () => void;
   onIconChange: (icon: string) => void;
   noteIcon: string;
 }
@@ -49,7 +48,7 @@ const extensions = [
   Color,
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, content, onNoteUpdate, onQuote, onIconChange, noteIcon }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, content, onNoteUpdate, onIconChange, noteIcon }) => {
 
   const [currentTitle, setCurrentTitle] = React.useState(initialTitle);
   const isSavingRef = React.useRef(false);
@@ -153,15 +152,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Redo (Ctrl+Y)</p></TooltipContent>
-          </Tooltip>
-          <Separator orientation="vertical" className="h-6 mx-2" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onQuote}>
-                <MessageSquareQuote />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Quote Note</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">

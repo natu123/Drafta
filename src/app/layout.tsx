@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Prōla',
-  description: '“All your ideas, one seamless hub.”',
+  title: 'Drafta',
+  description: 'Drafta — Minimal design, Quick idea.',
 };
 
 export default function RootLayout({

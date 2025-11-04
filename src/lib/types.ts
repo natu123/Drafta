@@ -12,33 +12,6 @@ export type Note = {
   parentId?: string;
   children?: Note[];
   thumbnailUrl?: string;
-  // titleColor and contentColor are deprecated in favor of rich text content
-  titleColor?: string;
-  contentColor?: string;
-};
-
-export type Web = {
-  id: string;
-  title: string;
-  url: string;
-  icon?: string;
-  createdAt: string;
-  updatedAt: string;
-  lastAccessedAt?: string;
-  parentId?: string;
-  children?: Web[];
-  thumbnailUrl?: string;
-}
-
-export type Talk = {
-  id: string;
-  title: string;
-  icon?: string;
-  messages: ChatMessage[];
-  createdAt: string;
-  updatedAt: string;
-  lastAccessedAt?: string;
-  thumbnailUrl?: string;
 };
 
 export type Group = {
@@ -46,17 +19,9 @@ export type Group = {
   name: string;
 };
 
-export type ChatMessage = {
-  id:string;
-  author: 'user' | 'ai';
-  authorName: string; // To display AI model names
-  content: string;
-  timestamp: string;
-};
-
 export type HistoryItem = {
   id: string;
-  type: 'note' | 'web' | 'talk';
+  type: 'note';
   title: string;
   icon?: string;
   accessedAt: string;
@@ -64,5 +29,5 @@ export type HistoryItem = {
 
 export type OpenTab = {
     id: string;
-    type: 'note' | 'web' | 'talk' | 'notes';
+    type: 'note' | 'notes';
 }
