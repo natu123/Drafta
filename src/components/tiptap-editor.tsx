@@ -7,11 +7,11 @@ import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, Bold, Italic, Strikethrough } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, htmlToPlainText } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { Input } from './ui/input';
 
@@ -91,6 +91,18 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
     editor?.chain().focus().setColor(color).run();
   };
 
+  const handleConvertToPlainText = () => {
+    if (editor) {
+      const currentContent = editor.getHTML();
+      const plainText = htmlToPlainText(currentContent);
+      
+      // The plain text needs to be converted back to HTML paragraphs for the editor
+      const newContent = plainText.split('\n').map(p => `<p>${p}</p>`).join('');
+
+      editor.commands.setContent(newContent, true);
+    }
+  };
+
   // Sync external changes
   React.useEffect(() => {
     if (initialTitle !== currentTitle) {
@@ -152,6 +164,15 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Redo (Ctrl+Y)</p></TooltipContent>
+          </Tooltip>
+          <Separator orientation="vertical" className="h-6 mx-2" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={handleConvertToPlainText}>
+                <Pilcrow />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Convert to Plain Text</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">
