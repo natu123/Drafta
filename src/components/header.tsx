@@ -2,7 +2,6 @@
 import * as React from 'react';
 import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AppLogo } from '@/components/icons';
 import {
   Tooltip,
   TooltipContent,
@@ -116,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{isScreenTabActive ? 'Tab Bar' : 'Screen Tab'}</p>
+              <p>{isScreenTabActive ? 'Current View' : 'Home'}</p>
             </TooltipContent>
           </Tooltip>
           
