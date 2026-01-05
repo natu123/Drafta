@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { List, LayoutGrid, Notebook, ArrowDownUp, GripVertical } from 'lucide-react';
+import { List, LayoutGrid, Notebook, ArrowDownUp, GripVertical, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
@@ -88,7 +88,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <Icon className="w-5 h-5 text-primary" />
@@ -337,21 +337,34 @@ export default function Home() {
   const renderContent = () => {
     if (activeView === 'home') {
         return (
-        <div className="p-4 md:p-8 h-full">
-          <div className="grid md:grid-cols-1 h-full gap-4">
-            <HomeSection 
-              title="Notes" 
-              icon={Notebook} 
-              items={sortedNotes} 
-              onItemSelect={(id) => handleNoteSelect(id)}
-              onReorder={handleReorderNotes}
-              itemType="note"
-              sortOption={noteSort}
-              onSortChange={setNoteSort}
-              viewMode={noteViewMode}
-              onViewModeChange={setNoteViewMode}
-            />
-          </div>
+        <div className="flex h-full">
+            <div className="w-64 bg-secondary/30 border-r p-4">
+                <h2 className="text-lg font-semibold mb-4">Lists</h2>
+                <ul>
+                    <li>
+                        <Button variant="ghost" className="w-full justify-start gap-2 bg-primary/10">
+                            <Inbox className="w-4 h-4" />
+                            <span>Inbox</span>
+                        </Button>
+                    </li>
+                </ul>
+            </div>
+            <div className="flex-1 p-4 md:p-8 h-full">
+              <div className="grid md:grid-cols-1 h-full gap-4">
+                <HomeSection 
+                  title="Inbox" 
+                  icon={Inbox} 
+                  items={sortedNotes} 
+                  onItemSelect={(id) => handleNoteSelect(id)}
+                  onReorder={handleReorderNotes}
+                  itemType="note"
+                  sortOption={noteSort}
+                  onSortChange={setNoteSort}
+                  viewMode={noteViewMode}
+                  onViewModeChange={setNoteViewMode}
+                />
+              </div>
+            </div>
         </div>
       );
     }
