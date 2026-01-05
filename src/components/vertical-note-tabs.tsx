@@ -81,7 +81,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
         className={cn(
-          "relative bg-secondary/30 border-r z-10 transition-all duration-200 ease-in-out",
+          "relative bg-secondary/30 border-r z-10",
           isExpanded ? 'w-64' : 'w-12'
         )}
       >
@@ -111,7 +111,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                   >
                     <span className="text-xl shrink-0">{getIcon(item)}</span>
                     <span className={cn(
-                      "truncate transition-opacity duration-200",
+                      "truncate",
                       isExpanded ? 'opacity-100' : 'opacity-0'
                     )}>
                       {item.title || 'Untitled'}
