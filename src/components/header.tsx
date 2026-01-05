@@ -27,7 +27,7 @@ interface HistoryNavProps {
 const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => {
   if (history.length === 0) {
     return (
-       <TooltipProvider>
+       <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
                 <div className="relative">
@@ -46,7 +46,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 
   return (
     <DropdownMenu>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
@@ -102,7 +102,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-2">
         <Feather className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -133,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({
       </div>
       <div className="flex items-center gap-2">
          <HistoryNav history={history} onHistorySelect={onHistorySelect} />
-         <TooltipProvider>
+         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" onClick={onOpenSettings}>
