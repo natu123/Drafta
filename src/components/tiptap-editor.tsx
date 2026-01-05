@@ -14,13 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn, htmlToPlainText } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { Input } from './ui/input';
+import type { Note } from '@/lib/types';
+
 
 interface TiptapEditorProps {
-  title: string;
-  content: string;
-  onNoteUpdate: (updatedNote: { title: string; content: string }) => void;
+  note: Note;
+  onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (icon: string) => void;
-  noteIcon: string;
 }
 
 export const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒', '💬', '🌐'];
@@ -48,15 +48,15 @@ const extensions = [
   Color,
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, content, onNoteUpdate, onIconChange, noteIcon }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
 
-  const [currentTitle, setCurrentTitle] = React.useState(initialTitle);
+  const [currentTitle, setCurrentTitle] = React.useState(note.title);
   const isSavingRef = React.useRef(false);
-  const contentRef = React.useRef(content);
+  const contentRef = React.useRef(note.content);
 
   const editor = useEditor({
     extensions,
-    content: content,
+    content: note.content,
     onUpdate: ({ editor }) => {
         contentRef.current = editor.getHTML();
         handleSave();
@@ -105,19 +105,22 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
 
   // Sync external changes
   React.useEffect(() => {
-    if (initialTitle !== currentTitle) {
-      setCurrentTitle(initialTitle);
+    if (note.title !== currentTitle) {
+      setCurrentTitle(note.title);
     }
-  }, [initialTitle]);
+  }, [note.title]);
 
   React.useEffect(() => {
-    if (editor && content !== contentRef.current) {
+    if (editor && note.content !== contentRef.current) {
       const { from, to } = editor.state.selection;
-      editor.commands.setContent(content, false);
-      editor.commands.setTextSelection({ from, to });
-      contentRef.current = content;
+      editor.commands.setContent(note.content, false);
+      // Only set selection if the editor has focus to avoid grabbing it unexpectedly
+      if (editor.isFocused) {
+        editor.commands.setTextSelection({ from, to });
+      }
+      contentRef.current = note.content;
     }
-  }, [content, editor]);
+  }, [note.content, editor]);
 
   if (!editor) {
     return null;
@@ -130,7 +133,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
           <Popover>
               <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 shrink-0">
-                      {noteIcon}
+                      {note.icon || '📝'}
                   </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2">
@@ -140,7 +143,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ title: initialTitle, conten
                           key={emoji}
                           variant="ghost"
                           size="icon"
-                          className={cn("text-xl rounded-md", noteIcon === emoji && "bg-primary/20")}
+                          className={cn("text-xl rounded-md", note.icon === emoji && "bg-primary/20")}
                           onClick={() => onIconChange(emoji)}
                       >
                           {emoji}

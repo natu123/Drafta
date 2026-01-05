@@ -3,6 +3,7 @@ export type Note = {
   title: string;
   icon?: string;
   content: string; // Can be HTML content from Tiptap
+  plainTextContent?: string; // Plain text version of content
   group: string;
   stars: 0 | 1 | 2 | 3;
   isPinned?: boolean;

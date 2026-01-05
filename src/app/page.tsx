@@ -3,14 +3,14 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { List, LayoutGrid, Notebook, ArrowDownUp } from 'lucide-react';
+import { List, LayoutGrid, Notebook, ArrowDownUp, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
-import { cn } from '@/lib/utils';
+import { cn, htmlToPlainText } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,16 +34,9 @@ const getSortedItems = (
       return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
     case 'manual':
     default:
-      const itemMap = new Map(items.map(item => [item.id, item]));
-      
-      const orderedItems = openTabsForType
-        .map(tab => itemMap.get(tab.id))
-        .filter((item): item is Note => !!item);
-      
-      const openTabIds = new Set(openTabsForType.map(t => t.id));
-      const remainingItems = items.filter(item => !openTabIds.has(item.id));
-      
-      return [...orderedItems, ...remainingItems];
+       // For manual sort, we just return the items in their current order.
+       // The actual reordering is handled by drag-and-drop state updates.
+      return items;
   }
 };
 
@@ -53,6 +46,7 @@ interface HomeSectionProps {
   icon: React.ElementType;
   items: Note[];
   onItemSelect: (id: string, type: 'note') => void;
+  onReorder: (reorderedItems: Note[]) => void;
   itemType: 'note';
   sortOption: SortOption;
   onSortChange: (sortOption: SortOption) => void;
@@ -60,7 +54,39 @@ interface HomeSectionProps {
   onViewModeChange: (viewMode: ViewMode) => void;
 }
 
-const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, itemType, sortOption, onSortChange, viewMode, onViewModeChange }) => {
+const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, onReorder, itemType, sortOption, onSortChange, viewMode, onViewModeChange }) => {
+  const [draggedItem, setDraggedItem] = React.useState<Note | null>(null);
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, item: Note) => {
+    setDraggedItem(item);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetItem: Note) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.id === targetItem.id) {
+      setDraggedItem(null);
+      return;
+    }
+
+    const draggedIndex = items.findIndex(i => i.id === draggedItem.id);
+    const targetIndex = items.findIndex(i => i.id === targetItem.id);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newItems = [...items];
+    const [removed] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, removed);
+    
+    onSortChange('manual');
+    onReorder(newItems);
+    setDraggedItem(null);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -95,13 +121,24 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
             <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2')}>
               {items.map(item => (
                 viewMode === 'list' ? (
-                  <button 
-                    key={item.id} 
-                    onClick={() => onItemSelect(item.id, itemType)}
-                    className="w-full text-left p-2 rounded-md hover:bg-secondary transition-colors text-sm"
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                    onDragEnd={() => setDraggedItem(null)}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-all cursor-pointer border border-transparent",
+                      draggedItem?.id === item.id ? "opacity-50" : "opacity-100"
+                    )}
                   >
-                    <span className="truncate">{item.title || 'Untitled'}</span>
-                  </button>
+                    <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
+                    <div onClick={() => onItemSelect(item.id, itemType)} className="flex-1">
+                      <p className="font-medium truncate">{item.title || 'Untitled'}</p>
+                      <p className="text-sm text-muted-foreground truncate">{item.plainTextContent}</p>
+                    </div>
+                  </div>
                 ) : (
                   <Card key={item.id} onClick={() => onItemSelect(item.id, itemType)} className="cursor-pointer hover:bg-secondary transition-colors">
                     <CardContent className="p-0">
@@ -180,9 +217,18 @@ export default function Home() {
     });
   };
 
-  const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note>) => {
+  const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }) => {
     if (activeContent?.type !== 'note') return;
-    setNotes(notes => notes.map(note => note.id === activeContent.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note));
+    setNotes(notes => notes.map(note => {
+      if (note.id === activeContent.id) {
+        const newNote = { ...note, ...updatedNote, updatedAt: new Date().toISOString() };
+        if (updatedNote.content !== undefined) {
+          newNote.plainTextContent = htmlToPlainText(updatedNote.content);
+        }
+        return newNote;
+      }
+      return note;
+    }));
   }, [activeContent]);
   
   const openTab = (id: string, type: 'note') => {
@@ -199,6 +245,7 @@ export default function Home() {
       title: 'Untitled Note',
       icon: '📝',
       content: '',
+      plainTextContent: '',
       group: 'general',
       stars: 0,
       createdAt: new Date().toISOString(),
@@ -259,10 +306,27 @@ export default function Home() {
   
   const handleReorderTabs = (reorderedTabs: OpenTab[]) => {
     setOpenTabs(reorderedTabs);
+    // If we reorder tabs, it implies manual sorting for notes
     const reorderedNoteIds = reorderedTabs.filter(t => t.type === 'note').map(t => t.id);
     if(reorderedNoteIds.length > 0) {
+       setNotes(prevNotes => {
+        const noteMap = new Map(prevNotes.map(n => [n.id, n]));
+        const reorderedNotes = reorderedNoteIds.map(id => noteMap.get(id)).filter((n): n is Note => !!n);
+        const remainingNotes = prevNotes.filter(n => !reorderedNoteIds.includes(n.id));
+        return [...reorderedNotes, ...remainingNotes];
+      });
       setNoteSort('manual');
     }
+  };
+
+  const handleReorderNotes = (reorderedItems: Note[]) => {
+    setNotes(reorderedItems);
+    setNoteSort('manual');
+     // Also update the openTabs order to reflect this
+    const newTabOrder = reorderedItems.map(note => ({ id: note.id, type: 'note' as const }));
+    const openTabIds = new Set(newTabOrder.map(t => t.id));
+    const remainingTabs = openTabs.filter(t => !openTabIds.has(t.id));
+    setOpenTabs([...newTabOrder, ...remainingTabs]);
   };
 
   const handleIconChange = (id: string, icon: string) => {
@@ -291,7 +355,8 @@ export default function Home() {
               title="Notes" 
               icon={Notebook} 
               items={sortedNotes} 
-              onItemSelect={(id) => handleNoteSelect(id)} 
+              onItemSelect={(id) => handleNoteSelect(id)}
+              onReorder={handleReorderNotes}
               itemType="note"
               sortOption={noteSort}
               onSortChange={setNoteSort}

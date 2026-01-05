@@ -26,11 +26,9 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange }) => 
   return (
     <div className="flex flex-col h-full">
         <TiptapEditor
-          title={note.title}
-          content={note.content}
+          note={note}
           onNoteUpdate={handleContentUpdate}
           onIconChange={handleIconSelect}
-          noteIcon={note.icon || '📝'}
         />
     </div>
   );
