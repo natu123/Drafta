@@ -81,8 +81,8 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 
 
 interface HeaderProps {
-  onToggleScreenTab: () => void;
-  isScreenTabActive: boolean;
+  onToggleView: () => void;
+  activeView: 'home' | 'editor';
   onNewNote: () => void;
   onOpenSettings: () => void;
   history: HistoryItem[];
@@ -90,8 +90,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({
-  onToggleScreenTab,
-  isScreenTabActive,
+  onToggleView,
+  activeView,
   onNewNote,
   onOpenSettings,
   history,
@@ -108,14 +108,14 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onToggleScreenTab}
+                onClick={onToggleView}
                 className="hidden md:flex"
               >
-                {isScreenTabActive ? <PanelLeft className="h-5 w-5" /> : <AppWindow className="h-5 w-5" />}
+                {activeView === 'home' ? <PanelLeft className="h-5 w-5" /> : <AppWindow className="h-5 w-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{isScreenTabActive ? 'Current View' : 'Home'}</p>
+              <p>{activeView === 'home' ? 'Current View' : 'Home'}</p>
             </TooltipContent>
           </Tooltip>
           

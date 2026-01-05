@@ -6,12 +6,9 @@ export type Note = {
   plainTextContent?: string; // Plain text version of content
   group: string;
   stars: 0 | 1 | 2 | 3;
-  isPinned?: boolean;
   createdAt: string;
   updatedAt: string;
   lastAccessedAt?: string;
-  parentId?: string;
-  children?: Note[];
   thumbnailUrl?: string;
 };
 
@@ -30,5 +27,5 @@ export type HistoryItem = {
 
 export type OpenTab = {
     id: string;
-    type: 'note' | 'notes';
+    type: 'note';
 }

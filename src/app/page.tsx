@@ -171,11 +171,12 @@ export default function Home() {
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
-    initialNotes.map(n => ({ id: n.id, type: 'note' as const }))
+    initialNotes.slice(0, 3).map(n => ({ id: n.id, type: 'note' as const }))
   );
   
-  const [activeContent, setActiveContent] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
-  const [lastActiveContent, setLastActiveContent] = React.useState<OpenTab | null>(activeContent);
+  const [activeView, setActiveView] = React.useState<'home' | 'editor'>('editor');
+  const [activeTabId, setActiveTabId] = React.useState<string | null>('note-1');
+  const [lastActiveTab, setLastActiveTab] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
     
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
@@ -184,7 +185,7 @@ export default function Home() {
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
   
-  const activeNote = activeContent?.type === 'note' ? notes.find((note) => note.id === activeContent.id) ?? null : null;
+  const activeNote = activeView === 'editor' && activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
 
   const openTabDetails = React.useMemo(() => {
     const itemMap = new Map([
@@ -218,9 +219,9 @@ export default function Home() {
   };
 
   const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }) => {
-    if (activeContent?.type !== 'note') return;
+    if (activeView !== 'editor' || !activeTabId) return;
     setNotes(notes => notes.map(note => {
-      if (note.id === activeContent.id) {
+      if (note.id === activeTabId) {
         const newNote = { ...note, ...updatedNote, updatedAt: new Date().toISOString() };
         if (updatedNote.content !== undefined) {
           newNote.plainTextContent = htmlToPlainText(updatedNote.content);
@@ -229,14 +230,15 @@ export default function Home() {
       }
       return note;
     }));
-  }, [activeContent]);
+  }, [activeView, activeTabId]);
   
   const openTab = (id: string, type: 'note') => {
     const isAlreadyOpen = openTabs.some(tab => tab.id === id && tab.type === type);
     if (!isAlreadyOpen) {
         setOpenTabs(prev => [...prev, { id, type }]);
     }
-    setActiveContent({ type, id });
+    setActiveTabId(id);
+    setActiveView('editor');
   };
   
   const handleNewNote = () => {
@@ -280,74 +282,60 @@ export default function Home() {
         addToHistory(note, 'note');
       }
     }
-    setActiveContent({ type: itemType, id });
+    setActiveTabId(id);
+    setActiveView('editor');
   };
 
   const handleTabClose = (id: string, type: OpenTab['type']) => {
-    let closingTabIndex = openTabs.findIndex(tab => tab.id === id && tab.type === type);
+    const closingTabIndex = openTabs.findIndex(tab => tab.id === id && tab.type === type);
     
     setOpenTabs(prev => prev.filter(tab => !(tab.id === id && tab.type === type)));
     
-    if (activeContent?.id === id && activeContent.type === type) {
+    if (activeTabId === id) {
       const newOpenTabs = openTabs.filter(tab => !(tab.id === id && tab.type === type));
       if (newOpenTabs.length > 0) {
-        // Try to select the next tab, or the previous one if closing the last tab
         const nextTab = newOpenTabs[closingTabIndex] || newOpenTabs[closingTabIndex - 1] || newOpenTabs[0];
         if (nextTab) {
-          setActiveContent({ id: nextTab.id, type: nextTab.type });
+          setActiveTabId(nextTab.id);
         } else {
-          setActiveContent(null);
+          setActiveTabId(null);
+          setActiveView('home');
         }
       } else {
-        setActiveContent(null);
+        setActiveTabId(null);
+        setActiveView('home');
       }
     }
   };
   
   const handleReorderTabs = (reorderedTabs: OpenTab[]) => {
     setOpenTabs(reorderedTabs);
-    // If we reorder tabs, it implies manual sorting for notes
-    const reorderedNoteIds = reorderedTabs.filter(t => t.type === 'note').map(t => t.id);
-    if(reorderedNoteIds.length > 0) {
-       setNotes(prevNotes => {
-        const noteMap = new Map(prevNotes.map(n => [n.id, n]));
-        const reorderedNotes = reorderedNoteIds.map(id => noteMap.get(id)).filter((n): n is Note => !!n);
-        const remainingNotes = prevNotes.filter(n => !reorderedNoteIds.includes(n.id));
-        return [...reorderedNotes, ...remainingNotes];
-      });
-      setNoteSort('manual');
-    }
   };
 
   const handleReorderNotes = (reorderedItems: Note[]) => {
     setNotes(reorderedItems);
     setNoteSort('manual');
-     // Also update the openTabs order to reflect this
-    const newTabOrder = reorderedItems.map(note => ({ id: note.id, type: 'note' as const }));
-    const openTabIds = new Set(newTabOrder.map(t => t.id));
-    const remainingTabs = openTabs.filter(t => !openTabIds.has(t.id));
-    setOpenTabs([...newTabOrder, ...remainingTabs]);
   };
 
   const handleIconChange = (id: string, icon: string) => {
     setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
   };
   
-  const handleToggleScreenTab = () => {
-    if (activeContent?.type === 'notes') {
-      setActiveContent(lastActiveContent);
-    } else {
-      setLastActiveContent(activeContent);
-      setActiveContent({ type: 'notes', id: 'notes' });
+  const handleToggleView = () => {
+    setActiveView(prev => prev === 'home' ? 'editor' : 'home');
+    if (activeView === 'home' && activeTabId) {
+      const note = notes.find(n => n.id === activeTabId);
+      if(note) setLastActiveTab({ id: note.id, type: 'note' });
+    } else if (activeView === 'editor' && activeTabId) {
+      const note = notes.find(n => n.id === activeTabId);
+       if(note) setLastActiveTab({ id: note.id, type: 'note' });
     }
   };
 
   const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note')), [notes, noteSort, openTabs]);
 
-  const isScreenTabActive = activeContent?.type === 'notes';
-
   const renderContent = () => {
-    if (isScreenTabActive) {
+    if (activeView === 'home') {
         return (
         <div className="p-4 md:p-8 h-full">
           <div className="grid md:grid-cols-1 h-full gap-4">
@@ -368,19 +356,18 @@ export default function Home() {
       );
     }
 
-
-    switch (activeContent?.type) {
-      case 'note':
-        return activeNote ? (
-          <Editor 
-            key={activeNote.id} 
-            note={activeNote} 
-            onNoteUpdate={handleNoteUpdate}
-            onIconChange={(id, icon) => handleIconChange(id, icon)}
-          />
-        ) : null;
-      default:
-        return (
+    if (activeView === 'editor') {
+        if (activeNote) {
+            return (
+              <Editor 
+                key={activeNote.id} 
+                note={activeNote} 
+                onNoteUpdate={handleNoteUpdate}
+                onIconChange={(id, icon) => handleIconChange(id, icon)}
+              />
+            )
+        }
+         return (
           <div className="p-4 md:p-8 h-full">
             <div className="flex h-full gap-4">
                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-secondary/30 rounded-lg">
@@ -396,8 +383,8 @@ export default function Home() {
     <>
     <div className="flex h-screen flex-col bg-background text-foreground">
       <Header
-        onToggleScreenTab={handleToggleScreenTab}
-        isScreenTabActive={isScreenTabActive}
+        onToggleView={handleToggleView}
+        activeView={activeView}
         onNewNote={handleNewNote}
         onOpenSettings={() => setIsSettingsOpen(true)}
         history={history}
@@ -406,10 +393,10 @@ export default function Home() {
 
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 flex overflow-hidden relative">
-          {!isScreenTabActive && (
+          {activeView === 'editor' && openTabDetails.length > 0 && (
             <VerticalTabs
                 items={openTabDetails}
-                activeId={activeContent?.id}
+                activeId={activeTabId}
                 onTabSelect={handleTabSelect}
                 onTabClose={handleTabClose}
                 onReorderTabs={handleReorderTabs}
