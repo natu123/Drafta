@@ -38,8 +38,6 @@ const extensions = [
     heading: {
       levels: [2, 3], // h1 is now outside the editor
     },
-    document: true, // Allow document node
-    paragraph: true,
   }),
   Placeholder.configure({
     placeholder: 'Start writing your note here...',
