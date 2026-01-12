@@ -10,6 +10,9 @@ export type Note = {
   updatedAt: string;
   lastAccessedAt?: string;
   thumbnailUrl?: string;
+  isPinned?: boolean;
+  parentId?: string;
+  children?: Note[];
 };
 
 export type Group = {
@@ -26,6 +29,6 @@ export type HistoryItem = {
 }
 
 export type OpenTab = {
-    id: string;
-    type: 'note';
+  id: string;
+  type: 'note';
 }

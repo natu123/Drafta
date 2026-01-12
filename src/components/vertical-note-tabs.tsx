@@ -20,9 +20,9 @@ interface VerticalTabsProps {
 
 const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const activeTabRef = React.useRef<HTMLButtonElement>(null);
+  const activeTabRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
-  
+
   const [draggedItem, setDraggedItem] = React.useState<OpenTab | null>(null);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
 
@@ -40,18 +40,18 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
     if (item.type === 'note') return item.icon || '📝';
     return '❓';
   };
-  
-  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>, item: OpenTab) => {
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, item: OpenTab) => {
     setDraggedItem(item);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnter = (e: React.DragEvent<HTMLButtonElement>, index: number) => {
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault();
     setDropIndex(index);
   };
-  
-  const handleDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); // This is necessary to allow dropping
   };
 
@@ -63,8 +63,8 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
       const newItems = [...items];
       const [removed] = newItems.splice(draggedIndex, 1);
       newItems.splice(dropIndex, 0, removed);
-      
-      onReorderTabs(newItems.map(i => ({id: i.id, type: i.type})));
+
+      onReorderTabs(newItems.map(i => ({ id: i.id, type: i.type })));
     }
     resetDragState();
   };
@@ -88,20 +88,32 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
         <div className="flex flex-col pt-2 overflow-y-auto h-full" onDragLeave={resetDragState} onDrop={handleDrop} onDragOver={handleDragOver}>
           {items.map((item, index) => (
             <div key={`${item.id}-${item.type}`} className="relative">
-             {dropIndex === index && (
+              {dropIndex === index && (
                 <div className="absolute top-0 left-2 right-2 h-0.5 bg-primary z-20" />
               )}
               <Tooltip disableHoverableContent={isExpanded}>
                 <TooltipTrigger asChild>
-                  <button
+                  <div
                     ref={item.id === activeId ? activeTabRef : null}
+                    onMouseDown={(e) => {
+                      // Prevent focus loss issues or other click behaviors if needed
+                    }}
                     onClick={() => onTabSelect(item.id, item.type)}
                     draggable
-                    onDragStart={(e) => handleDragStart(e, {id: item.id, type: item.type})}
+                    onDragStart={(e) => handleDragStart(e, { id: item.id, type: item.type })}
                     onDragEnter={(e) => handleDragEnter(e, index)}
                     onDragEnd={resetDragState}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={item.title || 'Untitled Note'}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onTabSelect(item.id, item.type);
+                      }
+                    }}
                     className={cn(
-                      'flex items-center gap-2 w-full text-left p-2 rounded-none transition-colors text-sm shrink-0 relative',
+                      'flex items-center gap-2 w-full text-left p-2 rounded-none transition-colors text-sm shrink-0 relative cursor-pointer',
                       'hover:bg-secondary',
                       'justify-start',
                       activeId === item.id ? 'bg-primary/10' : '',
@@ -116,7 +128,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                     )}>
                       {item.title || 'Untitled'}
                     </span>
-                    
+
                     {isExpanded && (
                       <Button
                         variant="ghost"
@@ -130,12 +142,12 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                         <X className="w-4 h-4" />
                       </Button>
                     )}
-                  </button>
+                  </div>
                 </TooltipTrigger>
                 {!isExpanded && (
-                   <TooltipContent side="right" sideOffset={5}>
-                     <p>{item.title || 'Untitled'}</p>
-                   </TooltipContent>
+                  <TooltipContent side="right" sideOffset={5}>
+                    <p>{item.title || 'Untitled'}</p>
+                  </TooltipContent>
                 )}
               </Tooltip>
             </div>
@@ -144,7 +156,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
             <div className="relative h-1">
               <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary z-20" />
             </div>
-           )}
+          )}
         </div>
       </div>
     </TooltipProvider>

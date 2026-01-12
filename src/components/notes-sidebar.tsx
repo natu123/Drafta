@@ -34,12 +34,12 @@ const StarRating = ({ noteId, rating, onStarNote }: { noteId: string; rating: No
 );
 
 const PinButton = ({ noteId, isPinned, onPinNote }: { noteId: string; isPinned?: boolean; onPinNote: (id: string) => void }) => (
-    <button onClick={(e) => { e.stopPropagation(); onPinNote(noteId); }} className="p-1 hover:bg-secondary rounded-md">
-        <Pin className={cn(
-            'w-4 h-4 transition-colors',
-            isPinned ? 'text-primary fill-primary' : 'text-muted-foreground/50 hover:text-primary'
-        )} />
-    </button>
+  <button onClick={(e) => { e.stopPropagation(); onPinNote(noteId); }} className="p-1 hover:bg-secondary rounded-md">
+    <Pin className={cn(
+      'w-4 h-4 transition-colors',
+      isPinned ? 'text-primary fill-primary' : 'text-muted-foreground/50 hover:text-primary'
+    )} />
+  </button>
 );
 
 interface NoteTreeItemProps {
@@ -62,10 +62,18 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, 
 
   return (
     <div>
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onNoteSelect(note.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onNoteSelect(note.id);
+          }
+        }}
         className={cn(
-          'w-full text-left p-2 pr-4 border-b border-border transition-colors flex items-center gap-2',
+          'w-full text-left p-2 pr-4 border-b border-border transition-colors flex items-center gap-2 cursor-pointer',
           activeNoteId === note.id ? 'bg-primary/10' : 'hover:bg-secondary'
         )}
         style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
@@ -91,26 +99,26 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({ note, level, activeNoteId, 
           </div>
         </div>
         <div className="flex items-center gap-2">
-            <PinButton noteId={note.id} isPinned={note.isPinned} onPinNote={onPinNote} />
-            <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
+          <PinButton noteId={note.id} isPinned={note.isPinned} onPinNote={onPinNote} />
+          <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
         </div>
-      </button>
+      </div>
 
       {hasChildren && isOpen && (
         <div className="relative">
-           <div className="absolute left-0 top-0 bottom-0 ml-[1.1rem] w-px bg-border -z-10" />
-            {note.children?.map(childNote => (
-                <NoteTreeItem
-                key={childNote.id}
-                note={childNote}
-                level={level + 1}
-                activeNoteId={activeNoteId}
-                onNoteSelect={onNoteSelect}
-                onStarNote={onStarNote}
-                onPinNote={onPinNote}
-                isInitiallyOpen={isInitiallyOpen}
-                />
-            ))}
+          <div className="absolute left-0 top-0 bottom-0 ml-[1.1rem] w-px bg-border -z-10" />
+          {note.children?.map(childNote => (
+            <NoteTreeItem
+              key={childNote.id}
+              note={childNote}
+              level={level + 1}
+              activeNoteId={activeNoteId}
+              onNoteSelect={onNoteSelect}
+              onStarNote={onStarNote}
+              onPinNote={onPinNote}
+              isInitiallyOpen={isInitiallyOpen}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -154,9 +162,9 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
 
   const filteredNotes = React.useMemo(() => {
     if (!searchTerm) return noteTree;
-    
+
     const lowercasedFilter = searchTerm.toLowerCase();
-    
+
     const filterTree = (nodes: Note[]): Note[] => {
       const result: Note[] = [];
       for (const node of nodes) {
@@ -171,7 +179,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
       }
       return result;
     };
-    
+
     return filterTree(noteTree);
   }, [searchTerm, noteTree]);
 
