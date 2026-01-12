@@ -43,7 +43,9 @@ const extensions = [
     placeholder: 'Start writing your note here...',
   }),
   TextStyle,
-  Color,
+  Color.configure({
+    types: ['textStyle'],
+  }),
 ];
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
@@ -87,7 +89,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   };
 
   const handleSetColor = (color: string) => {
-    editor?.chain().focus().setColor(color).run();
+    if (editor) {
+      editor.chain().focus().setColor(color).run();
+    }
   };
 
   const handleConvertToPlainText = () => {

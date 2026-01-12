@@ -21,8 +21,8 @@ type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
 type ViewMode = 'list' | 'grid';
 
 const getSortedItems = (
-  items: Note[], 
-  sortOption: SortOption, 
+  items: Note[],
+  sortOption: SortOption,
   openTabsForType: OpenTab[]
 ): Note[] => {
   switch (sortOption) {
@@ -34,8 +34,8 @@ const getSortedItems = (
       return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
     case 'manual':
     default:
-       // For manual sort, we just return the items in their current order.
-       // The actual reordering is handled by drag-and-drop state updates.
+      // For manual sort, we just return the items in their current order.
+      // The actual reordering is handled by drag-and-drop state updates.
       return items;
   }
 };
@@ -75,13 +75,13 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
 
     const draggedIndex = items.findIndex(i => i.id === draggedItem.id);
     const targetIndex = items.findIndex(i => i.id === targetItem.id);
-    
+
     if (draggedIndex === -1 || targetIndex === -1) return;
 
     const newItems = [...items];
     const [removed] = newItems.splice(draggedIndex, 1);
     newItems.splice(targetIndex, 0, removed);
-    
+
     onSortChange('manual');
     onReorder(newItems);
     setDraggedItem(null);
@@ -95,7 +95,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
           <span>{title}</span>
         </CardTitle>
         <div className="flex items-center gap-1">
-           <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <ArrowDownUp className="w-4 h-4" />
@@ -108,57 +108,57 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
               <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>Last Accessed</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-           <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => onViewModeChange('list')}>
-              <List className="w-4 h-4" />
-           </Button>
-           <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => onViewModeChange('grid')}>
-              <LayoutGrid className="w-4 h-4" />
-            </Button>
+          <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => onViewModeChange('list')}>
+            <List className="w-4 h-4" />
+          </Button>
+          <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => onViewModeChange('grid')}>
+            <LayoutGrid className="w-4 h-4" />
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-full">
-            <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2')}>
-              {items.map(item => (
-                viewMode === 'list' ? (
-                  <div
-                    key={item.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, item)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, item)}
-                    onDragEnd={() => setDraggedItem(null)}
-                    className={cn(
-                      "flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-all cursor-pointer border border-transparent",
-                      draggedItem?.id === item.id ? "opacity-50" : "opacity-100"
-                    )}
-                  >
-                    <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                    <div onClick={() => onItemSelect(item.id, itemType)} className="flex-1">
-                      <p className="font-medium truncate">{item.title || 'Untitled'}</p>
-                      <p className="text-sm text-muted-foreground truncate">{item.plainTextContent}</p>
-                    </div>
+          <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2')}>
+            {items.map(item => (
+              viewMode === 'list' ? (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, item)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, item)}
+                  onDragEnd={() => setDraggedItem(null)}
+                  className={cn(
+                    "flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-all cursor-pointer border border-transparent",
+                    draggedItem?.id === item.id ? "opacity-50" : "opacity-100"
+                  )}
+                >
+                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
+                  <div onClick={() => onItemSelect(item.id, itemType)} className="flex-1">
+                    <p className="font-medium truncate">{item.title || 'Untitled'}</p>
+                    <p className="text-sm text-muted-foreground truncate">{item.plainTextContent}</p>
                   </div>
-                ) : (
-                  <Card key={item.id} onClick={() => onItemSelect(item.id, itemType)} className="cursor-pointer hover:bg-secondary transition-colors">
-                    <CardContent className="p-0">
-                      <div className="aspect-video relative w-full">
-                         {item.thumbnailUrl ? (
-                           <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover rounded-t-lg" />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center rounded-t-lg">
-                              <Icon className="w-8 h-8 text-muted-foreground" />
-                            </div>
-                          )}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-2">
-                       <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
-                    </CardFooter>
-                  </Card>
-                )
-              ))}
-            </div>
+                </div>
+              ) : (
+                <Card key={item.id} onClick={() => onItemSelect(item.id, itemType)} className="cursor-pointer hover:bg-secondary transition-colors">
+                  <CardContent className="p-0">
+                    <div className="aspect-video relative w-full">
+                      {item.thumbnailUrl ? (
+                        <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover rounded-t-lg" />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center rounded-t-lg">
+                          <Icon className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-2">
+                    <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
+                  </CardFooter>
+                </Card>
+              )
+            ))}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>
@@ -169,38 +169,38 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
 export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
-  
+
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
     initialNotes.slice(0, 3).map(n => ({ id: n.id, type: 'note' as const }))
   );
-  
+
   const [activeView, setActiveView] = React.useState<'home' | 'editor'>('editor');
   const [activeTabId, setActiveTabId] = React.useState<string | null>('note-1');
   const [lastActiveTab, setLastActiveTab] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
-    
+
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
   const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
-  
+
   const activeNote = activeView === 'editor' && activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
 
   const openTabDetails = React.useMemo(() => {
-    const itemMap = new Map([
-        ...notes.map(item => [item.id, {...item, type: 'note' as const}]),
-    ]);
+    const itemMap = new Map<string, Note & { type: 'note' }>(
+      notes.map(item => [item.id, { ...item, type: 'note' as const }])
+    );
 
     return openTabs
-        .map(tab => {
-            const item = itemMap.get(tab.id);
-            if (item && item.type === tab.type) {
-                return item;
-            }
-            return null;
-        })
-        .filter((item): item is (Note & {type: 'note'}) => !!item);
+      .map(tab => {
+        const item = itemMap.get(tab.id);
+        if (item && item.type === tab.type) {
+          return item;
+        }
+        return null;
+      })
+      .filter((item): item is (Note & { type: 'note' }) => !!item);
   }, [openTabs, notes]);
 
   const addToHistory = (item: Note, type: 'note') => {
@@ -231,16 +231,16 @@ export default function Home() {
       return note;
     }));
   }, [activeView, activeTabId]);
-  
+
   const openTab = (id: string, type: 'note') => {
     const isAlreadyOpen = openTabs.some(tab => tab.id === id && tab.type === type);
     if (!isAlreadyOpen) {
-        setOpenTabs(prev => [...prev, { id, type }]);
+      setOpenTabs(prev => [...prev, { id, type }]);
     }
     setActiveTabId(id);
     setActiveView('editor');
   };
-  
+
   const handleNewNote = () => {
     const newNote: Note = {
       id: `note-${Date.now()}`,
@@ -259,14 +259,21 @@ export default function Home() {
     addToHistory(newNote, 'note');
   };
 
-  const handleNoteSelect = (id: string) => {
+  const handleNoteSelect = React.useCallback((id: string) => {
+    setNotes(prevNotes => {
+      const note = prevNotes.find(n => n.id === id);
+      if (!note) return prevNotes;
+      const updatedNotes = prevNotes.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n);
+      // We don't call side effects like openTab or addToHistory inside setNotes.
+      return updatedNotes;
+    });
     const note = notes.find(n => n.id === id);
-    if (!note) return;
-    setNotes(prev => prev.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n));
-    openTab(id, 'note');
-    addToHistory(note, 'note');
-  };
-  
+    if (note) {
+      openTab(id, 'note');
+      addToHistory(note, 'note');
+    }
+  }, [notes, openTab, addToHistory]);
+
   const handleHistorySelect = (id: string, type: 'note') => {
     if (type === 'note') {
       handleNoteSelect(id);
@@ -288,9 +295,9 @@ export default function Home() {
 
   const handleTabClose = (id: string, type: OpenTab['type']) => {
     const closingTabIndex = openTabs.findIndex(tab => tab.id === id && tab.type === type);
-    
+
     setOpenTabs(prev => prev.filter(tab => !(tab.id === id && tab.type === type)));
-    
+
     if (activeTabId === id) {
       const newOpenTabs = openTabs.filter(tab => !(tab.id === id && tab.type === type));
       if (newOpenTabs.length > 0) {
@@ -307,7 +314,7 @@ export default function Home() {
       }
     }
   };
-  
+
   const handleReorderTabs = (reorderedTabs: OpenTab[]) => {
     setOpenTabs(reorderedTabs);
   };
@@ -317,111 +324,108 @@ export default function Home() {
     setNoteSort('manual');
   };
 
-  const handleIconChange = (id: string, icon: string) => {
-    setNotes(notes.map(note => note.id === id ? { ...note, icon } : note));
-  };
-  
-  const handleToggleView = () => {
-    setActiveView(prev => prev === 'home' ? 'editor' : 'home');
-    if (activeView === 'home' && activeTabId) {
+  const handleIconChange = React.useCallback((id: string, icon: string) => {
+    setNotes(prevNotes => prevNotes.map(note => note.id === id ? { ...note, icon } : note));
+  }, []);
+
+  const handleToggleView = React.useCallback(() => {
+    if (activeView === 'editor' && activeTabId) {
       const note = notes.find(n => n.id === activeTabId);
-      if(note) setLastActiveTab({ id: note.id, type: 'note' });
-    } else if (activeView === 'editor' && activeTabId) {
-      const note = notes.find(n => n.id === activeTabId);
-       if(note) setLastActiveTab({ id: note.id, type: 'note' });
+      if (note) setLastActiveTab({ id: note.id, type: 'note' });
     }
-  };
+    setActiveView(prev => prev === 'home' ? 'editor' : 'home');
+  }, [activeView, activeTabId, notes]);
 
   const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note')), [notes, noteSort, openTabs]);
 
   const renderContent = () => {
     if (activeView === 'home') {
-        return (
+      return (
         <div className="flex h-full">
-            <div className="w-64 bg-secondary/30 border-r p-4">
-                <h2 className="text-lg font-semibold mb-4">Lists</h2>
-                <ul>
-                    <li>
-                        <Button variant="ghost" className="w-full justify-start gap-2 bg-primary/10">
-                            <Inbox className="w-4 h-4" />
-                            <span>Inbox</span>
-                        </Button>
-                    </li>
-                </ul>
+          <div className="w-64 bg-secondary/30 border-r p-4">
+            <h2 className="text-lg font-semibold mb-4">Lists</h2>
+            <ul>
+              <li>
+                <Button variant="ghost" className="w-full justify-start gap-2 bg-primary/10">
+                  <Inbox className="w-4 h-4" />
+                  <span>Inbox</span>
+                </Button>
+              </li>
+            </ul>
+          </div>
+          <div className="flex-1 p-4 md:p-8 h-full">
+            <div className="grid md:grid-cols-1 h-full gap-4">
+              <HomeSection
+                title="Inbox"
+                icon={Inbox}
+                items={sortedNotes}
+                onItemSelect={(id) => handleNoteSelect(id)}
+                onReorder={handleReorderNotes}
+                itemType="note"
+                sortOption={noteSort}
+                onSortChange={setNoteSort}
+                viewMode={noteViewMode}
+                onViewModeChange={setNoteViewMode}
+              />
             </div>
-            <div className="flex-1 p-4 md:p-8 h-full">
-              <div className="grid md:grid-cols-1 h-full gap-4">
-                <HomeSection 
-                  title="Inbox" 
-                  icon={Inbox} 
-                  items={sortedNotes} 
-                  onItemSelect={(id) => handleNoteSelect(id)}
-                  onReorder={handleReorderNotes}
-                  itemType="note"
-                  sortOption={noteSort}
-                  onSortChange={setNoteSort}
-                  viewMode={noteViewMode}
-                  onViewModeChange={setNoteViewMode}
-                />
-              </div>
-            </div>
+          </div>
         </div>
       );
     }
 
     if (activeView === 'editor') {
-        if (activeNote) {
-            return (
-              <Editor 
-                key={activeNote.id} 
-                note={activeNote} 
-                onNoteUpdate={handleNoteUpdate}
-                onIconChange={(id, icon) => handleIconChange(id, icon)}
-              />
-            )
-        }
-         return (
-          <div className="p-4 md:p-8 h-full">
-            <div className="flex h-full gap-4">
-               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-secondary/30 rounded-lg">
-                  <p>Select an item to view or create a new one.</p>
-               </div>
+      if (activeNote) {
+        return (
+          <Editor
+            key={activeNote.id}
+            note={activeNote}
+            onNoteUpdate={handleNoteUpdate}
+            onIconChange={(id, icon) => handleIconChange(id, icon)}
+          />
+        )
+      }
+      return (
+        <div className="p-4 md:p-8 h-full">
+          <div className="flex h-full gap-4">
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-secondary/30 rounded-lg">
+              <p>Select an item to view or create a new one.</p>
             </div>
           </div>
-        )
+        </div>
+      )
     }
   };
 
   return (
     <>
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <Header
-        onToggleView={handleToggleView}
-        activeView={activeView}
-        onNewNote={handleNewNote}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        history={history}
-        onHistorySelect={handleHistorySelect}
-      />
+      <div className="flex h-screen flex-col bg-background text-foreground">
+        <Header
+          onToggleView={handleToggleView}
+          activeView={activeView}
+          onNewNote={handleNewNote}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          history={history}
+          onHistorySelect={handleHistorySelect}
+        />
 
-      <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 flex overflow-hidden relative">
-          {activeView === 'editor' && openTabDetails.length > 0 && (
-            <VerticalTabs
+        <div className="flex flex-1 overflow-hidden">
+          <main className="flex-1 flex overflow-hidden relative">
+            {activeView === 'editor' && openTabDetails.length > 0 && (
+              <VerticalTabs
                 items={openTabDetails}
                 activeId={activeTabId}
                 onTabSelect={handleTabSelect}
                 onTabClose={handleTabClose}
                 onReorderTabs={handleReorderTabs}
-            />
-          )}
-          <div className="flex-1 overflow-y-auto">
-            {renderContent()}
-          </div>
-        </main>
+              />
+            )}
+            <div className="flex-1 overflow-y-auto">
+              {renderContent()}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
-    <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+      <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </>
   );
 }
