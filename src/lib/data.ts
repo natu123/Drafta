@@ -2,7 +2,7 @@
 import type { Note, Group } from './types';
 
 export const groups: Group[] = [
-  { id: 'general', name: 'General' },
+  { id: 'inbox', name: 'Inbox' },
   { id: 'work', name: 'Work' },
   { id: 'personal', name: 'Personal' },
   { id: 'ai', name: 'AI Generated' },
@@ -15,7 +15,7 @@ export const notes: Note[] = [
     icon: '🌱',
     content: `<p>Drafta is your new space for ideas and tasks.</p><p>Minimal design, quick idea.</p><p></p><p>With Drafta, you can:</p><p>● Capture notes any way you like.</p><p>● Organize your to-dos and thoughts seamlessly.</p><p></p><p>Drafta shapes raw thoughts into brilliant ideas.</p>`,
     plainTextContent: `Drafta is your new space for ideas and tasks.\nMinimal design, quick idea.\nWith Drafta, you can:\n● Capture notes any way you like.\n● Organize your to-dos and thoughts seamlessly.\nDrafta shapes raw thoughts into brilliant ideas.`,
-    group: 'general',
+    group: 'inbox',
     stars: 3,
     isPinned: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
@@ -29,7 +29,7 @@ export const notes: Note[] = [
     icon: '📝',
     content: `<p>This is a quick reference for text formatting.</p><p></p><p>You can use the toolbar to apply formatting like bold, italic, and strikethrough.</p><p></p><ul><li><p>This is an unordered list item.</p></li><li><p>You can create lists to organize your thoughts.</p></li></ul><p></p><ol><li><p>This is an ordered list item.</p></li><li><p>Use them for step-by-step instructions.</p></li></ol>`,
     plainTextContent: `This is a quick reference for text formatting.\nYou can use the toolbar to apply formatting like bold, italic, and strikethrough.\n･ This is an unordered list item.\n･ You can create lists to organize your thoughts.\n1. This is an ordered list item.\n2. Use them for step-by-step instructions.`,
-    group: 'general',
+    group: 'inbox',
     stars: 2,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
@@ -62,7 +62,7 @@ export const notes: Note[] = [
     updatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
   },
-    {
+  {
     id: 'note-5',
     title: 'Meeting Notes',
     icon: '💼',

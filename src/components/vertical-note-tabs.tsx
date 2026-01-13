@@ -2,8 +2,9 @@
 "use client";
 
 import * as React from 'react';
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Note, OpenTab } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -16,9 +17,11 @@ interface VerticalTabsProps {
   onTabSelect: (id: string, type: 'note') => void;
   onTabClose: (id: string, type: 'note') => void;
   onReorderTabs: (reorderedTabs: OpenTab[]) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
-const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs }) => {
+const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs, searchTerm, onSearchChange }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const activeTabRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -86,6 +89,25 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
         )}
       >
         <div className="flex flex-col pt-2 overflow-y-auto h-full" onDragLeave={resetDragState} onDrop={handleDrop} onDragOver={handleDragOver}>
+          {isExpanded && (
+            <div className="px-3 pb-2 transition-all duration-200">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filter tabs..."
+                  className="pl-8 h-8 text-xs bg-background/50"
+                  value={searchTerm}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+          )}
+          {!isExpanded && (
+            <div className="flex justify-center pb-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
           {items.map((item, index) => (
             <div key={`${item.id}-${item.type}`} className="relative">
               {dropIndex === index && (

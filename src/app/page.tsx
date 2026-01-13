@@ -3,7 +3,8 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { List, LayoutGrid, Notebook, ArrowDownUp, GripVertical, Inbox } from 'lucide-react';
+import { List, LayoutGrid, Notebook, ArrowDownUp, GripVertical, Inbox, Search, Trash2, RotateCcw, MoreVertical, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
@@ -15,6 +16,7 @@ import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { CreateListDialog } from '@/components/create-list-dialog';
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
@@ -52,9 +54,15 @@ interface HomeSectionProps {
   onSortChange: (sortOption: SortOption) => void;
   viewMode: ViewMode;
   onViewModeChange: (viewMode: ViewMode) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  onDeleteItem: (id: string) => void;
+  onRestoreItem?: (id: string) => void;
+  onPermanentDeleteItem?: (id: string) => void;
+  isTrash?: boolean;
 }
 
-const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, onReorder, itemType, sortOption, onSortChange, viewMode, onViewModeChange }) => {
+const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onItemSelect, onReorder, itemType, sortOption, onSortChange, viewMode, onViewModeChange, searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, isTrash }) => {
   const [draggedItem, setDraggedItem] = React.useState<Note | null>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, item: Note) => {
@@ -116,6 +124,17 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
           </Button>
         </div>
       </CardHeader>
+      <div className="px-6 pb-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={`Search ${title.toLowerCase()}...`}
+            className="pl-9 h-9"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+      </div>
       <CardContent className="flex-1 p-0">
         <ScrollArea className="h-full">
           <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2')}>
@@ -138,10 +157,42 @@ const HomeSection: React.FC<HomeSectionProps> = ({ title, icon: Icon, items, onI
                     <p className="font-medium truncate">{item.title || 'Untitled'}</p>
                     <p className="text-sm text-muted-foreground truncate">{item.plainTextContent}</p>
                   </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isTrash ? (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <Card key={item.id} onClick={() => onItemSelect(item.id, itemType)} className="cursor-pointer hover:bg-secondary transition-colors">
-                  <CardContent className="p-0">
+                <Card key={item.id} className="group cursor-pointer hover:bg-secondary transition-colors relative">
+                  <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    {isTrash ? (
+                      <>
+                        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/80 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/80 hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <CardContent className="p-0" onClick={() => onItemSelect(item.id, itemType)}>
                     <div className="aspect-video relative w-full">
                       {item.thumbnailUrl ? (
                         <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover rounded-t-lg" />
@@ -179,9 +230,15 @@ export default function Home() {
   const [lastActiveTab, setLastActiveTab] = React.useState<OpenTab | null>({ type: 'note', id: 'note-1' });
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [isCreateListOpen, setIsCreateListOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
   const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
+  const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
+
+  const [homeSearchTerm, setHomeSearchTerm] = React.useState('');
+  const [listsSearchTerm, setListsSearchTerm] = React.useState('');
+  const [tabsSearchTerm, setTabsSearchTerm] = React.useState('');
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
 
@@ -192,7 +249,7 @@ export default function Home() {
       notes.map(item => [item.id, { ...item, type: 'note' as const }])
     );
 
-    return openTabs
+    const tabs = openTabs
       .map(tab => {
         const item = itemMap.get(tab.id);
         if (item && item.type === tab.type) {
@@ -201,7 +258,26 @@ export default function Home() {
         return null;
       })
       .filter((item): item is (Note & { type: 'note' }) => !!item);
-  }, [openTabs, notes]);
+
+    if (!tabsSearchTerm) return tabs;
+
+    const lowerSearch = tabsSearchTerm.toLowerCase();
+    return tabs.filter(tab =>
+      tab.title.toLowerCase().includes(lowerSearch) ||
+      (tab.plainTextContent && tab.plainTextContent.toLowerCase().includes(lowerSearch))
+    );
+  }, [openTabs, notes, tabsSearchTerm]);
+
+  const filteredGroups = React.useMemo(() => {
+    let activeGroups = groups.filter(g => !g.isDeleted);
+    if (!listsSearchTerm) return activeGroups;
+    const lowerSearch = listsSearchTerm.toLowerCase();
+    return activeGroups.filter(g => g.name.toLowerCase().includes(lowerSearch));
+  }, [groups, listsSearchTerm]);
+
+  const deletedGroups = React.useMemo(() => {
+    return groups.filter(g => g.isDeleted);
+  }, [groups]);
 
   const addToHistory = (item: Note, type: 'note') => {
     setHistory(prev => {
@@ -248,7 +324,7 @@ export default function Home() {
       icon: '📝',
       content: '',
       plainTextContent: '',
-      group: 'general',
+      group: activeGroupId,
       stars: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -324,6 +400,52 @@ export default function Home() {
     setNoteSort('manual');
   };
 
+  const handleDeleteNote = (id: string) => {
+    setNotes(prev => prev.map(note => note.id === id ? { ...note, isDeleted: true } : note));
+    if (activeTabId === id) {
+      handleTabClose(id, 'note');
+    }
+  };
+
+  const handleRestoreNote = (id: string) => {
+    setNotes(prev => prev.map(note => note.id === id ? { ...note, isDeleted: false } : note));
+  };
+
+  const handlePermanentDeleteNote = (id: string) => {
+    setNotes(prev => prev.filter(note => note.id !== id));
+  };
+
+  const handleAddGroup = () => {
+    setIsCreateListOpen(true);
+  };
+
+  const handleCreateGroup = (name: string) => {
+    const newGroup: Group = {
+      id: `group-${Date.now()}`,
+      name: name,
+    };
+    setGroups(prev => [...prev, newGroup]);
+    setActiveGroupId(newGroup.id);
+  };
+
+  const handleDeleteGroup = (id: string) => {
+    if (id === 'inbox') return; // Cannot delete inbox
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, isDeleted: true } : g));
+    if (activeGroupId === id) {
+      setActiveGroupId('inbox');
+    }
+  };
+
+  const handleRestoreGroup = (id: string) => {
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, isDeleted: false } : g));
+  };
+
+  const handlePermanentDeleteGroup = (id: string) => {
+    // Also delete notes in this group? For now yes.
+    setNotes(prev => prev.filter(note => note.group !== id));
+    setGroups(prev => prev.filter(g => g.id !== id));
+  };
+
   const handleIconChange = React.useCallback((id: string, icon: string) => {
     setNotes(prevNotes => prevNotes.map(note => note.id === id ? { ...note, icon } : note));
   }, []);
@@ -336,28 +458,103 @@ export default function Home() {
     setActiveView(prev => prev === 'home' ? 'editor' : 'home');
   }, [activeView, activeTabId, notes]);
 
-  const sortedNotes = React.useMemo(() => getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note')), [notes, noteSort, openTabs]);
+  const sortedNotes = React.useMemo(() => {
+    let items = getSortedItems(notes, noteSort, openTabs.filter(t => t.type === 'note'));
+
+    // Filter by group (list)
+    if (activeGroupId === 'restore') {
+      items = items.filter(note => note.isDeleted);
+    } else {
+      items = items.filter(note => note.group === activeGroupId && !note.isDeleted);
+    }
+
+    if (homeSearchTerm) {
+      const lowerSearch = homeSearchTerm.toLowerCase();
+      items = items.filter(note =>
+        note.title.toLowerCase().includes(lowerSearch) ||
+        (note.plainTextContent && note.plainTextContent.toLowerCase().includes(lowerSearch))
+      );
+    }
+
+    return items;
+  }, [notes, noteSort, openTabs, homeSearchTerm, activeGroupId]);
 
   const renderContent = () => {
     if (activeView === 'home') {
+      const isRestoreView = activeGroupId === 'restore';
+
       return (
         <div className="flex h-full">
-          <div className="w-64 bg-secondary/30 border-r p-4">
-            <h2 className="text-lg font-semibold mb-4">Lists</h2>
-            <ul>
-              <li>
-                <Button variant="ghost" className="w-full justify-start gap-2 bg-primary/10">
-                  <Inbox className="w-4 h-4" />
-                  <span>Inbox</span>
-                </Button>
-              </li>
-            </ul>
+          <div className="w-64 bg-secondary/30 border-r p-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Lists</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAddGroup}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search lists..."
+                className="pl-9 h-8 text-sm"
+                value={listsSearchTerm}
+                onChange={(e) => setListsSearchTerm(e.target.value)}
+              />
+            </div>
+            <ScrollArea className="flex-1">
+              <ul className="space-y-1">
+                {filteredGroups.map(group => (
+                  <li key={group.id} className="group/list relative">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start gap-2 h-9 pr-8",
+                        activeGroupId === group.id && "bg-primary/10 text-primary hover:bg-primary/20"
+                      )}
+                      onClick={() => setActiveGroupId(group.id)}
+                    >
+                      <Inbox className="w-4 h-4" />
+                      <span className="truncate">{group.name}</span>
+                    </Button>
+                    {group.id !== 'inbox' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/list:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+
+                {/* Restore Special Group */}
+                <li className="pt-2 mt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start gap-2 h-9",
+                      activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
+                    )}
+                    onClick={() => setActiveGroupId('restore')}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Restore</span>
+                  </Button>
+                </li>
+
+                {filteredGroups.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No lists found</p>
+                )}
+              </ul>
+            </ScrollArea>
           </div>
           <div className="flex-1 p-4 md:p-8 h-full">
             <div className="grid md:grid-cols-1 h-full gap-4">
               <HomeSection
-                title="Inbox"
-                icon={Inbox}
+                title={isRestoreView ? 'Restore' : (groups.find(g => g.id === activeGroupId)?.name || 'Notes')}
+                icon={isRestoreView ? RotateCcw : Inbox}
                 items={sortedNotes}
                 onItemSelect={(id) => handleNoteSelect(id)}
                 onReorder={handleReorderNotes}
@@ -366,6 +563,12 @@ export default function Home() {
                 onSortChange={setNoteSort}
                 viewMode={noteViewMode}
                 onViewModeChange={setNoteViewMode}
+                searchTerm={homeSearchTerm}
+                onSearchChange={setHomeSearchTerm}
+                onDeleteItem={handleDeleteNote}
+                onRestoreItem={handleRestoreNote}
+                onPermanentDeleteItem={handlePermanentDeleteNote}
+                isTrash={isRestoreView}
               />
             </div>
           </div>
@@ -410,13 +613,15 @@ export default function Home() {
 
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 flex overflow-hidden relative">
-            {activeView === 'editor' && openTabDetails.length > 0 && (
+            {activeView === 'editor' && openTabDetails.length >= 0 && (
               <VerticalTabs
                 items={openTabDetails}
                 activeId={activeTabId}
                 onTabSelect={handleTabSelect}
                 onTabClose={handleTabClose}
                 onReorderTabs={handleReorderTabs}
+                searchTerm={tabsSearchTerm}
+                onSearchChange={setTabsSearchTerm}
               />
             )}
             <div className="flex-1 overflow-y-auto">
@@ -426,6 +631,11 @@ export default function Home() {
         </div>
       </div>
       <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+      <CreateListDialog
+        open={isCreateListOpen}
+        onOpenChange={setIsCreateListOpen}
+        onCreate={handleCreateGroup}
+      />
     </>
   );
 }

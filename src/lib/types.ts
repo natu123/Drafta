@@ -13,11 +13,13 @@ export type Note = {
   isPinned?: boolean;
   parentId?: string;
   children?: Note[];
+  isDeleted?: boolean;
 };
 
 export type Group = {
   id: string;
   name: string;
+  isDeleted?: boolean;
 };
 
 export type HistoryItem = {
