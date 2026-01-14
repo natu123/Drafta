@@ -16,7 +16,7 @@ interface VerticalTabsProps {
   activeId: string | null;
   onTabSelect: (id: string, type: 'note') => void;
   onTabClose: (id: string, type: 'note') => void;
-  onReorderTabs: (reorderedTabs: OpenTab[]) => void;
+  onReorderTabs: (draggedId: string, targetId: string) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
 }
@@ -58,16 +58,14 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
     e.preventDefault(); // This is necessary to allow dropping
   };
 
-  const handleDrop = () => {
-    if (draggedItem && dropIndex !== null) {
-      const draggedIndex = items.findIndex(i => i.id === draggedItem.id && i.type === draggedItem.type);
-      if (draggedIndex === -1) return;
-
-      const newItems = [...items];
-      const [removed] = newItems.splice(draggedIndex, 1);
-      newItems.splice(dropIndex, 0, removed);
-
-      onReorderTabs(newItems.map(i => ({ id: i.id, type: i.type })));
+  const handleDrop = (e: React.DragEvent, targetId?: string) => {
+    e.preventDefault();
+    if (draggedItem && (targetId || dropIndex === items.length)) {
+      const finalTargetId = targetId || items[items.length - 1].id;
+      // If dropping at the end, we need the parent to handle "after last" logic or we just target the last item.
+      // For simplicity in the parent, we'll just send the IDs.
+      // If dropIndex === items.length, it means we are dropping after the last visible item.
+      onReorderTabs(draggedItem.id, finalTargetId);
     }
     resetDragState();
   };
@@ -84,11 +82,11 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
         className={cn(
-          "relative bg-secondary/30 border-r z-10",
+          "relative bg-secondary/30 border-r z-10 flex flex-col h-full",
           isExpanded ? 'w-64' : 'w-12'
         )}
       >
-        <div className="flex flex-col pt-2 overflow-y-auto h-full" onDragLeave={resetDragState} onDrop={handleDrop} onDragOver={handleDragOver}>
+        <div className="flex flex-col pt-2 overflow-y-auto flex-1">
           {isExpanded && (
             <div className="px-3 pb-2 transition-all duration-200">
               <div className="relative">
@@ -117,13 +115,12 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                 <TooltipTrigger asChild>
                   <div
                     ref={item.id === activeId ? activeTabRef : null}
-                    onMouseDown={(e) => {
-                      // Prevent focus loss issues or other click behaviors if needed
-                    }}
                     onClick={() => onTabSelect(item.id, item.type)}
                     draggable
                     onDragStart={(e) => handleDragStart(e, { id: item.id, type: item.type })}
                     onDragEnter={(e) => handleDragEnter(e, index)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item.id)}
                     onDragEnd={resetDragState}
                     role="button"
                     tabIndex={0}
@@ -174,11 +171,17 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
               </Tooltip>
             </div>
           ))}
-          {dropIndex === items.length && (
-            <div className="relative h-1">
-              <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary z-20" />
-            </div>
-          )}
+          {/* Drop zone for the end of the list */}
+          <div
+            className="flex-1 min-h-[50px] relative"
+            onDragEnter={(e) => handleDragEnter(e, items.length)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e)}
+          >
+            {dropIndex === items.length && (
+              <div className="absolute top-0 left-2 right-2 h-0.5 bg-primary z-20" />
+            )}
+          </div>
         </div>
       </div>
     </TooltipProvider>

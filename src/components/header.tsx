@@ -1,3 +1,4 @@
+"use client";
 
 import * as React from 'react';
 import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather } from 'lucide-react';
@@ -27,20 +28,20 @@ interface HistoryNavProps {
 const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => {
   if (history.length === 0) {
     return (
-       <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-                <div className="relative">
-                     <Button variant="ghost" size="icon" disabled>
-                        <History className="h-5 w-5" />
-                    </Button>
-                </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>No History</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="relative">
+              <Button variant="ghost" size="icon" disabled>
+                <History className="h-5 w-5" />
+              </Button>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>No History</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
@@ -98,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({
   onHistorySelect,
 }) => {
   return (
-    <header className="flex items-center justify-between h-14 px-4 border-b bg-background z-10">
+    <header className="flex items-center justify-between h-14 px-4 border-b bg-background z-50">
       <div className="flex items-center gap-2">
         <Feather className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
@@ -115,10 +116,10 @@ const Header: React.FC<HeaderProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{activeView === 'home' ? 'Current View' : 'Home'}</p>
+              <p>{activeView === 'home' ? 'Writing Mode' : 'Home'}</p>
             </TooltipContent>
           </Tooltip>
-          
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={onNewNote}>
@@ -132,16 +133,16 @@ const Header: React.FC<HeaderProps> = ({
         </TooltipProvider>
       </div>
       <div className="flex items-center gap-2">
-         <HistoryNav history={history} onHistorySelect={onHistorySelect} />
-         <TooltipProvider delayDuration={0}>
+        <HistoryNav history={history} onHistorySelect={onHistorySelect} />
+        <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={onOpenSettings}>
-                    <Settings className="h-5 w-5" />
-                </Button>
+              <Button variant="ghost" size="icon" onClick={onOpenSettings}>
+                <Settings className="h-5 w-5" />
+              </Button>
             </TooltipTrigger>
             <TooltipContent>
-                <p>Settings</p>
+              <p>Settings</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
