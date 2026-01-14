@@ -21,22 +21,28 @@ export function htmlToPlainText(html: string): string {
       const index = Array.from(parent.children).indexOf(li);
       li.prepend(`${index + 1}. `);
     }
-  });
-
-  // Add newlines after paragraphs and list containers
-  tempDiv.querySelectorAll('p, ul, ol, h1, h2, h3').forEach(block => {
-    // Check if the block is not empty and doesn't already end with a newline
-    if (block.textContent?.trim() && !block.textContent.endsWith('\n')) {
-        const newline = document.createTextNode('\n');
-        block.appendChild(newline);
+    // Ensure list items are followed by a newline if they aren't already
+    if (!li.textContent?.endsWith('\n')) {
+      li.appendChild(document.createTextNode('\n'));
     }
   });
 
-  // Get text content, which now includes the markers and newlines
+  // Handle horizontal rules
+  tempDiv.querySelectorAll('hr').forEach(hr => {
+    hr.replaceWith('\n……………………………………………………………\n');
+  });
+
+  // Add newlines after block elements
+  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, ul, ol').forEach(block => {
+    // Only add a newline if it's a block-level element and doesn't already end with one
+    if (!block.textContent?.endsWith('\n')) {
+      block.appendChild(document.createTextNode('\n'));
+    }
+  });
+
+  // Get text content, which now includes correctly placed newlines
   let text = tempDiv.textContent || '';
-  
-  // Clean up extra whitespace and newlines
-  text = text.replace(/\n\s*\n/g, '\n'); // Replace multiple newlines with a single one
-  
+
+  // Clean up leading/trailing whitespace but keep internal formatting
   return text.trim();
 }

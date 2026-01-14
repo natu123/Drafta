@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -7,7 +6,9 @@ import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow } from 'lucide-react';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, Minus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -21,6 +22,7 @@ interface TiptapEditorProps {
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (icon: string) => void;
+  scrollDirection?: 'top' | 'bottom';
 }
 
 export const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒', '💬', '🌐'];
@@ -46,13 +48,18 @@ const extensions = [
   Color.configure({
     types: ['textStyle'],
   }),
+  TaskList,
+  TaskItem.configure({
+    nested: true,
+  }),
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom' }) => {
 
   const [currentTitle, setCurrentTitle] = React.useState(note.title);
   const isSavingRef = React.useRef(false);
   const contentRef = React.useRef(note.content);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
     extensions,
@@ -68,6 +75,17 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       },
     },
   });
+
+  // Scroll to bottom on mount depends on setting
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      if (scrollDirection === 'bottom') {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      } else {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+    }
+  }, [scrollDirection]); // Re-run if preference changes (rare but correct)
 
   // Debounced save function
   const handleSave = React.useCallback(() => {
@@ -155,6 +173,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </div>
             </PopoverContent>
           </Popover>
+          <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
@@ -170,6 +189,31 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Redo (Ctrl+Y)</p></TooltipContent>
+          </Tooltip>
+          <Separator orientation="vertical" className="h-6 mx-2" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()}>
+                <List />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Bullet List</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleTaskList().run()}>
+                <ListChecks />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Checkbox List</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+                <Minus />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Horizontal Rule</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
@@ -225,7 +269,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Button>
         </BubbleMenu>
 
-        <div className="flex-1 overflow-y-auto">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto"
+        >
           <Input
             value={currentTitle}
             onChange={handleTitleChange}
@@ -233,7 +280,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             placeholder="Untitled Note"
             className="text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-8 pb-4 h-auto"
           />
-          <Separator className="mx-8 w-auto" />
+          <Separator className="mx-8 w-auto h-[2px] mb-8 bg-foreground/20" />
           <EditorContent editor={editor} />
         </div>
       </div>

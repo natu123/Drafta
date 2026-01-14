@@ -15,9 +15,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  scrollDirection: 'top' | 'bottom';
+  onScrollDirectionChange: (direction: 'top' | 'bottom') => void;
 }
 
-const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange }) => {
+const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scrollDirection, onScrollDirectionChange }) => {
   const { theme, setTheme } = useTheme();
 
   // Mounted check to avoid hydration mismatch
@@ -55,6 +57,22 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange }) =
                   </div>
                 </RadioGroup>
               )}
+            </div>
+
+            <h3 className="text-lg font-medium pt-4">Navigation</h3>
+            <div className="space-y-2">
+              <Label>Default View Position</Label>
+              <RadioGroup value={scrollDirection} onValueChange={(v) => onScrollDirectionChange(v as 'top' | 'bottom')}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="top" id="scroll-top" />
+                  <Label htmlFor="scroll-top">Top (First Item)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="bottom" id="scroll-bottom" />
+                  <Label htmlFor="scroll-bottom">Bottom (Last/Newest)</Label>
+                </div>
+              </RadioGroup>
+              <p className="text-sm text-muted-foreground">Sets where lists and notes open by default.</p>
             </div>
           </div>
         </div>
