@@ -1,4 +1,4 @@
-import type {Config} from 'tailwindcss';
+import type { Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography';
 
 export default {
@@ -79,7 +79,7 @@ export default {
       typography: ({ theme }: { theme: (path: string) => string }) => ({
         DEFAULT: {
           css: {
-             '--tw-prose-body': theme('colors.foreground'),
+            '--tw-prose-body': theme('colors.foreground'),
             '--tw-prose-headings': theme('colors.foreground'),
             '--tw-prose-lead': theme('colors.foreground'),
             '--tw-prose-links': theme('colors.primary.DEFAULT'),
@@ -114,6 +114,10 @@ export default {
             p: {
               marginTop: '0',
               marginBottom: '0',
+            },
+            hr: {
+              marginTop: '1rem',
+              marginBottom: '1rem',
             },
             // Make the textarea blend in
             'textarea': {

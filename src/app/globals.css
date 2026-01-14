@@ -1,125 +1,303 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%; /* #FFFFFF */
-    --foreground: 202 58% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 202 58% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 202 58% 11%;
-    --primary: 202 58% 41%; /* #2D7BA1 */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 43 25% 90%;
-    --secondary-foreground: 202 58% 11%;
-    --muted: 43 25% 90%;
-    --muted-foreground: 202 20% 45%;
-    --accent: 35 77% 64%; /* #E8B05D */
-    --accent-foreground: 202 58% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 43 20% 85%;
-    --input: 43 20% 88%;
-    --ring: 202 58% 41%;
-    --radius: 0.5rem;
-  }
+    :root {
+        --background: 0 0% 100%;
+        /* #FFFFFF */
+        --foreground: 202 58% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 202 58% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 202 58% 11%;
+        --primary: 202 58% 41%;
+        /* #2D7BA1 */
+        --primary-foreground: 0 0% 98%;
+        --secondary: 43 25% 90%;
+        --secondary-foreground: 202 58% 11%;
+        --muted: 43 25% 90%;
+        --muted-foreground: 202 20% 45%;
+        --accent: 35 77% 64%;
+        /* #E8B05D */
+        --accent-foreground: 202 58% 11%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 43 20% 85%;
+        --input: 43 20% 88%;
+        --ring: 202 58% 41%;
+        --radius: 0.5rem;
+    }
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 202 58% 51%; /* Lighter blue for dark mode */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 35 77% 70%; /* Lighter #E8B05D for dark mode */
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 27%;
-    --input: 217 33% 27%;
-    --ring: 202 58% 51%;
-  }
+    .dark {
+        --background: 222 47% 11%;
+        --foreground: 210 40% 98%;
+        --card: 222 47% 11%;
+        --card-foreground: 210 40% 98%;
+        --popover: 222 47% 11%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 202 58% 51%;
+        /* Lighter blue for dark mode */
+        --primary-foreground: 210 40% 98%;
+        --secondary: 217 33% 17%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 217 33% 17%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 35 77% 70%;
+        /* Lighter #E8B05D for dark mode */
+        --accent-foreground: 222 47% 11%;
+        --destructive: 0 63% 31%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 217 33% 27%;
+        --input: 217 33% 27%;
+        --ring: 202 58% 51%;
+    }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-  ::selection {
-    background-color: hsl(var(--primary) / 0.1);
-  }
+    * {
+        @apply border-border;
+    }
 
-  /* Tiptap styles */
-  .ProseMirror {
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+
+
+    ::selection {
+        background-color: hsl(var(--primary) / 0.1);
+    }
+}
+
+
+/* Tiptap styles */
+.ProseMirror {
     @apply min-h-[calc(100vh-200px)];
-  }
-  
-  .ProseMirror-focused {
+}
+
+.ProseMirror-focused {
     @apply outline-none;
-  }
-  
-  .ProseMirror p.is-editor-empty:first-child::before {
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
     color: hsl(var(--muted-foreground));
     pointer-events: none;
     height: 0;
-  }
-  
-  .ProseMirror h1,
-  .ProseMirror h2,
-  .ProseMirror h3 {
+}
+
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3 {
     @apply my-0 font-bold;
-  }
+}
 
-  .ProseMirror h1 {
+.ProseMirror h1 {
     @apply text-4xl;
-  }
-  .ProseMirror h2 {
+}
+
+.ProseMirror h2 {
     @apply text-3xl;
-  }
-  .ProseMirror h3 {
-    @apply text-2xl;
-  }
+}
 
-  .ProseMirror ul, .ProseMirror ol {
-    @apply list-inside my-0;
-  }
+/* UNIVERSAL LIST STYLES (Bullet & Numbered) */
+.ProseMirror ul,
+.ProseMirror ol {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    list-style: none !important;
+}
 
-  .ProseMirror ul p, .ProseMirror ol p {
-    @apply inline;
-  }
+.ProseMirror li {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.5rem;
+    /* Standardized gap for text start position */
+    margin-top: 0 !important;
+    /* Zero top margin prevents text drop */
+    margin-bottom: 0.25em !important;
+    /* Removed line-height: normal so it inherits standard relaxed spacing */
+}
+
+.ProseMirror ul p,
+.ProseMirror ol p {
+    margin: 0 !important;
+    display: block;
+    /* changed to block to behave like normal lines */
+}
+
+/* CUSTOM BULLETS for standard UL */
+/* data-type="taskList" is handled separately below, so we target generic ul li */
+.ProseMirror ul:not([data-type="taskList"]) li::before {
+    content: "•";
+    color: hsl(var(--foreground));
+    font-size: 1.5rem;
+    /* Larger bullet */
+    line-height: 1rem;
+    /* Compact line height */
+
+    /* Alignment magic */
+    display: flex;
+    justify-content: center;
+    width: 1.1rem;
+    /* Matches checkbox width exactly */
+    flex-shrink: 0;
+    margin-top: 0.3rem;
+    /* Visual tuning: 0.3rem for the dot */
+    margin-right: 0.1rem;
+    /* Push bullet slightly LEFT relative to the 1.1rem box center if needed, or just let it center */
+
+    /* 
+       User asked for bullet to be slightly left. 
+       If we center it in 1.1rem, it aligns with checkbox center.
+       To move left, we can align-items: flex-start or margin-right hack.
+       Let's try justify-content: flex-start instead of center? 
+       No, checkbox is centered. 
+       User said "Bullet is a bit right compared to checkbox". 
+       So if we align them theoretically the same, maybe the visual weight of the dot makes it look right.
+       Let's push it left by reducing width? No, that shifts text.
+       Let's use translation.
+    */
+    /* transform: translateX(-2px); REMOVED per user request */
+}
+
+/* NUMBERED LISTS */
+.ProseMirror ol {
+    counter-reset: ol-counter;
+}
+
+.ProseMirror ol li {
+    counter-increment: ol-counter;
+}
+
+.ProseMirror ol li::before {
+    content: counter(ol-counter) ".";
+    color: hsl(var(--foreground));
+    font-weight: bold;
+    min-width: 1.1rem;
+    text-align: right;
+    margin-right: 0.1rem;
+    flex-shrink: 0;
+}
 
 
-  .ProseMirror h1.is-empty:first-child::before {
+/* HR STYLES */
+.ProseMirror hr {
+    @apply my-6 w-full;
+    border: 0;
+    border-top: 2px dashed hsl(var(--border));
+}
+
+/* TASK LIST (Checkbox) Styles */
+.ProseMirror ul[data-type="taskList"] li {
+    gap: 0.5rem;
+    /* Match the bullet list gap exactly (0.5rem + ? margin compensation) */
+    /* 
+       Bullet gap: 0.5rem. 
+       Bullet width: 1.1rem.
+       Text starts at 1.6rem + padding.
+       
+       Checkbox width: 1.1rem.
+       Checkbox gap needs to be 0.5rem to match.
+    */
+}
+
+/* Checkbox container alignment */
+.ProseMirror ul[data-type="taskList"] li>label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    /* Fixed width to match bullet container */
+    height: 1.1rem;
+    /* Fixed height */
+    margin-top: 0.32em;
+    /* Visual tuning: 0.32em for the box (pushes it down more) */
+    margin-right: 0.1rem;
+    /* Match bullet margin-right if any used for offsetting */
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 2px solid hsl(var(--primary));
+    border-radius: 0.25rem;
+    background-color: transparent;
+    display: grid;
+    place-content: center;
+    margin: 0;
+    /* reset */
+    transition: all 0.2s ease;
+}
+
+/* Custom Checkmark */
+.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"]::before {
+    content: "";
+    width: 0.65rem;
+    height: 0.65rem;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1rem 1rem hsl(var(--primary-foreground));
+    transform-origin: center;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    background-color: currentColor;
+}
+
+.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"]:checked {
+    background-color: hsl(var(--primary));
+}
+
+.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+
+.ProseMirror ul[data-type="taskList"] li>div {
+    flex: 1;
+    min-width: 0;
+    align-self: flex-start;
+    /* Ensure text block aligns to top */
+    padding-top: 0;
+    /* No extra padding */
+}
+
+/* Line-through for done items */
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div>p {
+    text-decoration: line-through;
+    color: hsl(var(--muted-foreground));
+}
+
+
+.ProseMirror h1.is-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
     color: hsl(var(--muted-foreground));
     pointer-events: none;
     height: 0;
-  }
 }
