@@ -10,11 +10,11 @@ import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
-import { cn, htmlToPlainText } from '@/lib/utils';
+import { cn, htmlToSimpleText } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { CreateListDialog } from '@/components/create-list-dialog';
 
 
@@ -118,7 +118,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   };
 
   return (
-    <Card className="h-full border-none shadow-none bg-transparent flex flex-col">
+    <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between px-2 pt-2 pb-2 border-b bg-background/95 backdrop-blur z-20 sticky top-0 shrink-0">
         <CardTitle className="text-lg flex items-center gap-2">
           <Icon className="w-5 h-5 text-primary" />
@@ -159,155 +159,161 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         </div>
       </div>
 
-      <CardContent className="flex-1 p-0 overflow-hidden relative">
-        <ScrollArea className="h-full">
-          <div ref={topScrollRef} />
-          <div className={cn("p-2", viewMode === 'grid' && 'grid grid-cols-2 lg:grid-cols-2 gap-2')}>
-            {items.map(item => (
-              viewMode === 'list' ? (
-                <div key={item.id} className="relative mb-2">
-                  {/* Drop Indicators */}
-                  {dropTargetId === item.id && dropPosition === 'before' && (
-                    <div className="absolute top-[-4px] left-0 right-0 h-0.5 bg-primary z-20" />
-                  )}
-
-                  <div
-                    draggable
-                    onDragStart={(e) => onNoteDragStart(e, item)}
-                    onDragOver={(e) => handleDragOver(e, item.id)}
-                    onDrop={(e) => handleDrop(e, item.id)}
-                    className={cn(
-                      "flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer group hover:shadow-md",
-                      activeId === item.id
-                        ? "bg-accent/10 border-accent/50 shadow-sm"
-                        : "bg-card border-border/60 hover:border-primary/30",
-
-                      draggedNote?.id === item.id ? "opacity-50" : "opacity-100",
-                      dropTargetId === item.id ? "bg-secondary" : ""
+      <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full">
+        <ScrollArea className="h-full w-full overflow-hidden">
+          <div className="w-full max-w-full overflow-hidden">
+            <div ref={topScrollRef} />
+            <div className={cn("p-2 pb-12 max-w-full", viewMode === 'grid' && 'grid grid-cols-2 lg:grid-cols-2 gap-2')}>
+              {items.map(item => (
+                viewMode === 'list' ? (
+                  <div key={item.id} className="relative mb-2 w-full">
+                    {/* Drop Indicators */}
+                    {dropTargetId === item.id && dropPosition === 'before' && (
+                      <div className="absolute top-[-4px] left-0 right-0 h-0.5 bg-primary z-20" />
                     )}
-                  >
-                    <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                    <div onClick={() => onItemSelect(item.id, itemType)} className="flex-1 min-w-0">
-                      <p className={cn("font-medium truncate transition-colors", activeId === item.id ? "text-primary" : "text-foreground")}>
-                        {item.title || 'Untitled'}
-                      </p>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className="text-xs text-muted-foreground truncate flex-1 pr-2">{item.plainTextContent || 'No content'}</p>
-                        <span className="text-[10px] text-muted-foreground/70 shrink-0">
-                          {new Date(item.updatedAt).toLocaleDateString()}
-                        </span>
+
+                    <div
+                      draggable
+                      onDragStart={(e) => onNoteDragStart(e, item)}
+                      onDragOver={(e) => handleDragOver(e, item.id)}
+                      onDrop={(e) => handleDrop(e, item.id)}
+                      className={cn(
+                        "flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
+                        activeId === item.id
+                          ? "bg-accent/10 border-accent/50 shadow-sm"
+                          : "bg-card border-border/60 hover:border-primary/30",
+
+                        draggedNote?.id === item.id ? "opacity-50" : "opacity-100",
+                        dropTargetId === item.id ? "bg-secondary" : ""
+                      )}
+                    >
+                      <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      <div onClick={() => onItemSelect(item.id, itemType)} className="flex-1 min-w-0">
+                        <p className={cn("font-medium truncate transition-colors", activeId === item.id ? "text-primary" : "text-foreground")}>
+                          {item.title || 'Untitled'}
+                        </p>
+                        <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
+                          <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent || 'No content'}</p>
+                          <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                            {new Date(item.updatedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Always visible on desktop now, to fix "can't see" issue. Optional: restore opacity logic if requested. */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isTrash ? (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted" onClick={(e) => e.stopPropagation()}>
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48" side="bottom" collisionPadding={10}>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <FolderInput className="w-4 h-4 mr-2" />
+                                  Move to...
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                  <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto" sideOffset={2} alignOffset={-5}>
+                                    <DropdownMenuItem onSelect={() => onMoveNote(item.id, 'inbox')} disabled={item.group === 'inbox'}>
+                                      <Inbox className="w-4 h-4 mr-2" />
+                                      Inbox
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
+                                      <DropdownMenuItem key={g.id} onSelect={() => onMoveNote(item.id, g.id)} disabled={item.group === g.id}>
+                                        <span className="truncate">{g.name}</span>
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => onDeleteItem(item.id)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
 
-                    {/* Always visible on desktop now, to fix "can't see" issue. Optional: restore opacity logic if requested. */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    {dropTargetId === item.id && dropPosition === 'after' && (
+                      <div className="absolute bottom-[-4px] left-0 right-0 h-0.5 bg-primary z-20" />
+                    )}
+                  </div>
+                ) : (
+                  <Card key={item.id} className={cn(
+                    "group cursor-pointer hover:bg-secondary transition-colors relative overflow-hidden border",
+                    activeId === item.id ? "ring-2 ring-primary border-transparent" : "border-border/60"
+                  )}>
+                    {/* Grid View Content */}
+                    <div className="absolute top-2 right-2 z-10 flex gap-1">
                       {isTrash ? (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
+                        <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </Button>
                       ) : (
-                        <DropdownMenu>
+                        <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted" onClick={(e) => e.stopPropagation()}>
-                              <MoreHorizontal className="w-4 h-4" />
+                            <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => e.stopPropagation()}>
+                              <MoreHorizontal className="w-3.5 h-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end">
                             <DropdownMenuSub>
-                              <DropdownMenuSubTrigger>
-                                <FolderInput className="w-4 h-4 mr-2" />
-                                Move to...
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto">
-                                <DropdownMenuItem onSelect={() => onMoveNote(item.id, 'inbox')} disabled={item.group === 'inbox'}>
-                                  <Inbox className="w-4 h-4 mr-2" />
-                                  Inbox
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
-                                  <DropdownMenuItem key={g.id} onSelect={() => onMoveNote(item.id, g.id)} disabled={item.group === g.id}>
-                                    <span className="truncate">{g.name}</span>
-                                  </DropdownMenuItem>
-                                ))}
-                              </DropdownMenuSubContent>
+                              <DropdownMenuSubTrigger>Move to...</DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuItem onSelect={() => onMoveNote(item.id, 'inbox')} disabled={item.group === 'inbox'}>Inbox</DropdownMenuItem>
+                                  {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
+                                    <DropdownMenuItem key={g.id} onSelect={() => onMoveNote(item.id, g.id)} disabled={item.group === g.id}>{g.name}</DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
                             </DropdownMenuSub>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onSelect={() => onDeleteItem(item.id)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="text-destructive">
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
                     </div>
-                  </div>
 
-                  {dropTargetId === item.id && dropPosition === 'after' && (
-                    <div className="absolute bottom-[-4px] left-0 right-0 h-0.5 bg-primary z-20" />
-                  )}
-                </div>
-              ) : (
-                <Card key={item.id} className={cn(
-                  "group cursor-pointer hover:bg-secondary transition-colors relative overflow-hidden border",
-                  activeId === item.id ? "ring-2 ring-primary border-transparent" : "border-border/60"
-                )}>
-                  {/* Grid View Content */}
-                  <div className="absolute top-2 right-2 z-10 flex gap-1">
-                    {isTrash ? (
-                      <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      </Button>
-                    ) : (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => e.stopPropagation()}>
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>Move to...</DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuItem onSelect={() => onMoveNote(item.id, 'inbox')} disabled={item.group === 'inbox'}>Inbox</DropdownMenuItem>
-                              {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
-                                <DropdownMenuItem key={g.id} onSelect={() => onMoveNote(item.id, g.id)} disabled={item.group === g.id}>{g.name}</DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-
-                  <CardContent className="p-0" onClick={() => onItemSelect(item.id, itemType)}>
-                    <div className="aspect-video relative w-full">
-                      {item.thumbnailUrl ? (
-                        <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Icon className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-2 border-t bg-card">
-                    <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
-                  </CardFooter>
-                </Card>
-              )
-            ))}
-            <div ref={scrollRef} />
+                    <CardContent className="p-0" onClick={() => onItemSelect(item.id, itemType)}>
+                      <div className="aspect-video relative w-full">
+                        {item.thumbnailUrl ? (
+                          <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Icon className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-2 border-t bg-card">
+                      <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
+                    </CardFooter>
+                  </Card>
+                )
+              ))}
+              <div ref={scrollRef} />
+            </div>
           </div>
         </ScrollArea>
       </CardContent>
@@ -320,13 +326,17 @@ export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
 
+  // Initialize with 'Welcome to Drafta' note (note-1)
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
-    initialNotes.slice(0, 3).map(n => ({ id: n.id, type: 'note' as const }))
+    initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
   );
 
   const [activeView, setActiveView] = React.useState<'home' | 'editor'>('home');
 
-  const [activeTabId, setActiveTabId] = React.useState<string | null>(null);
+  const [activeTabId, setActiveTabId] = React.useState<string | null>(
+    initialNotes.length > 0 ? initialNotes[0].id : null
+  );
+
   const [lastActiveTab, setLastActiveTab] = React.useState<OpenTab | null>(null);
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -336,6 +346,78 @@ export default function Home() {
   const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
+
+  // Resizable Columns State
+  const [listsWidth, setListsWidth] = React.useState(256);
+  const [notesWidth, setNotesWidth] = React.useState(320);
+  const [isResizingLists, setIsResizingLists] = React.useState(false);
+  const [isResizingNotes, setIsResizingNotes] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingLists) {
+        setListsWidth(current => {
+          const newWidth = e.clientX;
+          if (newWidth < 150) return 150;
+          if (newWidth > 400) return 400;
+          return newWidth;
+        });
+      }
+      if (isResizingNotes) {
+        setNotesWidth(current => {
+          // For the second column, we need to calculate width based on delta or absolute position minus first column
+          // Assuming sidebar is visible
+          // Actually, let's use movementX for simpler logic or clientX relative to sidebar end
+
+          // Easiest is: newWidth = e.clientX - listsWidth
+          // But we need to account for vertical tabs width if visible? No, vertical tabs are separate pane 0.
+          // Let's assume standard layout: [VerticalTabs?] [Lists] [Notes] [Editor]
+
+          // If vertical tabs are hidden (default home mode), left edge of Notes is listsWidth.
+          // So newWidth = e.clientX - listsWidth.
+
+          // If Vertical Tabs are visible (editor mode on desktop?), actually this layout is only for 'home' mode mostly.
+          // In 'editor' mode, Lists and Notes are hidden (hidden md:flex logic is tricky).
+          // Wait, logic says: 
+          // PANE 1 (Lists): activeView === 'home' ? "flex" : "hidden"
+          // PANE 2 (Notes): activeView === 'home' ? "flex" : "hidden"
+          // PANE 3 (Editor): activeView === 'editor' ? "flex" : "hidden md:flex"
+
+          // So resizable columns primarily make sense in 'home' view where all 3 are visible?
+          // Actually in 'home' view, PANE 3 Editor is visible on Desktop: "hidden md:flex" -> Wait, 
+          // Line 835: activeView === 'editor' ? "flex" : "hidden md:flex" 
+          // If activeView is 'home', Editor is "hidden md:flex", so visible on desktop.
+          // Lists is "flex" (visible). Notes is "flex" (visible).
+
+          // So in Home View Desktop: [Lists] [Notes] [Editor]
+          // Vertical Tabs is NOT visible (Line 683: activeView === 'editor').
+
+          const newWidth = e.clientX - listsWidth;
+          if (newWidth < 200) return 200;
+          if (newWidth > 600) return 600;
+          return newWidth;
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingLists(false);
+      setIsResizingNotes(false);
+      document.body.style.cursor = 'default';
+    };
+
+    if (isResizingLists || isResizingNotes) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
+    };
+  }, [isResizingLists, isResizingNotes, listsWidth]);
 
   const [homeSearchTerm, setHomeSearchTerm] = React.useState('');
   const [listsSearchTerm, setListsSearchTerm] = React.useState('');
@@ -378,11 +460,11 @@ export default function Home() {
               return null;
             }
           }
-          return note ? { id: note.id, title: note.title, icon: note.icon, type: 'note' as const } : null;
+          return note ? { ...note, type: 'note' as const } : null;
         }
         return null;
       })
-      .filter((item): item is { id: string; title: string; icon: string; type: 'note' } => item !== null);
+      .filter((item): item is Note & { type: 'note' } => item !== null);
   }, [openTabs, notes, tabSearchTerm]);
 
   const filteredGroups = React.useMemo(() => {
@@ -412,7 +494,7 @@ export default function Home() {
       if (note.id === activeTabId) {
         const newNote = { ...note, ...updatedNote, updatedAt: new Date().toISOString() };
         if (updatedNote.content !== undefined) {
-          newNote.plainTextContent = htmlToPlainText(updatedNote.content);
+          newNote.plainTextContent = htmlToSimpleText(updatedNote.content);
         }
         return newNote;
       }
@@ -689,12 +771,13 @@ export default function Home() {
           )}
 
           {/* PANE 1: LISTS SIDEBAR */}
-          <div className={cn(
-            "w-full md:w-64 flex-col gap-4 border-r bg-secondary/30 transition-all duration-300",
-            // Logic: Visible in 'home' mode. Hidden in 'editor' mode (Writing Mode). 
-            // Mobile: Visible if activeView is home.
-            activeView === 'home' ? "flex" : "hidden"
-          )}>
+          <div
+            className={cn(
+              "flex-col gap-4 border-r bg-secondary/30 relative shrink-0",
+              activeView === 'home' ? "flex" : "hidden"
+            )}
+            style={{ width: activeView === 'home' ? listsWidth : '100%' }}
+          >
             {/* Header for Lists */}
             <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[53px]">
               <h2 className="text-lg font-semibold">Lists</h2>
@@ -790,16 +873,27 @@ export default function Home() {
                 </li>
               </ul>
             </ScrollArea>
+            {/* Resizer Handle for Lists */}
+            {activeView === 'home' && (
+              <div
+                className="absolute right-0 top-0 bottom-0 w-1 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
+                onMouseDown={(e) => { e.preventDefault(); setIsResizingLists(true); }}
+              />
+            )}
           </div>
 
+
           {/* PANE 2: NOTES LIST */}
-          <div className={cn(
-            "flex-1 md:w-80 md:flex-none flex-col border-r transition-all duration-300",
-            // Visible in 'home' mode. Hidden in 'editor' mode.
-            activeView === 'home' ? "flex" : "hidden"
-          )}>
+          <div
+            className={cn(
+              "flex-col border-r relative shrink-0 overflow-hidden",
+              activeView === 'home' ? "flex" : "hidden"
+            )}
+            style={{ width: activeView === 'home' ? notesWidth : '100%' }}
+          >
+
             <HomeSection
-              title={activeGroupId === 'restore' ? 'Restore' : (groups.find(g => g.id === activeGroupId)?.name || 'Notes')}
+              title={activeGroupId === 'restore' ? 'Restore' : groups.find(g => g.id === activeGroupId)?.name || 'Inbox'}
               icon={activeGroupId === 'restore' ? RotateCcw : Inbox}
               items={sortedNotes}
               onItemSelect={handleNoteSelect}
@@ -817,70 +911,61 @@ export default function Home() {
               onPermanentDeleteItem={handlePermanentDeleteNote}
               isTrash={activeGroupId === 'restore'}
               scrollDirection={scrollDirection}
-
-              // Pass DnD Props
               draggedNote={draggedNote}
               onNoteDragStart={handleNoteDragStart}
               groups={groups}
               onMoveNote={handleMoveNoteToGroup}
             />
+            {/* Resizer Handle for Notes */}
+            {activeView === 'home' && (
+              <div
+                className="absolute right-0 top-0 bottom-0 w-1 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
+                onMouseDown={(e) => { e.preventDefault(); setIsResizingNotes(true); }}
+              />
+            )}
           </div>
 
           {/* PANE 3: EDITOR */}
           <div className={cn(
-            "flex-1 flex-col bg-background transition-all duration-300 h-full overflow-hidden",
-            // Desktop: 
-            //   Home Mode: Visible (3rd pane)
-            //   Writing Mode: Visible (Main pane)
-            // Mobile:
-            //   Home Mode: Hidden (unless drilling down, but we use activeView=editor for that? No, desktop activeView=home -> all 3. Mobile activeView=home -> List/Notes)
-            //   Writing Mode: Visible (Fullscreen)
-
-            // Revised Logic:
-            // If activeView == 'home': flex (on desktop), hidden (on mobile if we assume mobile state is strictly separate, but we are reusing activeView).
-            // The previous logic was: activeView === 'editor' ? "flex z-30..." : "hidden md:flex".
-            // Now, if activeView === 'editor', we want it flex.
-            // If activeView === 'home', we want it flex (on Desktop).
-
-            // So:
-            activeView === 'editor' ? "flex z-30 absolute inset-0 md:static md:z-auto" : "hidden md:flex"
-            // 'absolute inset-0' ensures on mobile it covers everything. 
-            // 'md:static' resets it to normal flow on desktop.
+            "flex-1 bg-background relative overflow-hidden",
+            activeView === 'editor' ? "flex" : "hidden md:flex"
           )}>
             {activeNote ? (
               <Editor
-                key={activeNote.id}
                 note={activeNote}
                 onNoteUpdate={handleNoteUpdate}
-                onIconChange={(id, icon) => handleIconChange(id, icon)}
+                onIconChange={(icon) => handleIconChange(activeNote.id, icon)}
                 scrollDirection={scrollDirection}
               />
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-secondary/5 h-full">
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                    <Inbox className="w-8 h-8 text-muted-foreground/50" />
-                  </div>
-                  <p>Select a note to view or edit</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Inbox className="w-8 h-8 opacity-20" />
                 </div>
+                <h3 className="text-xl font-medium text-foreground mb-2">No active note</h3>
+                <p className="max-w-xs">Select a note from the list or create a new one to start writing.</p>
+                <Button variant="outline" className="mt-6" onClick={handleNewNote}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Note
+                </Button>
               </div>
             )}
           </div>
-
         </div>
-      </div>
 
-      <SettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        scrollDirection={scrollDirection}
-        onScrollDirectionChange={setScrollDirection}
-      />
-      <CreateListDialog
-        open={isCreateListOpen}
-        onOpenChange={setIsCreateListOpen}
-        onCreate={handleCreateGroup}
-      />
+        <SettingsDialog
+          open={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+          scrollDirection={scrollDirection}
+          onScrollDirectionChange={setScrollDirection}
+        />
+
+        <CreateListDialog
+          open={isCreateListOpen}
+          onOpenChange={setIsCreateListOpen}
+          onCreate={handleCreateGroup}
+        />
+      </div >
     </>
   );
 }

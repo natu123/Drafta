@@ -12,7 +12,7 @@ import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, Min
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { cn, htmlToPlainText } from '@/lib/utils';
+import { cn, removeFormatting } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { Input } from './ui/input';
 import type { Note } from '@/lib/types';
@@ -65,6 +65,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     extensions,
     content: note.content,
     immediatelyRender: false,
+    enableInputRules: false, // Disables automatic markdown-like shortcuts (e.g. typing "- " for a list)
+    enablePasteRules: false,
     onUpdate: ({ editor }) => {
       contentRef.current = editor.getHTML();
       handleSave();
@@ -112,13 +114,18 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
   };
 
-  const handleConvertToPlainText = () => {
+  const handleRemoveFormatting = () => {
     if (editor) {
       const currentContent = editor.getHTML();
-      const plainText = htmlToPlainText(currentContent);
+      const plainText = removeFormatting(currentContent);
 
-      // The plain text needs to be converted back to HTML paragraphs for the editor
-      const newContent = plainText.split('\n').map(p => `<p>${p}</p>`).join('');
+      // The plain text needs to be converted back to HTML paragraphs for the editor.
+      // We trim each line to ensure no leading spaces remain (e.g. after deleting a number).
+      const newContent = plainText.split('\n')
+        .map((p: string) => p.trim())
+        .filter((p: string) => p !== '')
+        .map((p: string) => `<p>${p}</p>`)
+        .join('');
 
       editor.commands.setContent(newContent, true);
     }
@@ -218,11 +225,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleConvertToPlainText}>
+              <Button variant="ghost" size="icon" onClick={handleRemoveFormatting}>
                 <Pilcrow />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Convert to Plain Text</p></TooltipContent>
+            <TooltipContent><p>Remove Formatting</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">
