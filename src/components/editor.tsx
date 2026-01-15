@@ -14,7 +14,7 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection }) => {
 
-  const handleContentUpdate = React.useCallback((updates: { title: string, content: string }) => {
+  const handleContentUpdate = React.useCallback((updates: Partial<Note>) => {
     onNoteUpdate(updates);
   }, [onNoteUpdate]);
 
@@ -24,7 +24,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
 
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       <TiptapEditor
         note={note}
         onNoteUpdate={handleContentUpdate}

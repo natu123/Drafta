@@ -82,6 +82,18 @@
     }
 }
 
+/* Fix ScrollArea viewport content overflow */
+[data-radix-scroll-area-viewport]>div {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+[data-radix-scroll-area-viewport]>div>div {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
 
 /* Tiptap styles */
 .ProseMirror {
@@ -199,7 +211,9 @@
 
 /* HR STYLES */
 .ProseMirror hr {
-    @apply my-6 w-full;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    width: 100%;
     border: 0;
     border-top: 2px dashed hsl(var(--border));
 }
