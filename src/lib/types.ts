@@ -1,5 +1,6 @@
 export type Note = {
   id: string;
+  type?: 'note' | 'separator';
   title: string;
   icon?: string;
   content: string; // Can be HTML content from Tiptap
@@ -18,6 +19,7 @@ export type Note = {
 
 export type Group = {
   id: string;
+  type?: 'group' | 'separator';
   name: string;
   isDeleted?: boolean;
 };

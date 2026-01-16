@@ -93,53 +93,67 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
         <div className="absolute top-0 left-2 right-2 h-0.5 bg-primary z-20" />
       )}
 
-      <div
-        role="button"
-        tabIndex={0}
-        draggable
-        onDragStart={(e) => onDragStart(e, note.id)}
-        onDragOver={(e) => onDragOver(e, note.id)}
-        onDrop={(e) => onDrop(e, note.id)}
-        onDragLeave={onDragLeave}
-        onClick={() => onNoteSelect(note.id)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onNoteSelect(note.id);
-          }
-        }}
-        className={cn(
-          'w-full text-left p-2 pr-4 border-b border-border transition-colors flex items-center gap-2 cursor-pointer relative',
-          activeNoteId === note.id ? 'bg-primary/10' : 'hover:bg-secondary',
-          isDropTarget && dropPosition === 'inside' ? 'bg-primary/20' : ''
-        )}
-        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
-      >
-        <div className="flex items-center gap-2 flex-1 overflow-hidden">
-          {hasChildren ? (
-            <ChevronRight
-              className={cn('w-4 h-4 shrink-0 transition-transform', isOpen && 'rotate-90')}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(!isOpen);
-              }}
-            />
-          ) : (
-            <div className="w-4 h-4 shrink-0" /> // Placeholder for alignment
+      {note.type === 'separator' ? (
+        <div
+          draggable
+          onDragStart={(e) => onDragStart(e, note.id)}
+          onDragOver={(e) => onDragOver(e, note.id)}
+          onDrop={(e) => onDrop(e, note.id)}
+          onDragLeave={onDragLeave}
+          className="w-full flex items-center py-2 relative group"
+          style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+        >
+          <div className="flex-1 h-px bg-border bg-opacity-50" />
+        </div>
+      ) : (
+        <div
+          role="button"
+          tabIndex={0}
+          draggable
+          onDragStart={(e) => onDragStart(e, note.id)}
+          onDragOver={(e) => onDragOver(e, note.id)}
+          onDrop={(e) => onDrop(e, note.id)}
+          onDragLeave={onDragLeave}
+          onClick={() => onNoteSelect(note.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onNoteSelect(note.id);
+            }
+          }}
+          className={cn(
+            'w-full text-left p-2 pr-4 border-b border-border transition-colors flex items-center gap-2 cursor-pointer relative',
+            activeNoteId === note.id ? 'bg-primary/10' : 'hover:bg-secondary',
+            isDropTarget && dropPosition === 'inside' ? 'bg-primary/20' : ''
           )}
-          <span className="text-lg shrink-0">{note.icon || '📝'}</span>
-          <div className="flex-1 overflow-hidden">
-            <h3 className="font-semibold truncate">{note.title}</h3>
-            <p className="text-xs text-muted-foreground truncate">
-              {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
-            </p>
+          style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+        >
+          <div className="flex items-center gap-2 flex-1 overflow-hidden">
+            {hasChildren ? (
+              <ChevronRight
+                className={cn('w-4 h-4 shrink-0 transition-transform', isOpen && 'rotate-90')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(!isOpen);
+                }}
+              />
+            ) : (
+              <div className="w-4 h-4 shrink-0" /> // Placeholder for alignment
+            )}
+            <span className="text-lg shrink-0">{note.icon || '📝'}</span>
+            <div className="flex-1 overflow-hidden">
+              <h3 className="font-semibold truncate">{note.title}</h3>
+              <p className="text-xs text-muted-foreground truncate">
+                {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <PinButton noteId={note.id} isPinned={note.isPinned} onPinNote={onPinNote} />
+            <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <PinButton noteId={note.id} isPinned={note.isPinned} onPinNote={onPinNote} />
-          <StarRating noteId={note.id} rating={note.stars} onStarNote={onStarNote} />
-        </div>
-      </div>
+      )}
 
       {isDropTarget && dropPosition === 'after' && (
         <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary z-20" />

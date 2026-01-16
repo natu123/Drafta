@@ -200,6 +200,14 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+                <Minus />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Add Separator</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()}>
                 <List />
               </Button>
@@ -213,14 +221,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Checkbox List</p></TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-                <Minus />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Horizontal Rule</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
