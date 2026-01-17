@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { Minus, List, LayoutGrid, ArrowDownUp, GripVertical, Inbox, Search, Trash2, RotateCcw, Plus, MoreHorizontal, FolderInput } from 'lucide-react';
+import { Minus, List, LayoutGrid, ArrowDownUp, Inbox, Search, Trash2, RotateCcw, Plus, MoreHorizontal, FolderInput, CheckSquare, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
@@ -57,12 +58,20 @@ interface HomeSectionProps {
   onDeleteItem: (id: string) => void;
   onRestoreItem?: (id: string) => void;
   onPermanentDeleteItem?: (id: string) => void;
+  onToggleComplete?: (id: string, isCompleted: boolean) => void;
   isTrash?: boolean;
   scrollDirection: 'top' | 'bottom';
 
-  // DnD & Move Props
-  draggedNote: Note | null;
-  onNoteDragStart: (e: React.DragEvent<HTMLDivElement>, item: Note) => void;
+  // Selection Mode Props
+  isSelectionMode: boolean;
+  onToggleSelectionMode: () => void;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onBulkDelete: () => void;
+  onBulkMove: (targetGroupId: string) => void;
+  onRestoreGroup?: (id: string) => void;
+  onPermanentDeleteGroup?: (id: string) => void;
+
   groups: Group[]; // For Move Menu
   onMoveNote: (noteId: string, targetGroupId: string) => void;
   onAddSeparator?: () => void;
@@ -72,14 +81,11 @@ interface HomeSectionProps {
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorder, itemType,
   sortOption, onSortChange, viewMode, onViewModeChange,
-  searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, isTrash,
+  searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection,
-  draggedNote, onNoteDragStart, groups, onMoveNote, onAddSeparator, onQuickAdd
+  isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
+  groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup
 }) => {
-  // Local state for insertion indicators
-  const [dropTargetId, setDropTargetId] = React.useState<string | null>(null);
-  const [dropPosition, setDropPosition] = React.useState<'before' | 'after' | null>(null);
-
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const topScrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -93,31 +99,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
     }, 50);
   }, [scrollDirection, items.length]);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-    e.preventDefault();
-    if (!draggedNote || draggedNote.id === targetId) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offsetY = e.clientY - rect.top;
-    const height = rect.height;
-
-    if (offsetY < height / 2) {
-      setDropPosition('before');
-    } else {
-      setDropPosition('after');
-    }
-    setDropTargetId(targetId);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-    e.preventDefault();
-    if (draggedNote && dropTargetId && dropPosition) {
-      onSortChange('manual');
-      onReorder(draggedNote.id, targetId, dropPosition);
-    }
-    setDropTargetId(null);
-    setDropPosition(null);
-  };
+  const deletedGroups = React.useMemo(() => {
+    if (!isTrash) return [];
+    return groups.filter(g => g.isDeleted);
+  }, [isTrash, groups]);
 
   return (
     <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
@@ -127,24 +112,69 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           <span className="truncate">{title}</span>
         </CardTitle>
         <div className="flex items-center gap-1">
-          {!isTrash && onAddSeparator && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onAddSeparator} title="Add separator">
-              <Minus className="w-4 h-4" />
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort notes">
-                <ArrowDownUp className="w-4 h-4" />
+          {/* Selection Mode Actions */}
+          {isSelectionMode ? (
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground mr-1">{selectedIds.size} Selected</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" disabled={selectedIds.size === 0} title="Move selected">
+                    <FolderInput className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Move to...</DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onSelect={() => onBulkMove('inbox')}>Inbox</DropdownMenuItem>
+                        {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
+                          <DropdownMenuItem key={g.id} onSelect={() => onBulkMove(g.id)}>{g.name}</DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={selectedIds.size === 0} onClick={onBulkDelete} title="Delete selected">
+                <Trash2 className="w-4 h-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => onSortChange('manual')}>Manual</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSortChange('newest')}>Newest First</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSortChange('oldest')}>Oldest First</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>Last Accessed</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={onToggleSelectionMode} title="Cancel selection">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Normal Actions */}
+              <Button
+                variant={isSelectionMode ? "secondary" : "ghost"}
+                size="icon"
+                className={cn("h-8 w-8 text-muted-foreground hover:text-primary", isSelectionMode && "text-primary")}
+                onClick={onToggleSelectionMode}
+                title="Select items (Edit)"
+              >
+                <CheckSquare className="w-4 h-4" />
+              </Button>
+              {!isTrash && onAddSeparator && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onAddSeparator} title="Add separator">
+                  <Minus className="w-4 h-4" />
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort notes">
+                    <ArrowDownUp className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onSelect={() => onSortChange('manual')}>Manual</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('newest')}>Newest First</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('oldest')}>Oldest First</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>Last Accessed</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </CardHeader>
 
@@ -189,32 +219,65 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         <ScrollArea className="flex-1 w-full">
           <div className="w-full max-w-full overflow-hidden">
             <div ref={topScrollRef} />
-            <div className={cn("p-2 pb-12 max-w-full", viewMode === 'grid' && 'grid grid-cols-2 lg:grid-cols-2 gap-2')}>
-              {items.map(item => (
-                viewMode === 'list' ? (
-                  item.type === 'separator' ? (
-                    <div
-                      key={item.id}
-                      draggable
-                      onDragStart={(e) => onNoteDragStart(e, item)}
-                      onDragOver={(e) => handleDragOver(e, item.id)}
-                      onDrop={(e) => handleDrop(e, item.id)}
-                      className={cn(
-                        "group relative w-full flex items-center px-0 py-2 transition-all mx-[-8px] width-[calc(100%+16px)]",
-                        draggedNote?.id === item.id ? "opacity-30" : "opacity-100",
-                        dropTargetId === item.id ? "bg-secondary/50" : ""
-                      )}
-                    >
-                      {/* Drop Indicators for Separator */}
-                      {dropTargetId === item.id && dropPosition === 'before' && (
-                        <div className="absolute top-[-2px] left-0 right-0 h-0.5 bg-primary z-20" />
-                      )}
 
-                      <div className="w-8 flex justify-center shrink-0">
-                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* Combined List for Trash View (Groups + Notes) or Just Notes */}
+            <div className={cn("grid gap-2 pb-10 p-2", viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1")}>
+              {/* Render Deleted Groups as Items if isTrash */}
+              {isTrash && deletedGroups.map(group => (
+                <Card key={group.id} className={cn(
+                  "group relative overflow-hidden border border-border/60 transition-colors hover:bg-accent/40",
+                  "bg-accent/30" // Distinct background as requested
+                )}>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-8 h-8 rounded-md bg-background/50 flex items-center justify-center shrink-0">
+                        <Inbox className="w-4 h-4 text-primary" />
                       </div>
-                      <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
-                      <div className="w-8 flex justify-center shrink-0">
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="truncate font-semibold text-sm">{group.name}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">Tray</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title="Restore Tray">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title="Delete Forever">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {items.length === 0 && deletedGroups.length === 0 && (
+                <div className="col-span-full flex flex-col items-center justify-center text-muted-foreground py-10 opacity-50">
+                  <p>No items found</p>
+                </div>
+              )}
+
+              {/* Render Notes */}
+              {items.map((item) => (
+                item.type === 'separator' ? (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "group relative w-full flex items-center px-0 py-2 transition-all mx-[-8px] width-[calc(100%+16px)]",
+                      isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : ""
+                    )}
+                    onClick={() => isSelectionMode && onToggleSelect(item.id)}
+                  >
+                    <div className="w-8 flex justify-center shrink-0">
+                      {isSelectionMode && (
+                        <Checkbox
+                          checked={selectedIds.has(item.id)}
+                          onCheckedChange={() => onToggleSelect(item.id)}
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
+                    <div className="w-8 flex justify-center shrink-0">
+                      {!isSelectionMode && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -223,37 +286,45 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
-                      </div>
-
-                      {dropTargetId === item.id && dropPosition === 'after' && (
-                        <div className="absolute bottom-[-2px] left-0 right-0 h-0.5 bg-primary z-20" />
                       )}
                     </div>
-                  ) : (
+                  </div>
+                ) : (
+                  viewMode === 'list' ? (
                     <div key={item.id} className="relative mb-2 w-full">
-                      {/* Drop Indicators */}
-                      {dropTargetId === item.id && dropPosition === 'before' && (
-                        <div className="absolute top-[-4px] left-0 right-0 h-0.5 bg-primary z-20" />
-                      )}
-
                       <div
-                        draggable
-                        onDragStart={(e) => onNoteDragStart(e, item)}
-                        onDragOver={(e) => handleDragOver(e, item.id)}
-                        onDrop={(e) => handleDrop(e, item.id)}
                         className={cn(
-                          "flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
-                          activeId === item.id
+                          "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
+                          activeId === item.id && !isSelectionMode
                             ? "bg-accent/10 border-accent/50 shadow-sm"
                             : "bg-card border-border/60 hover:border-primary/30",
-
-                          draggedNote?.id === item.id ? "opacity-50" : "opacity-100",
-                          dropTargetId === item.id ? "bg-secondary" : ""
+                          isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
                         )}
+                        onClick={() => {
+                          if (isSelectionMode) {
+                            onToggleSelect(item.id);
+                          } else {
+                            onItemSelect(item.id, itemType);
+                          }
+                        }}
                       >
-                        <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                        <div onClick={() => onItemSelect(item.id, itemType)} className="flex-1 min-w-0">
-                          <p className={cn("font-medium truncate transition-colors", activeId === item.id ? "text-primary" : "text-foreground")}>
+                        {/* Selection Checkbox (Only if needed or relying on whole row) - User said: Button to toggle selection mode, then clicking item selects it. */}
+                        {/* Let's keep the isCompleted checkbox VISIBLE even in selection mode, or maybe specific per requirements? */}
+                        {/* User: "Button toggles mode", "Select item -> color changes" */}
+
+                        {!isTrash && onToggleComplete && (
+                          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={item.isCompleted || false}
+                              onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
+                              className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
+                              disabled={isSelectionMode} // Maybe disable completion toggle while selecting to avoid confusion? Or allow both? Let's allow both but careful.
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
                             {item.title || 'Untitled'}
                           </p>
                           <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
@@ -266,126 +337,60 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
                         {/* Always visible on desktop now, to fix "can't see" issue. Optional: restore opacity logic if requested. */}
                         <div className="flex items-center gap-1 shrink-0">
-                          {isTrash ? (
-                            <>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
-                                <RotateCcw className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </>
-                          ) : (
-                            <DropdownMenu modal={false}>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted" onClick={(e) => e.stopPropagation()}>
-                                  <MoreHorizontal className="w-4 h-4" />
+                          {!isSelectionMode && (
+                            isTrash && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                                  <RotateCcw className="w-4 h-4" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48" side="bottom" collisionPadding={10}>
-                                <DropdownMenuSub>
-                                  <DropdownMenuSubTrigger>
-                                    <FolderInput className="w-4 h-4 mr-2" />
-                                    Move to...
-                                  </DropdownMenuSubTrigger>
-                                  <DropdownMenuPortal>
-                                    <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto" sideOffset={2} alignOffset={-5}>
-                                      <DropdownMenuItem onSelect={() => onMoveNote(item.id, 'inbox')} disabled={item.group === 'inbox'}>
-                                        <Inbox className="w-4 h-4 mr-2" />
-                                        Inbox
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
-                                        <DropdownMenuItem key={g.id} onSelect={() => onMoveNote(item.id, g.id)} disabled={item.group === g.id}>
-                                          <span className="truncate">{g.name}</span>
-                                        </DropdownMenuItem>
-                                      ))}
-                                    </DropdownMenuSubContent>
-                                  </DropdownMenuPortal>
-                                </DropdownMenuSub>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onSelect={() => onDeleteItem(item.id)}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )
                           )}
                         </div>
                       </div>
-
-                      {dropTargetId === item.id && dropPosition === 'after' && (
-                        <div className="absolute bottom-[-4px] left-0 right-0 h-0.5 bg-primary z-20" />
-                      )}
                     </div>
-                  )
-                ) : item.type === 'separator' ? (
-                  <div key={item.id} className="col-span-full border-b border-border/40 my-2" />
-                ) : (
-                  <Card key={item.id} className={cn(
-                    "group cursor-pointer hover:bg-secondary transition-colors relative overflow-hidden border",
-                    activeId === item.id ? "ring-2 ring-primary border-transparent" : "border-border/60"
-                  )}>
-                    {/* Grid View Content */}
-                    <div className="absolute top-2 right-2 z-10 flex gap-1">
-                      {isTrash ? (
-                        <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </Button>
-                      ) : (
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => e.stopPropagation()}>
-                              <MoreHorizontal className="w-3.5 h-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger>Move to...</DropdownMenuSubTrigger>
-                              <DropdownMenuPortal>
-                                <DropdownMenuSubContent>
-                                  <DropdownMenuItem onSelect={() => onMoveNote(item.id, 'inbox')} disabled={item.group === 'inbox'}>Inbox</DropdownMenuItem>
-                                  {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
-                                    <DropdownMenuItem key={g.id} onSelect={() => onMoveNote(item.id, g.id)} disabled={item.group === g.id}>{g.name}</DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuSubContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenuSub>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="text-destructive">
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-
-                    <CardContent className="p-0" onClick={() => onItemSelect(item.id, itemType)}>
-                      <div className="aspect-video relative w-full">
-                        {item.thumbnailUrl ? (
-                          <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <Icon className="w-8 h-8 text-muted-foreground" />
-                          </div>
+                  ) : (
+                    <Card key={item.id} className={cn(
+                      "group cursor-pointer hover:bg-secondary transition-colors relative overflow-hidden border",
+                      activeId === item.id ? "ring-2 ring-primary border-transparent" : "border-border/60"
+                    )}>
+                      {/* Grid View Content */}
+                      <div className="absolute top-2 right-2 z-10 flex gap-1">
+                        {isTrash && (
+                          <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </Button>
                         )}
                       </div>
-                    </CardContent>
-                    <CardFooter className="p-2 border-t bg-card">
-                      <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
-                    </CardFooter>
-                  </Card>
+
+                      <CardContent className="p-0" onClick={() => onItemSelect(item.id, itemType)}>
+                        <div className="aspect-video relative w-full">
+                          {item.thumbnailUrl ? (
+                            <Image src={item.thumbnailUrl} alt={item.title || 'thumbnail'} fill className="object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <Icon className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-2 border-t bg-card">
+                        <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
+                      </CardFooter>
+                    </Card>
+                  )
                 )
               ))}
               <div ref={scrollRef} />
             </div>
           </div>
-        </ScrollArea>
+        </ScrollArea >
 
-      </CardContent>
-    </Card>
+      </CardContent >
+    </Card >
   )
 };
 
@@ -421,6 +426,44 @@ export default function Home() {
   const [isResizingLists, setIsResizingLists] = React.useState(false);
   const [isResizingNotes, setIsResizingNotes] = React.useState(false);
 
+  // Selection Mode State
+  const [isSelectionMode, setIsSelectionMode] = React.useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
+
+  const handleToggleSelectionMode = () => {
+    setIsSelectionMode(prev => !prev);
+    setSelectedNoteIds(new Set()); // Clear on toggle
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedNoteIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = () => {
+    // Determine which groups these notes are in to handle removal
+    // Actually onDeleteItem handles finding by ID
+    selectedNoteIds.forEach(id => handleDeleteNote(id));
+    setSelectedNoteIds(new Set());
+    setIsSelectionMode(false); // Optional: Exit mode after action
+  };
+
+  const handleBulkMove = (targetGroupId: string) => {
+    setNotes(prev => prev.map(note =>
+      selectedNoteIds.has(note.id) ? { ...note, group: targetGroupId } : note
+    ));
+    setSelectedNoteIds(new Set());
+    setIsSelectionMode(false);
+  };
+
+
   React.useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isResizingLists) {
@@ -450,12 +493,6 @@ export default function Home() {
           // PANE 1 (Lists): activeView === 'home' ? "flex" : "hidden"
           // PANE 2 (Notes): activeView === 'home' ? "flex" : "hidden"
           // PANE 3 (Editor): activeView === 'editor' ? "flex" : "hidden md:flex"
-
-          // So resizable columns primarily make sense in 'home' view where all 3 are visible?
-          // Actually in 'home' view, PANE 3 Editor is visible on Desktop: "hidden md:flex" -> Wait, 
-          // Line 835: activeView === 'editor' ? "flex" : "hidden md:flex" 
-          // If activeView is 'home', Editor is "hidden md:flex", so visible on desktop.
-          // Lists is "flex" (visible). Notes is "flex" (visible).
 
           // So in Home View Desktop: [Lists] [Notes] [Editor]
           // Vertical Tabs is NOT visible (Line 683: activeView === 'editor').
@@ -498,9 +535,10 @@ export default function Home() {
   const [dropTargetGroupId, setDropTargetGroupId] = React.useState<string | null>(null);
   const [dropGroupPosition, setDropGroupPosition] = React.useState<'before' | 'after' | null>(null);
 
-  // Note DnD State (Lifted)
-  const [draggedNote, setDraggedNote] = React.useState<Note | null>(null);
-  const [noteDropTargetGroupId, setNoteDropTargetGroupId] = React.useState<string | null>(null); // For Note dropping on Group
+  // Note DnD removed for Selection Mode, but we need to keep `onMoveNote` for single moves if needed, 
+  // or `handleMoveNoteToGroup` is used for single move in menu.
+  // We removed `draggedNote` state usage in HomeSection.
+
 
   const listScrollRef = React.useRef<HTMLDivElement>(null);
   const listTopScrollRef = React.useRef<HTMLDivElement>(null);
@@ -691,30 +729,14 @@ export default function Home() {
     handleNoteSelect(id);
   };
 
-
-  // Note DnD & Move Logic
-  const handleNoteDragStart = (e: React.DragEvent<HTMLDivElement>, item: Note) => {
-    setDraggedNote(item);
-    e.dataTransfer.effectAllowed = 'move';
-    // Remove "setDraggedItem" call from HomeSection if it was local logic, 
-    // but HomeSection uses it for reorder. 
-    // Actually, HomeSection logic for REORDER is passed via onNoteDragStart now.
-    // e.stopPropagation(); // Don't stop propagation if we need it here
+  const handleToggleComplete = (id: string, isCompleted: boolean) => {
+    setNotes(prev => prev.map(note => note.id === id ? { ...note, isCompleted } : note));
   };
 
-  const handleReorderNotes = (draggedId: string, targetId: string, position: 'before' | 'after') => {
-    setNotes(prev => {
-      const dIndex = prev.findIndex(n => n.id === draggedId);
-      if (dIndex === -1) return prev;
-      const items = [...prev];
-      const [item] = items.splice(dIndex, 1);
-      let newTIndex = items.findIndex(n => n.id === targetId);
-      if (position === 'after') newTIndex++;
-      items.splice(newTIndex, 0, item);
-      return items;
-    });
-    setDraggedNote(null);
-  };
+
+  // Note DnD Removed
+  // const handleNoteDragStart = (e: React.DragEvent<HTMLDivElement>, item: Note) => { ... }
+  // const handleReorderNotes = ...
 
   const handleMoveNoteToGroup = (noteId: string, targetGroupId: string) => {
     setNotes(prev => prev.map(note => note.id === noteId ? { ...note, group: targetGroupId } : note));
@@ -735,14 +757,8 @@ export default function Home() {
   const handleGroupDragOver = (e: React.DragEvent, targetGroupId: string) => {
     e.preventDefault();
 
-    // Case 1: Dragging a Note onto a Group
-    if (draggedNote) {
-      // Only if target is different from current group
-      if (draggedNote.group !== targetGroupId) {
-        setNoteDropTargetGroupId(targetGroupId);
-      }
-      return;
-    }
+    // Case 1: Dragging a Note onto a Group - REMOVED for Selection Mode
+    // if (draggedNote) { ... }
 
     // Case 2: Reordering Groups
     if (!draggedGroupId || draggedGroupId === targetGroupId || targetGroupId === 'inbox') return;
@@ -756,24 +772,15 @@ export default function Home() {
   };
 
   const handleGroupDragLeave = (e: React.DragEvent) => {
-    if (draggedNote) {
-      setNoteDropTargetGroupId(null);
-    }
+    // if (draggedNote) { setNoteDropTargetGroupId(null); }
     // Don't clear dropTargetGroupId immediately to avoid flickering with child elements
   };
 
   const handleGroupDrop = (e: React.DragEvent, targetGroupId: string) => {
     e.preventDefault();
 
-    // Case 1: Dropping a Note
-    if (draggedNote) {
-      if (draggedNote.group !== targetGroupId) {
-        handleMoveNoteToGroup(draggedNote.id, targetGroupId);
-      }
-      setDraggedNote(null);
-      setNoteDropTargetGroupId(null);
-      return;
-    }
+    // Case 1: Dropping a Note - REMOVED
+    // if (draggedNote) { ... }
 
     // Case 2: Dropping a Group (Reorder)
     if (draggedGroupId && dropTargetGroupId && dropGroupPosition) {
@@ -1012,11 +1019,10 @@ export default function Home() {
                         className={cn(
                           "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
                           draggedGroupId === group.id ? "opacity-30" : "opacity-100",
-                          dropTargetGroupId === group.id && !noteDropTargetGroupId && "bg-secondary/50"
+                          dropTargetGroupId === group.id && "bg-secondary/50"
                         )}
                       >
                         <div className="w-8 flex justify-center shrink-0">
-                          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab opacity-0 group-hover/separator:opacity-100 transition-opacity" />
                         </div>
                         <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
                         <div className="w-8 flex justify-center shrink-0">
@@ -1049,11 +1055,8 @@ export default function Home() {
                             draggedGroupId === group.id && "opacity-50",
 
                             // Drop Target Styling:
-                            // If dropping a NOTE, highlight as Secondary
-                            noteDropTargetGroupId === group.id && "bg-accent/20 border border-accent/50",
-
                             // If dropping a GROUP (Reorder), default logic handled by lines, but maybe highlight?
-                            dropTargetGroupId === group.id && !noteDropTargetGroupId && "bg-secondary"
+                            dropTargetGroupId === group.id && "bg-secondary"
                           )}
                           onClick={() => setActiveGroupId(group.id)}
                         >
@@ -1121,7 +1124,7 @@ export default function Home() {
               items={sortedNotes}
               onItemSelect={handleNoteSelect}
               activeId={activeTabId}
-              onReorder={handleReorderNotes}
+              onReorder={() => { }} // DnD removed, so onReorder is a no-op here
               itemType="note"
               sortOption={noteSort}
               onSortChange={setNoteSort}
@@ -1130,18 +1133,26 @@ export default function Home() {
               searchTerm={homeSearchTerm}
               onSearchChange={setHomeSearchTerm}
               onDeleteItem={handleDeleteNote}
+              onToggleComplete={handleToggleComplete}
               onRestoreItem={handleRestoreNote}
               onPermanentDeleteItem={handlePermanentDeleteNote}
               isTrash={activeGroupId === 'restore'}
               scrollDirection={scrollDirection}
-              draggedNote={draggedNote}
-              onNoteDragStart={handleNoteDragStart}
+
+              isSelectionMode={isSelectionMode}
+              onToggleSelectionMode={handleToggleSelectionMode}
+              selectedIds={selectedNoteIds}
+              onToggleSelect={handleToggleSelect}
+              onBulkDelete={handleBulkDelete}
+              onBulkMove={handleBulkMove}
+              onRestoreGroup={handleRestoreGroup}
+              onPermanentDeleteGroup={handlePermanentDeleteGroup}
+
               groups={groups}
               onMoveNote={handleMoveNoteToGroup}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
-            />
-            {/* Resizer Handle for Notes */}
+            />      {/* Resizer Handle for Notes */}
             {activeView === 'home' && (
               <div
                 className="absolute right-0 top-0 bottom-0 w-1 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
@@ -1176,7 +1187,7 @@ export default function Home() {
               </div>
             )}
           </div>
-        </div>
+        </div >
 
         <SettingsDialog
           open={isSettingsOpen}
