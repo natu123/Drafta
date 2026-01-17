@@ -12,6 +12,7 @@ export type Note = {
   lastAccessedAt?: string;
   thumbnailUrl?: string;
   isPinned?: boolean;
+  isCompleted?: boolean;
   parentId?: string;
   children?: Note[];
   isDeleted?: boolean;

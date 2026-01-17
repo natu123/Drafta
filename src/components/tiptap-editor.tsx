@@ -89,19 +89,15 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
   }, [scrollDirection]); // Re-run if preference changes (rare but correct)
 
-  // Debounced save function
+  // Immediate save function (Debounce removed per user request)
   const handleSave = React.useCallback(() => {
-    if (!isSavingRef.current) {
-      isSavingRef.current = true;
-      setTimeout(() => {
-        onNoteUpdate({ title: currentTitle, content: contentRef.current });
-        isSavingRef.current = false;
-      }, 500); // 500ms delay
-    }
+    onNoteUpdate({ title: currentTitle, content: contentRef.current });
   }, [currentTitle, onNoteUpdate]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentTitle(e.target.value);
+    const newTitle = e.target.value;
+    setCurrentTitle(newTitle);
+    onNoteUpdate({ title: newTitle });
   };
 
   const handleTitleBlur = () => {

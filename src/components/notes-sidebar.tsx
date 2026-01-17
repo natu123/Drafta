@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Star, Search, ChevronRight, Pin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { Note } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -13,6 +14,7 @@ interface NotesSidebarProps {
   onNoteSelect: (id: string) => void;
   onStarNote: (id: string, stars: 1 | 2 | 3) => void;
   onPinNote: (id: string) => void;
+  onToggleComplete: (id: string, isCompleted: boolean) => void;
   onReorderNote?: (draggedId: string, targetId: string, position: 'before' | 'after' | 'inside') => void;
 }
 
@@ -50,6 +52,7 @@ interface NoteTreeItemProps {
   onNoteSelect: (id: string) => void;
   onStarNote: (id: string, stars: 1 | 2 | 3) => void;
   onPinNote: (id: string) => void;
+  onToggleComplete: (id: string, isCompleted: boolean) => void;
   isInitiallyOpen?: boolean;
 
   // DnD Props
@@ -68,6 +71,7 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
   onNoteSelect,
   onStarNote,
   onPinNote,
+  onToggleComplete,
   isInitiallyOpen = false,
   onDragStart,
   onDragOver,
@@ -128,6 +132,12 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
           )}
           style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
         >
+          <div className="flex items-center justify-center mr-2" onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={note.isCompleted || false}
+              onCheckedChange={(checked) => onToggleComplete(note.id, checked as boolean)}
+            />
+          </div>
           <div className="flex items-center gap-2 flex-1 overflow-hidden">
             {hasChildren ? (
               <ChevronRight
@@ -142,7 +152,7 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
             )}
             <span className="text-lg shrink-0">{note.icon || '📝'}</span>
             <div className="flex-1 overflow-hidden">
-              <h3 className="font-semibold truncate">{note.title}</h3>
+              <h3 className={cn("font-semibold truncate", note.isCompleted && "line-through opacity-70")}>{note.title}</h3>
               <p className="text-xs text-muted-foreground truncate">
                 {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
               </p>
@@ -171,6 +181,7 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
               onNoteSelect={onNoteSelect}
               onStarNote={onStarNote}
               onPinNote={onPinNote}
+              onToggleComplete={onToggleComplete}
               isInitiallyOpen={isInitiallyOpen}
               onDragStart={onDragStart}
               onDragOver={onDragOver}
@@ -193,6 +204,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
   onNoteSelect,
   onStarNote,
   onPinNote,
+  onToggleComplete,
   onReorderNote,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -334,6 +346,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
               onNoteSelect={onNoteSelect}
               onStarNote={onStarNote}
               onPinNote={onPinNote}
+              onToggleComplete={onToggleComplete}
               isInitiallyOpen={!!searchTerm}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
