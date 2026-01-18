@@ -1,5 +1,11 @@
-# Firebase Studio
+# Drafta Web
 
-This is a NextJS starter in Firebase Studio.
+Drafta Web is a minimal, fast, and beautiful space for your ideas and tasks.
 
-To get started, take a look at src/app/page.tsx.
+- Focused Writing Experience
+- Quick Note Taking
+- Organized trays (lists)
+- Responsive Design (2:5:5 Ratio)
+- Real-time interaction
+
+Part of the Drafta ecosystem (Web, iOS, Android, Desktop).
