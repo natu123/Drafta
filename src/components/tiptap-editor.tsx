@@ -153,10 +153,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-        <div className="p-2 border-b flex items-center gap-1 flex-wrap">
+        <div className="px-4 border-b flex items-center gap-1 shrink-0 h-[57px]">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-2xl w-12 h-12 shrink-0">
+              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0">
                 {note.icon || '📝'}
               </Button>
             </PopoverTrigger>

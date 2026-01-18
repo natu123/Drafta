@@ -159,7 +159,7 @@ const Header: React.FC<HeaderProps> = ({
   onHistorySelect,
 }) => {
   return (
-    <header className="flex items-center h-14 px-4 border-b bg-background z-50">
+    <header className="flex items-center h-[57px] px-4 border-b bg-background z-50">
       {/* Left: Logo Section */}
       <div className="flex-1 flex items-center gap-2">
         <Feather className="h-6 w-6 text-primary" />

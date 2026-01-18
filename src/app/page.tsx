@@ -15,8 +15,10 @@ import { cn, htmlToSimpleText } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { CreateListDialog } from '@/components/create-list-dialog';
+import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
@@ -76,7 +78,10 @@ interface HomeSectionProps {
   onMoveNote: (noteId: string, targetGroupId: string) => void;
   onAddSeparator?: () => void;
   onQuickAdd?: (title: string) => void;
+  onIconChange?: (id: string, icon: string) => void;
 }
+
+const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒', '💬', '🌐'];
 
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorder, itemType,
@@ -84,7 +89,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
-  groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup
+  groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
+  onIconChange
 }) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const topScrollRef = React.useRef<HTMLDivElement>(null);
@@ -106,7 +112,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   return (
     <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between px-2 pt-2 pb-2 border-b bg-background/95 backdrop-blur z-20 sticky top-0 shrink-0">
+      <CardHeader className="flex flex-row items-center justify-between px-4 border-b bg-background/95 backdrop-blur z-20 sticky top-0 shrink-0 h-[57px]">
         <CardTitle className="text-lg flex items-center gap-2">
           <Icon className="w-5 h-5 text-primary" />
           <span className="truncate">{title}</span>
@@ -178,15 +184,15 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         </div>
       </CardHeader>
 
-      <div className="flex flex-col border-b z-10 sticky top-[53px]">
+      <div className="flex flex-col border-b z-10 sticky top-[57px]">
         {/* Quick Add Note Input */}
         {onQuickAdd && !isTrash && (
-          <div className="p-2 shrink-0 border-b" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
+          <div className="px-2 py-1.5 shrink-0 border-b" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
             <div className="relative">
               <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Add note"
-                className="pl-9 h-9 bg-background focus-visible:bg-background transition-colors border-none shadow-none"
+                className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const target = e.currentTarget;
@@ -202,12 +208,12 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         )}
 
         {/* Search Input */}
-        <div className="p-2 bg-muted/40 border-b">
+        <div className="px-2 py-1.5 bg-muted/40 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={`Search in "${title}"`}
-              className="pl-9 h-9 bg-background border-none shadow-none"
+              className="pl-9 h-8 bg-background border-none shadow-none text-sm"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
             />
@@ -318,15 +324,48 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                               checked={item.isCompleted || false}
                               onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
                               className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
-                              disabled={isSelectionMode} // Maybe disable completion toggle while selecting to avoid confusion? Or allow both? Let's allow both but careful.
+                              disabled={isSelectionMode}
                             />
                           </div>
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
-                            {item.title || 'Untitled'}
-                          </p>
+                          <div className="flex items-center gap-1.5 translate-x-[-4px]">
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                      "h-7 w-7 text-base hover:bg-accent/20 transition-colors rounded-md shrink-0",
+                                      isSelectionMode && "pointer-events-none"
+                                    )}
+                                  >
+                                    {item.icon || '📝'}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2" align="start">
+                                  <div className="grid grid-cols-5 gap-2">
+                                    {emojis.map((emoji) => (
+                                      <Button
+                                        key={emoji}
+                                        variant="ghost"
+                                        size="icon"
+                                        className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
+                                        onClick={() => onIconChange?.(item.id, emoji)}
+                                      >
+                                        {emoji}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
+                              {item.title || 'Untitled'}
+                            </p>
+                          </div>
                           <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
                             <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent || 'No content'}</p>
                             <span className="text-[10px] text-muted-foreground/70 shrink-0">
@@ -420,15 +459,144 @@ export default function Home() {
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
 
-  // Resizable Columns State
-  const [listsWidth, setListsWidth] = React.useState(256);
-  const [notesWidth, setNotesWidth] = React.useState(320);
+  // Column Layout - 2:5:5 Ratio with mobile breakpoint
+  const BREAKPOINT_MOBILE = 768; // Below this, show only center column
+  const MIN_LEFT_WIDTH = 140;
+  const MIN_CENTER_WIDTH = 280;
+
+  const [listsWidth, setListsWidth] = React.useState(180);
+  const [notesWidth, setNotesWidth] = React.useState(400);
+  const [editorWidth, setEditorWidth] = React.useState(400);
+  const [minEditorWidth, setMinEditorWidth] = React.useState(400); // Locked to initial fullscreen width
+  const [isMobileLayout, setIsMobileLayout] = React.useState(false);
+
+  // Calculate initial widths based on 2:5:5 ratio (only on mount)
+  React.useEffect(() => {
+    const totalWidth = window.innerWidth;
+
+    // 2:5:5 = 12 parts total
+    const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (2 / 12)));
+    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (5 / 12)));
+    const rightWidth = Math.floor(totalWidth * (5 / 12));
+
+    setListsWidth(leftWidth);
+    setNotesWidth(centerWidth);
+    setEditorWidth(rightWidth);
+    setMinEditorWidth(rightWidth); // Lock minimum to initial fullscreen value
+  }, []); // Only runs once on mount
+
+  // Handle window resize - keep editor at minimum, shrink center/left
+  React.useEffect(() => {
+    const handleResize = () => {
+      const totalWidth = window.innerWidth;
+
+      if (totalWidth < BREAKPOINT_MOBILE) {
+        setIsMobileLayout(true);
+        setNotesWidth(totalWidth);
+        return;
+      }
+
+      setIsMobileLayout(false);
+
+      const currentTotalUsed = listsWidth + notesWidth + editorWidth;
+
+      // If window got larger, expand editor to fill the gap
+      if (totalWidth > currentTotalUsed) {
+        setEditorWidth(totalWidth - listsWidth - notesWidth);
+      }
+      // If window got smaller, shrink left and center first, editor stays at minimum
+      else if (totalWidth < currentTotalUsed) {
+        // Always keep editor at minimum
+        const newEditorWidth = minEditorWidth;
+        const availableForLeftCenter = totalWidth - newEditorWidth;
+
+        if (availableForLeftCenter >= MIN_LEFT_WIDTH + MIN_CENTER_WIDTH) {
+          // There's enough space, shrink proportionally
+          const ratio = listsWidth / (listsWidth + notesWidth);
+          const newLeftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(availableForLeftCenter * ratio));
+          const newCenterWidth = Math.max(MIN_CENTER_WIDTH, availableForLeftCenter - newLeftWidth);
+          setListsWidth(newLeftWidth);
+          setNotesWidth(newCenterWidth);
+        } else {
+          // Not enough space even at minimums, clamp to minimums
+          setListsWidth(MIN_LEFT_WIDTH);
+          setNotesWidth(MIN_CENTER_WIDTH);
+        }
+        setEditorWidth(newEditorWidth);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [minEditorWidth, listsWidth, notesWidth, editorWidth]);
+
+  // Manual resize state
   const [isResizingLists, setIsResizingLists] = React.useState(false);
   const [isResizingNotes, setIsResizingNotes] = React.useState(false);
+
+  // Manual resize handlers
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const screenWidth = window.innerWidth;
+
+      if (isResizingLists) {
+        const newWidth = e.clientX;
+        if (newWidth >= MIN_LEFT_WIDTH && newWidth <= screenWidth * 0.3) {
+          setListsWidth(newWidth);
+        }
+      }
+      if (isResizingNotes) {
+        const newWidth = e.clientX - listsWidth;
+        // Use minEditorWidth instead of MIN_RIGHT_WIDTH
+        const maxWidth = screenWidth - listsWidth - minEditorWidth;
+        if (newWidth >= MIN_CENTER_WIDTH && newWidth <= maxWidth) {
+          setNotesWidth(newWidth);
+          setEditorWidth(screenWidth - listsWidth - newWidth);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingLists(false);
+      setIsResizingNotes(false);
+      document.body.style.cursor = 'default';
+    };
+
+    if (isResizingLists || isResizingNotes) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
+    };
+  }, [isResizingLists, isResizingNotes, listsWidth, minEditorWidth]);
 
   // Selection Mode State
   const [isSelectionMode, setIsSelectionMode] = React.useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
+
+  // Permanent Delete Confirmation State
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState<{ id: string, type: 'note' | 'group' } | null>(null);
+
+  const confirmPermanentDelete = (id: string, type: 'note' | 'group') => {
+    setItemToDelete({ id, type });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleExecutePermanentDelete = () => {
+    if (!itemToDelete) return;
+    if (itemToDelete.type === 'note') {
+      handlePermanentDeleteNote(itemToDelete.id);
+    } else {
+      handlePermanentDeleteGroup(itemToDelete.id);
+    }
+    setItemToDelete(null);
+  };
 
   const handleToggleSelectionMode = () => {
     setIsSelectionMode(prev => !prev);
@@ -464,65 +632,8 @@ export default function Home() {
   };
 
 
-  React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizingLists) {
-        setListsWidth(current => {
-          const newWidth = e.clientX;
-          if (newWidth < 150) return 150;
-          if (newWidth > 400) return 400;
-          return newWidth;
-        });
-      }
-      if (isResizingNotes) {
-        setNotesWidth(current => {
-          // For the second column, we need to calculate width based on delta or absolute position minus first column
-          // Assuming sidebar is visible
-          // Actually, let's use movementX for simpler logic or clientX relative to sidebar end
 
-          // Easiest is: newWidth = e.clientX - listsWidth
-          // But we need to account for vertical tabs width if visible? No, vertical tabs are separate pane 0.
-          // Let's assume standard layout: [VerticalTabs?] [Lists] [Notes] [Editor]
 
-          // If vertical tabs are hidden (default home mode), left edge of Notes is listsWidth.
-          // So newWidth = e.clientX - listsWidth.
-
-          // If Vertical Tabs are visible (editor mode on desktop?), actually this layout is only for 'home' mode mostly.
-          // In 'editor' mode, Lists and Notes are hidden (hidden md:flex logic is tricky).
-          // Wait, logic says: 
-          // PANE 1 (Lists): activeView === 'home' ? "flex" : "hidden"
-          // PANE 2 (Notes): activeView === 'home' ? "flex" : "hidden"
-          // PANE 3 (Editor): activeView === 'editor' ? "flex" : "hidden md:flex"
-
-          // So in Home View Desktop: [Lists] [Notes] [Editor]
-          // Vertical Tabs is NOT visible (Line 683: activeView === 'editor').
-
-          const newWidth = e.clientX - listsWidth;
-          if (newWidth < 200) return 200;
-          if (newWidth > 600) return 600;
-          return newWidth;
-        });
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizingLists(false);
-      setIsResizingNotes(false);
-      document.body.style.cursor = 'default';
-    };
-
-    if (isResizingLists || isResizingNotes) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
-    };
-  }, [isResizingLists, isResizingNotes, listsWidth]);
 
   const [homeSearchTerm, setHomeSearchTerm] = React.useState('');
   const [listsSearchTerm, setListsSearchTerm] = React.useState('');
@@ -936,183 +1047,183 @@ export default function Home() {
           )}
 
           {/* PANE 1: LISTS SIDEBAR */}
-          <div
-            className={cn(
-              "flex-col gap-4 border-r bg-secondary/30 relative shrink-0",
-              activeView === 'home' ? "flex" : "hidden"
-            )}
-            style={{ width: activeView === 'home' ? listsWidth : '100%' }}
-          >
-            {/* Header for Lists */}
-            <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[53px]">
-              <h2 className="text-lg font-semibold">Box</h2>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort trays">
-                      <ArrowDownUp className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onSelect={() => setGroupSort('manual')}>Manual</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setGroupSort('name')}>Name (A-Z)</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setGroupSort('newest')}>Newest First</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+          {!isMobileLayout && (
+            <div
+              className={cn(
+                "flex-col border-r bg-secondary/30 relative shrink-0",
+                activeView === 'home' ? "flex" : "hidden"
+              )}
+              style={{ width: listsWidth }}
+            >
+              {/* Header for Lists */}
+              <div className="flex items-center justify-between px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
+                <h2 className="text-lg font-semibold">Box</h2>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort trays">
+                        <ArrowDownUp className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => setGroupSort('manual')}>Manual</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setGroupSort('name')}>Name (A-Z)</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setGroupSort('newest')}>Newest First</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            </div>
 
-            {/* Quick Add List Input */}
-            <div className="p-2 border-b shrink-0" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-              <div className="relative">
-                <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Add tray"
-                  className="pl-9 h-9 bg-background focus-visible:bg-background transition-colors border-none shadow-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const target = e.currentTarget;
-                      if (target.value.trim()) {
-                        handleCreateGroup(target.value.trim());
-                        target.value = '';
+              {/* Quick Add List Input */}
+              <div className="px-2 py-1.5 border-b shrink-0" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
+                <div className="relative">
+                  <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Add tray"
+                    className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const target = e.currentTarget;
+                        if (target.value.trim()) {
+                          handleCreateGroup(target.value.trim());
+                          target.value = '';
+                        }
                       }
-                    }
-                  }}
-                />
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="px-4 pb-2 border-b bg-muted/40 pt-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search trays"
-                  className="pl-9 h-8 text-sm bg-background border-none shadow-none"
-                  value={listsSearchTerm}
-                  onChange={(e) => setListsSearchTerm(e.target.value)}
-                />
+              <div className="px-2 py-1.5 border-b bg-muted/40">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search in trays"
+                    className="pl-9 h-8 text-sm bg-background border-none shadow-none"
+                    value={listsSearchTerm}
+                    onChange={(e) => setListsSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
 
-            <ScrollArea className="flex-1 px-4">
-              <div ref={listTopScrollRef} />
-              <ul className="space-y-1 py-2">
-                {filteredGroups.map(group => (
-                  <li
-                    key={group.id}
-                    className="relative group/list"
-                    onDragOver={(e) => handleGroupDragOver(e, group.id)}
-                    onDrop={(e) => handleGroupDrop(e, group.id)}
-                    onDragLeave={handleGroupDragLeave}
-                  >
-                    {dropTargetGroupId === group.id && dropGroupPosition === 'before' && (
-                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
-                    )}
+              <ScrollArea className="flex-1 px-4">
+                <div ref={listTopScrollRef} />
+                <ul className="space-y-1 py-2">
+                  {filteredGroups.map(group => (
+                    <li
+                      key={group.id}
+                      className="relative group/list"
+                      onDragOver={(e) => handleGroupDragOver(e, group.id)}
+                      onDrop={(e) => handleGroupDrop(e, group.id)}
+                      onDragLeave={handleGroupDragLeave}
+                    >
+                      {dropTargetGroupId === group.id && dropGroupPosition === 'before' && (
+                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
+                      )}
 
-                    {group.type === 'separator' ? (
-                      <div
-                        draggable
-                        onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                        className={cn(
-                          "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
-                          draggedGroupId === group.id ? "opacity-30" : "opacity-100",
-                          dropTargetGroupId === group.id && "bg-secondary/50"
-                        )}
-                      >
-                        <div className="w-8 flex justify-center shrink-0">
+                      {group.type === 'separator' ? (
+                        <div
+                          draggable
+                          onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                          className={cn(
+                            "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
+                            draggedGroupId === group.id ? "opacity-30" : "opacity-100",
+                            dropTargetGroupId === group.id && "bg-secondary/50"
+                          )}
+                        >
+                          <div className="w-8 flex justify-center shrink-0">
+                          </div>
+                          <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
+                          <div className="w-8 flex justify-center shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
-                        <div className="w-8 flex justify-center shrink-0">
+                      ) : (
+                        <div
+                          draggable={group.id !== 'inbox'}
+                          onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                        >
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
+                            className={cn(
+                              "w-full justify-start gap-2 h-9 pr-8",
+                              group.id === 'inbox' ?
+                                cn(
+                                  activeGroupId === group.id ? "bg-accent/20 text-foreground font-medium hover:bg-accent/25" : "bg-accent/10 text-foreground hover:bg-accent/15"
+                                ) :
+                                activeGroupId === group.id && "bg-primary/10 text-primary hover:bg-primary/20",
+
+                              // Dragged styling
+                              draggedGroupId === group.id && "opacity-50",
+
+                              // Drop Target Styling:
+                              // If dropping a GROUP (Reorder), default logic handled by lines, but maybe highlight?
+                              dropTargetGroupId === group.id && "bg-secondary"
+                            )}
+                            onClick={() => setActiveGroupId(group.id)}
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Inbox className="w-4 h-4" />
+                            <span className="truncate">{group.name}</span>
                           </Button>
                         </div>
-                      </div>
-                    ) : (
-                      <div
-                        draggable={group.id !== 'inbox'}
-                        onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                      >
+                      )}
+
+                      {dropTargetGroupId === group.id && dropGroupPosition === 'after' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
+                      )}
+
+                      {group.id !== 'inbox' && group.type !== 'separator' && (
                         <Button
                           variant="ghost"
-                          className={cn(
-                            "w-full justify-start gap-2 h-9 pr-8",
-                            group.id === 'inbox' ?
-                              cn(
-                                activeGroupId === group.id ? "bg-accent/20 text-foreground font-medium hover:bg-accent/25" : "bg-accent/10 text-foreground hover:bg-accent/15"
-                              ) :
-                              activeGroupId === group.id && "bg-primary/10 text-primary hover:bg-primary/20",
-
-                            // Dragged styling
-                            draggedGroupId === group.id && "opacity-50",
-
-                            // Drop Target Styling:
-                            // If dropping a GROUP (Reorder), default logic handled by lines, but maybe highlight?
-                            dropTargetGroupId === group.id && "bg-secondary"
-                          )}
-                          onClick={() => setActiveGroupId(group.id)}
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/list:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
                         >
-                          <Inbox className="w-4 h-4" />
-                          <span className="truncate">{group.name}</span>
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
-                      </div>
-                    )}
+                      )}
+                    </li>
+                  ))}
+                  <div ref={listScrollRef} />
 
-                    {dropTargetGroupId === group.id && dropGroupPosition === 'after' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
-                    )}
-
-                    {group.id !== 'inbox' && group.type !== 'separator' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/list:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
+                  <li className="pt-2 mt-2 border-t">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start gap-2 h-9",
+                        activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
+                      )}
+                      onClick={() => setActiveGroupId('restore')}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Restore</span>
+                    </Button>
                   </li>
-                ))}
-                <div ref={listScrollRef} />
-
-                <li className="pt-2 mt-2 border-t">
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start gap-2 h-9",
-                      activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
-                    )}
-                    onClick={() => setActiveGroupId('restore')}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Restore</span>
-                  </Button>
-                </li>
-              </ul>
-            </ScrollArea>
-            {/* Resizer Handle for Lists */}
-            {activeView === 'home' && (
+                </ul>
+              </ScrollArea>
+              {/* Resizer Handle for Lists */}
               <div
-                className="absolute right-0 top-0 bottom-0 w-1 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
+                className="absolute right-[-6px] top-0 bottom-0 w-3 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
                 onMouseDown={(e) => { e.preventDefault(); setIsResizingLists(true); }}
               />
-            )}
-          </div>
+            </div>
+          )}
 
 
           {/* PANE 2: NOTES LIST */}
           <div
             className={cn(
-              "flex-col border-r relative shrink-0 overflow-hidden",
+              "flex-col border-r relative shrink-0",
               activeView === 'home' ? "flex" : "hidden"
             )}
             style={{ width: activeView === 'home' ? notesWidth : '100%' }}
@@ -1135,7 +1246,7 @@ export default function Home() {
               onDeleteItem={handleDeleteNote}
               onToggleComplete={handleToggleComplete}
               onRestoreItem={handleRestoreNote}
-              onPermanentDeleteItem={handlePermanentDeleteNote}
+              onPermanentDeleteItem={(id) => confirmPermanentDelete(id, 'note')}
               isTrash={activeGroupId === 'restore'}
               scrollDirection={scrollDirection}
 
@@ -1146,47 +1257,53 @@ export default function Home() {
               onBulkDelete={handleBulkDelete}
               onBulkMove={handleBulkMove}
               onRestoreGroup={handleRestoreGroup}
-              onPermanentDeleteGroup={handlePermanentDeleteGroup}
+              onPermanentDeleteGroup={(id) => confirmPermanentDelete(id, 'group')}
 
               groups={groups}
               onMoveNote={handleMoveNoteToGroup}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
-            />      {/* Resizer Handle for Notes */}
-            {activeView === 'home' && (
-              <div
-                className="absolute right-0 top-0 bottom-0 w-1 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
-                onMouseDown={(e) => { e.preventDefault(); setIsResizingNotes(true); }}
-              />
-            )}
+              onIconChange={handleIconChange}
+            />
+            {/* Resizer Handle for Notes */}
+            <div
+              className="absolute right-[-6px] top-0 bottom-0 w-3 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
+              onMouseDown={(e) => { e.preventDefault(); setIsResizingNotes(true); }}
+            />
           </div>
 
           {/* PANE 3: EDITOR */}
-          <div className={cn(
-            "flex-1 bg-background relative overflow-hidden",
-            activeView === 'editor' ? "flex" : "hidden md:flex"
-          )}>
-            {activeNote ? (
-              <Editor
-                note={activeNote}
-                onNoteUpdate={handleNoteUpdate}
-                onIconChange={(icon) => handleIconChange(activeNote.id, icon)}
-                scrollDirection={scrollDirection}
-              />
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Inbox className="w-8 h-8 opacity-20" />
+          {!isMobileLayout && (
+            <div
+              className={cn(
+                "bg-background relative overflow-hidden shrink-0",
+                activeView === 'editor' ? "flex" : "hidden md:flex"
+              )}
+              style={{ width: editorWidth }}
+            >
+              {activeNote ? (
+                <Editor
+                  note={activeNote}
+                  onNoteUpdate={handleNoteUpdate}
+                  onIconChange={(id, icon) => handleIconChange(id, icon)}
+                  scrollDirection={scrollDirection}
+                />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center relative">
+                  <div className="absolute top-0 left-0 right-0 h-[57px] border-b bg-background/50" />
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <Inbox className="w-8 h-8 opacity-20" />
+                  </div>
+                  <h3 className="text-xl font-medium text-foreground mb-2">No active note</h3>
+                  <p className="max-w-xs">Select a note from the list or create a new one to start writing.</p>
+                  <Button variant="outline" className="mt-6" onClick={handleNewNote}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create New Note
+                  </Button>
                 </div>
-                <h3 className="text-xl font-medium text-foreground mb-2">No active note</h3>
-                <p className="max-w-xs">Select a note from the list or create a new one to start writing.</p>
-                <Button variant="outline" className="mt-6" onClick={handleNewNote}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Note
-                </Button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div >
 
         <SettingsDialog
@@ -1200,6 +1317,16 @@ export default function Home() {
           open={isCreateListOpen}
           onOpenChange={setIsCreateListOpen}
           onCreate={handleCreateGroup}
+        />
+
+        <DeleteConfirmDialog
+          open={deleteConfirmOpen}
+          onOpenChange={setDeleteConfirmOpen}
+          onConfirm={handleExecutePermanentDelete}
+          title={itemToDelete?.type === 'group' ? "Delete Tray Forever?" : "Delete Note Forever?"}
+          description={itemToDelete?.type === 'group'
+            ? "This will permanently delete this Tray and ALL notes inside it. This action cannot be undone."
+            : "This will permanently delete this note. This action cannot be undone."}
         />
       </div >
     </>
