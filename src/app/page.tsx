@@ -1279,7 +1279,7 @@ export default function Home() {
                 "bg-background relative overflow-hidden shrink-0",
                 activeView === 'editor' ? "flex" : "hidden md:flex"
               )}
-              style={{ width: editorWidth }}
+              style={{ width: activeView === 'editor' ? '100%' : editorWidth }}
             >
               {activeNote ? (
                 <Editor

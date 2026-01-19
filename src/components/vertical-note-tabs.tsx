@@ -134,16 +134,16 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                     className={cn(
                       'flex items-center gap-2 w-full text-left p-2 rounded-none transition-colors text-sm shrink-0 relative cursor-pointer',
                       'hover:bg-secondary',
-                      'justify-start',
+                      'hover:bg-secondary',
                       activeId === item.id ? 'bg-primary/10' : '',
-                      isExpanded ? 'px-4' : 'px-3 justify-center',
+                      isExpanded ? 'px-4 justify-start' : 'px-0 justify-center',
                       draggedItem?.id === item.id && draggedItem?.type === item.type ? 'opacity-50' : 'opacity-100'
                     )}
                   >
                     <span className="text-xl shrink-0">{getIcon(item)}</span>
                     <span className={cn(
                       "truncate",
-                      isExpanded ? 'opacity-100' : 'opacity-0'
+                      isExpanded ? 'block' : 'hidden'
                     )}>
                       {item.title || 'Untitled'}
                     </span>
