@@ -127,14 +127,21 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       const plainText = removeFormatting(currentContent);
 
       // The plain text needs to be converted back to HTML paragraphs for the editor.
-      // We trim each line to ensure no leading spaces remain (e.g. after deleting a number).
-      const newContent = plainText.split('\n')
-        .map((p: string) => p.trim())
-        .filter((p: string) => p !== '')
-        .map((p: string) => `<p>${p}</p>`)
+      // We keep empty lines as <p><br></p> to preserve vertical spacing.
+      // Filter trailing empty strings to prevent accumulation.
+      const lines = plainText.split('\n').map((p: string) => p.trim());
+      // Remove trailing empty strings
+      while (lines.length > 0 && lines[lines.length - 1] === '') {
+        lines.pop();
+      }
+      const newContent = lines
+        .map((p: string) => p === '' ? '<p><br></p>' : `<p>${p}</p>`)
         .join('');
 
-      editor.commands.setContent(newContent, true);
+      // Only apply if content actually changed to avoid unnecessary undo entries
+      if (newContent !== currentContent) {
+        editor.commands.setContent(newContent, true);
+      }
     }
   };
 
@@ -152,18 +159,27 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       const textLines = Array.from(paragraphs).map(p => p.textContent || '');
       const markdownText = textLines.join('\n');
       const richContent = plainMarkdownToRich(markdownText);
-      editor.commands.setContent(richContent, true);
+      // Don't add to history to prevent undo interference
+      editor.chain().setContent(richContent, false, { preserveWhitespace: 'full' }).run();
     } else {
       // Rich → Plain: Convert to markdown-style text
       const currentContent = editor.getHTML();
       const plainContent = richToPlainMarkdown(currentContent);
       // Wrap each line in <p>, keep empty lines as empty paragraphs for spacing
-      const wrappedContent = plainContent.split('\n')
-        .map(p => p.trim() === '' ? '<p><br></p>' : `<p>${p}</p>`)
+      // Filter trailing empty strings to prevent accumulation
+      const lines = plainContent.split('\n').map(p => p.trim());
+      while (lines.length > 0 && lines[lines.length - 1] === '') {
+        lines.pop();
+      }
+      const wrappedContent = lines
+        .map(p => p === '' ? '<p><br></p>' : `<p>${p}</p>`)
         .join('');
-      editor.commands.setContent(wrappedContent, true);
+      // Don't add to history to prevent undo interference
+      editor.chain().setContent(wrappedContent, false, { preserveWhitespace: 'full' }).run();
     }
     setIsPlainTextMode(!isPlainTextMode);
+    // Release focus from the button to prevent stuck highlight
+    (document.activeElement as HTMLElement)?.blur();
   };
 
   // Sync external changes
@@ -172,6 +188,20 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       setCurrentTitle(note.title);
     }
   }, [note.title]);
+
+  // Clear undo history and reset mode when switching notes
+  const prevNoteIdRef = React.useRef(note.id);
+  React.useEffect(() => {
+    if (editor && note.id !== prevNoteIdRef.current) {
+      // Note changed - clear undo history to prevent cross-note undo
+      editor.commands.clearContent(false);
+      editor.commands.setContent(note.content, false);
+      contentRef.current = note.content;
+      // Reset plain text mode
+      setIsPlainTextMode(false);
+      prevNoteIdRef.current = note.id;
+    }
+  }, [note.id, note.content, editor]);
 
   React.useEffect(() => {
     if (editor && note.content !== contentRef.current) {
