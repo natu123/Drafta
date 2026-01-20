@@ -474,10 +474,10 @@ export default function Home() {
   React.useEffect(() => {
     const totalWidth = window.innerWidth;
 
-    // 2:5:5 = 12 parts total
+    // 2:4:6 = 12 parts total (right column +20%)
     const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (2 / 12)));
-    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (5 / 12)));
-    const rightWidth = Math.floor(totalWidth * (5 / 12));
+    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (4 / 12)));
+    const rightWidth = Math.floor(totalWidth * (6 / 12));
 
     setListsWidth(leftWidth);
     setNotesWidth(centerWidth);
