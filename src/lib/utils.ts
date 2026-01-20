@@ -15,6 +15,16 @@ export function removeFormatting(html: string): string {
 
   // 2. Handle list items
   tempDiv.querySelectorAll('li').forEach(li => {
+    // Unwrap paragraphs inside list items to prevent double newlines (li + p both getting \n)
+    const paragraphs = li.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      // Move all children of p to li, before p
+      while (p.firstChild) {
+        li.insertBefore(p.firstChild, p);
+      }
+      p.remove();
+    });
+
     const parent = li.parentElement;
     const isOrdered = parent?.tagName === 'OL';
     const index = isOrdered ? Array.from(parent!.children).indexOf(li) : -1;
@@ -24,14 +34,15 @@ export function removeFormatting(html: string): string {
     li.prepend(document.createTextNode(prefix));
   });
 
-  // 3. Handle horizontal rules
+  // 3. Handle horizontal rules (no leading \n to prevent extra blank line)
   tempDiv.querySelectorAll('hr').forEach(hr => {
-    hr.replaceWith('\n……………………………………………………………\n');
+    hr.replaceWith('……………………………………………………………\n');
   });
 
   // 4. Ensure block separation
   // We add a newline after every block element to ensure textContent splits them correctly
-  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol').forEach(block => {
+  // Note: ul and ol are excluded because li already handles newlines
+  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li').forEach(block => {
     if (!block.textContent?.endsWith('\n')) {
       block.appendChild(document.createTextNode('\n'));
     }
@@ -169,12 +180,11 @@ export function richToPlainMarkdown(html: string): string {
 
   const text = tempDiv.textContent || '';
 
-  // Normalize: collapse multiple consecutive empty lines to single empty line
-  // This prevents blank line accumulation across conversion cycles
+  // Preserve blank lines as-is without aggressive normalization
+  // Users may intentionally want multiple blank lines for visual separation
   return text.split('\n')
     .map(line => line.trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n');  // 3+ newlines -> 2 newlines (1 blank line)
+    .join('\n');
 }
 
 // Plain Text (Markdown-like) to Rich Text HTML
@@ -320,8 +330,7 @@ export function plainMarkdownToRich(text: string): string {
 
   closeList();
 
-  // Normalize: collapse consecutive empty paragraphs to single one
-  // This prevents blank line accumulation across conversion cycles
-  return result.join('')
-    .replace(/(<p><br><\/p>){2,}/g, '<p><br></p>');
+  // Preserve blank lines as-is without aggressive normalization
+  // Users may intentionally want multiple blank lines for visual separation
+  return result.join('');
 }
