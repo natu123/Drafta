@@ -10,8 +10,8 @@ export function removeFormatting(html: string): string {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // 1. Replace <br> with newline
-  tempDiv.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  // Note: We do NOT convert <br> to \n here because block separation (step 4) handles it.
+  // Converting br causes double newlines in empty paragraphs like <p><br></p>.
 
   // 2. Handle list items
   tempDiv.querySelectorAll('li').forEach(li => {
@@ -39,11 +39,9 @@ export function removeFormatting(html: string): string {
 
   const text = tempDiv.textContent || '';
 
-  // 5. Cleanup redundant blank lines
-  // Split, trim lines, and filter out empty strings to keep it tight
+  // 5. Preserve exact blank line count without modification
   return text.split('\n')
     .map(line => line.trim())
-    .filter(line => line !== '')
     .join('\n');
 }
 
@@ -66,8 +64,8 @@ export function richToPlainMarkdown(html: string): string {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // Replace <br> with newline
-  tempDiv.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  // Note: We do NOT convert <br> to \n here because block separation handles it.
+  // Converting br causes double newlines in empty paragraphs like <p><br></p>.
 
   // Handle inline formatting (must be done before extracting text)
   tempDiv.querySelectorAll('strong, b').forEach(el => {
@@ -159,7 +157,7 @@ export function richToPlainMarkdown(html: string): string {
 
   // Handle horizontal rules with markdown-style
   tempDiv.querySelectorAll('hr').forEach(hr => {
-    hr.replaceWith('\n---\n');
+    hr.replaceWith('---\n');  // No leading \n to prevent extra blank line
   });
 
   // Ensure block separation
@@ -171,10 +169,12 @@ export function richToPlainMarkdown(html: string): string {
 
   const text = tempDiv.textContent || '';
 
+  // Normalize: collapse multiple consecutive empty lines to single empty line
+  // This prevents blank line accumulation across conversion cycles
   return text.split('\n')
     .map(line => line.trim())
-    .filter(line => line !== '')
-    .join('\n');
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');  // 3+ newlines -> 2 newlines (1 blank line)
 }
 
 // Plain Text (Markdown-like) to Rich Text HTML
@@ -312,10 +312,16 @@ export function plainMarkdownToRich(text: string): string {
     if (trimmed) {
       const content = processInline(trimmed);
       result.push(`<p>${content}</p>`);
+    } else {
+      // Preserve blank line
+      result.push('<p><br></p>');
     }
   }
 
   closeList();
 
-  return result.join('');
+  // Normalize: collapse consecutive empty paragraphs to single one
+  // This prevents blank line accumulation across conversion cycles
+  return result.join('')
+    .replace(/(<p><br><\/p>){2,}/g, '<p><br></p>');
 }
