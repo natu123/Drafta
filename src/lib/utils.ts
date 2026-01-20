@@ -163,7 +163,7 @@ export function richToPlainMarkdown(html: string): string {
       }
     });
 
-    table.replaceWith('\n' + mdRows.join('\n') + '\n');
+    table.replaceWith(mdRows.join('\n') + '\n');
   });
 
   // Handle horizontal rules with markdown-style
