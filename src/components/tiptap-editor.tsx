@@ -1,5 +1,7 @@
 "use client";
 
+import { DOMSerializer, DOMParser } from '@tiptap/pm/model';
+
 import * as React from 'react';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -86,6 +88,63 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       attributes: {
         class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-4 pb-8 flex-1',
       },
+      // Serialize to plain text with markdown formatting
+      clipboardTextSerializer: (slice, view) => {
+        // 1. Serialize Slice to DOM fragment
+        try {
+          // Using logic assuming DOMSerializer will be imported
+          const schema = view.state.schema;
+          const serializer = DOMSerializer.fromSchema(schema);
+          const domFragment = serializer.serializeFragment(slice.content);
+
+          const tempDiv = document.createElement('div');
+          tempDiv.appendChild(domFragment);
+
+          // 3. Convert HTML to Markdown using our utility
+          return richToPlainMarkdown(tempDiv.innerHTML);
+        } catch (e) {
+          console.error('Failed to serialize clibpoard text to markdown', e);
+          return slice.content.textBetween(0, slice.content.size, '\n', '\n');
+        }
+      },
+      // Handle pasting markdown content
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        const html = event.clipboardData?.getData('text/html');
+
+        // If there is HTML, prefer it (let default handler handle it)
+        if (html) return false;
+        if (!text) return false;
+
+        // Simple detection for markdown patterns
+        const markdownPatterns = [
+          /^#\s/m,           // Headings
+          /^-\s/m,           // Unordered lists (hyphen)
+          /^\*\s/m,          // Unordered lists (asterisk)
+          /^\d+\.\s/m,       // Ordered lists
+          /^>\s/m,           // Blockquotes
+          /^-{3,}/m,         // Horizontal rules
+          /\|.*\|.*\|/m,     // Tables (basic check)
+        ];
+
+        // Check if the pasted text looks like markdown
+        const hasMarkdown = markdownPatterns.some(pattern => pattern.test(text));
+
+        if (hasMarkdown) {
+          // Convert markdown to HTML using our existing utility
+          const parsedHtml = plainMarkdownToRich(text.trim()); // Trim to prevent trailing empty lines
+
+          // Parse HTML to Slice and insert
+          const parser = DOMParser.fromSchema(view.state.schema);
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = parsedHtml;
+          const slice = parser.parseSlice(tempDiv);
+
+          view.dispatch(view.state.tr.replaceSelection(slice));
+          return true; // Prevent default paste behavior
+        }
+        return false;
+      },
     },
   });
 
@@ -141,6 +200,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       // Only apply if content actually changed to avoid unnecessary undo entries
       if (newContent !== currentContent) {
         editor.commands.setContent(newContent, true);
+        // Return focus to editor to clear button highlight
+        editor.commands.focus();
       }
     }
   };
@@ -178,8 +239,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       editor.chain().setContent(wrappedContent, false, { preserveWhitespace: 'full' }).run();
     }
     setIsPlainTextMode(!isPlainTextMode);
-    // Release focus from the button to prevent stuck highlight
-    (document.activeElement as HTMLElement)?.blur();
+    // Return focus to editor to clear button highlight and allow immediate typing
+    editor.commands.focus();
   };
 
   // Sync external changes
@@ -302,7 +363,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 {isPlainTextMode ? <Type /> : <FileText />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>{isPlainTextMode ? 'Rich Text Mode' : 'Plain Text Mode'}</p></TooltipContent>
+            <TooltipContent><p>{isPlainTextMode ? 'Convert to Rich' : 'Convert to Plain'}</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
