@@ -112,6 +112,12 @@
     height: 0;
 }
 
+/* Paragraph spacing - small margin for readability, minimal for copy-paste consistency */
+.ProseMirror p {
+    margin-top: 0;
+    margin-bottom: 0.25em;
+}
+
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3 {
