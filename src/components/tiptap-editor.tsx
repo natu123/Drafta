@@ -8,11 +8,15 @@ import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, Minus } from 'lucide-react';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { cn, removeFormatting } from '@/lib/utils';
+import { cn, removeFormatting, richToPlainMarkdown, plainMarkdownToRich } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import { Input } from './ui/input';
 import type { Note } from '@/lib/types';
@@ -38,7 +42,7 @@ const colors = [
 const extensions = [
   StarterKit.configure({
     heading: {
-      levels: [2, 3], // h1 is now outside the editor
+      levels: [1, 2, 3], // All heading levels enabled
     },
   }),
   Placeholder.configure({
@@ -52,11 +56,18 @@ const extensions = [
   TaskItem.configure({
     nested: true,
   }),
+  Table.configure({
+    resizable: true,
+  }),
+  TableRow,
+  TableCell,
+  TableHeader,
 ];
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom' }) => {
 
   const [currentTitle, setCurrentTitle] = React.useState(note.title);
+  const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
   const isSavingRef = React.useRef(false);
   const contentRef = React.useRef(note.content);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -125,6 +136,34 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       editor.commands.setContent(newContent, true);
     }
+  };
+
+  const handleTogglePlainTextMode = () => {
+    if (!editor) return;
+
+    if (isPlainTextMode) {
+      // Plain → Rich: Convert markdown-style back to rich text
+      // Get HTML and extract text content with newlines between paragraphs
+      const html = editor.getHTML();
+      // Extract text from each paragraph, joining with newlines
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const paragraphs = tempDiv.querySelectorAll('p');
+      const textLines = Array.from(paragraphs).map(p => p.textContent || '');
+      const markdownText = textLines.join('\n');
+      const richContent = plainMarkdownToRich(markdownText);
+      editor.commands.setContent(richContent, true);
+    } else {
+      // Rich → Plain: Convert to markdown-style text
+      const currentContent = editor.getHTML();
+      const plainContent = richToPlainMarkdown(currentContent);
+      // Wrap each line in <p>, keep empty lines as empty paragraphs for spacing
+      const wrappedContent = plainContent.split('\n')
+        .map(p => p.trim() === '' ? '<p><br></p>' : `<p>${p}</p>`)
+        .join('');
+      editor.commands.setContent(wrappedContent, true);
+    }
+    setIsPlainTextMode(!isPlainTextMode);
   };
 
   // Sync external changes
@@ -218,7 +257,23 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             </TooltipTrigger>
             <TooltipContent><p>Checkbox List</p></TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+                <ListOrdered />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Numbered List</p></TooltipContent>
+          </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant={isPlainTextMode ? 'secondary' : 'ghost'} size="icon" onClick={handleTogglePlainTextMode}>
+                {isPlainTextMode ? <Type /> : <FileText />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{isPlainTextMode ? 'Rich Text Mode' : 'Plain Text Mode'}</p></TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={handleRemoveFormatting}>
