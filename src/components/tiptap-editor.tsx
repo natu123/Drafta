@@ -4,7 +4,7 @@ import { DOMSerializer, DOMParser } from '@tiptap/pm/model';
 
 import * as React from 'react';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { common, createLowlight } from 'lowlight';
+import { all, createLowlight } from 'lowlight';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -25,8 +25,8 @@ import { Separator } from './ui/separator';
 import { Input } from './ui/input';
 import type { Note } from '@/lib/types';
 
-// Create lowlight instance with common languages (includes JS, TS, CSS, HTML, SQL, Python, C++, C#, etc.)
-const lowlight = createLowlight(common);
+// Create lowlight instance with all languages to ensure markdown support
+const lowlight = createLowlight(all);
 
 interface TiptapEditorProps {
   note: Note;
@@ -139,7 +139,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         // Check if the pasted text looks like markdown
         const hasMarkdown = markdownPatterns.some(pattern => pattern.test(text));
 
-        if (hasMarkdown) {
+        if (hasMarkdown && !isPlainTextMode) {
           // Convert markdown to HTML using our existing utility
           const parsedHtml = plainMarkdownToRich(text.trim()); // Trim to prevent trailing empty lines
 
@@ -220,14 +220,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
     if (isPlainTextMode) {
       // Plain → Rich: Convert markdown-style back to rich text
-      // Get HTML and extract text content with newlines between paragraphs
-      const html = editor.getHTML();
-      // Extract text from each paragraph, joining with newlines
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      const paragraphs = tempDiv.querySelectorAll('p');
-      const textLines = Array.from(paragraphs).map(p => p.textContent || '');
-      const markdownText = textLines.join('\n');
+      // Use getText with block separator to ensure newlines are preserved correctly
+      const markdownText = editor.getText({ blockSeparator: '\n' });
       const richContent = plainMarkdownToRich(markdownText);
       // Don't add to history to prevent undo interference
       editor.chain().setContent(richContent, false, { preserveWhitespace: 'full' }).run();
