@@ -13,9 +13,38 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Drafta',
     icon: '🌱',
-    content: `<h2>Organize your to-dos and thoughts seamlessly.</h2><hr /><h3>Drafta shapes raw thoughts into brilliant ideas.</h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Raw Thought</p></th><th colspan="1" rowspan="1"><p>Brilliant Idea</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough ideas</s></p></td><td colspan="1" rowspan="1"><p>Polished Plans</p></td></tr></tbody></table><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Capture notes any way you like.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Track your daily tasks.</p></div></li></ul><hr /><pre><code class="language-sql">-- Start your journey
-SELECT clarity FROM chaos;</code></pre><blockquote><p>Everything starts with a draft.</p></blockquote>`,
-    plainTextContent: `Organize your to-dos and thoughts seamlessly. --- Drafta shapes raw thoughts into brilliant ideas. | Raw Thought | Brilliant Idea | |---|---| | ~~Scattered notes~~ | Structured Knowledge | | ~~Rough ideas~~ | Polished Plans | --- [x] Capture notes any way you like. [ ] Track your daily tasks. --- \`\`\`sql -- Start your journey SELECT clarity FROM chaos; \`\`\` > Everything starts with a draft.`,
+    content: `<h2>Organize your to-dos and thoughts seamlessly.</h2><hr /><h3>Drafta shapes raw thoughts into brilliant ideas.</h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Raw Thought</p></th><th colspan="1" rowspan="1"><p>Brilliant Idea</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough ideas</s></p></td><td colspan="1" rowspan="1"><p>Polished Plans</p></td></tr></tbody></table><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Capture notes any way you like using <strong>Markdown</strong>.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Try switching to <strong>Plain Text</strong> mode to see the magic!</p></div></li></ul><hr /><p>You can create code blocks like this:</p><pre><code class="language-css">/* Welcome to Drafta! */
+.thought {
+  state: brilliant;
+}</code></pre><blockquote><p>Everything starts with a draft.</p></blockquote>`,
+    plainTextContent: `Organize your to-dos and thoughts seamlessly.
+
+---
+
+### Drafta shapes raw thoughts into brilliant ideas.
+
+| Raw Thought | Brilliant Idea |
+|---|---|
+| ~~Scattered notes~~ | Structured Knowledge |
+| ~~Rough ideas~~ | Polished Plans |
+
+---
+
+- [x] Capture notes any way you like using **Markdown**.
+- [ ] Try switching to **Plain Text** mode to see the magic!
+
+---
+
+You can create code blocks like this:
+
+\`\`\`css
+/* Welcome to Drafta! */
+.thought {
+  state: brilliant;
+}
+\`\`\`
+
+> Everything starts with a draft.`,
     group: 'inbox',
     stars: 3,
     isPinned: true,

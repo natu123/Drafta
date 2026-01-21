@@ -77,10 +77,33 @@ export function richToPlainMarkdown(html: string): string {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
+  // IMPORTANT: Handle code blocks FIRST before any inline processing
+  // This prevents the inline `code` handler from wrapping <pre><code> content
+  tempDiv.querySelectorAll('pre').forEach(pre => {
+    const code = pre.querySelector('code');
+    const languageClass = code?.className.match(/language-(\w+)/);
+    const language = languageClass ? languageClass[1] : '';
+
+    // Use textContent to get the actual code content (innerText may add extra newlines)
+    let content = code?.textContent || pre.textContent || '';
+
+    // Trim trailing newlines and ensure exactly one at the end
+    content = content.replace(/\n+$/, '');
+    const codeContent = content + '\n';
+
+    // Robust fence generation (N+1 rule)
+    const backtickSequences = codeContent.match(/`+/g) || [];
+    const maxBacktickLength = Math.max(0, ...backtickSequences.map(s => s.length));
+    const fenceLength = Math.max(3, maxBacktickLength + 1);
+    const fence = '`'.repeat(fenceLength);
+
+    pre.replaceWith(fence + language + '\n' + codeContent + fence + '\n');
+  });
+
   // Note: We do NOT convert <br> to \n here because block separation handles it.
   // Converting br causes double newlines in empty paragraphs like <p><br></p>.
 
-  // Handle inline formatting (must be done before extracting text)
+  // Handle inline formatting (AFTER pre blocks are removed)
   tempDiv.querySelectorAll('strong, b').forEach(el => {
     el.replaceWith(`**${el.textContent}**`);
   });
@@ -174,7 +197,7 @@ export function richToPlainMarkdown(html: string): string {
   });
 
   // Ensure block separation
-  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol, blockquote, table, pre').forEach(block => {
+  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6').forEach(block => {
     if (!block.textContent?.endsWith('\n')) {
       block.appendChild(document.createTextNode('\n'));
     }
@@ -195,22 +218,18 @@ export function plainMarkdownToRich(text: string): string {
   const result: string[] = [];
   let inList = false;
   let inTaskList = false;
-  let listType: 'ul' | 'ol' | 'task' | null = null;
+  let listType: 'ul' | 'ol' | null = null;
   let inCodeBlock = false;
+  let codeBlockFence = '';
   let codeBlockLang = '';
   let codeBlockContent: string[] = [];
 
-  // Helper to process inline formatting
   const processInline = (str: string): string => {
     return str
-      // Bold: **text** or __text__
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.+?)__/g, '<strong>$1</strong>')
-      // Italic: _text_ (single underscore)
       .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>')
-      // Strikethrough: ~~text~~
       .replace(/~~(.+?)~~/g, '<s>$1</s>')
-      // Inline code: `code`
       .replace(/`([^`]+)`/g, '<code>$1</code>');
   };
 
@@ -230,46 +249,40 @@ export function plainMarkdownToRich(text: string): string {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Code block: ```lang ... ```
-    if (trimmed.startsWith('```')) {
+    // Code block fence detection
+    const fenceMatch = trimmed.match(/^(`{3,}|~{3,})(.*)$/);
+
+    if (fenceMatch) {
+      const fence = fenceMatch[1];
+      const rest = fenceMatch[2].trim();
+
       if (inCodeBlock) {
-        // End of code block
-        const codeHtml = codeBlockContent.join('\n');
-        // Simple escaping for < and > to prevent breakage
-        const escapedHtml = codeHtml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        result.push(`<pre><code${codeBlockLang ? ` class="language-${codeBlockLang}"` : ''}>${escapedHtml}</code></pre>`);
-        inCodeBlock = false;
-        codeBlockContent = [];
-        codeBlockLang = '';
-        continue;
-      } else {
-        closeList();
-        // Check for single line block ```code```
-        if (trimmed.length > 3 && trimmed.endsWith('```') && trimmed !== '```') {
-          const content = trimmed.slice(3, -3);
-          const escapedContent = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          result.push(`<pre><code>${escapedContent}</code></pre>`);
+        // Check for closing fence
+        if (fence.charAt(0) === codeBlockFence.charAt(0)) {
+          const codeHtml = codeBlockContent.join('\n');
+          const escapedHtml = codeHtml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          result.push(`<pre><code${codeBlockLang ? ` class="language-${codeBlockLang}"` : ''}>${escapedHtml}</code></pre>`);
+          inCodeBlock = false;
+          codeBlockContent = [];
+          codeBlockLang = '';
+          codeBlockFence = '';
           continue;
         }
-
-        // Start multi-line
-        codeBlockLang = trimmed.slice(3).trim();
+      } else {
+        closeList();
+        codeBlockFence = fence;
+        codeBlockLang = rest;
         inCodeBlock = true;
         continue;
       }
     }
 
     if (inCodeBlock) {
-      // Preserve whitespace/indentation for code content (use original line, not trimmed)
-      // But we need to handle if the line IS the closing backticks (handled above if it starts with ```)
-      // If code block is indented?
-      // Standard markdown: closing ``` must be at start of line (or same indent).
-      // Here we assume startsWith works.
       codeBlockContent.push(line);
       continue;
     }
 
-    // Headings: # ## ###
+    // Headings
     const headingMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
     if (headingMatch) {
       closeList();
@@ -279,7 +292,7 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Blockquote: > text
+    // Blockquote
     if (trimmed.startsWith('> ')) {
       closeList();
       const content = processInline(trimmed.slice(2));
@@ -287,31 +300,26 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Table row: | col1 | col2 |
+    // Table row
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-      // Check if it's a separator row (| --- | --- |)
       const isSeparator = /^\|[\s\-:|]+\|$/.test(trimmed);
-      if (isSeparator) {
-        continue; // Skip separator rows
-      }
+      if (isSeparator) continue;
 
-      // Check if we need to start a new table
       if (!result.length || !result[result.length - 1].endsWith('</tr>')) {
         result.push('<table><tbody>');
       }
 
-      const cells = trimmed.slice(1, -1).split('|').map(c => c.trim());
+      const cells = trimmed.slice(1, -1).split('|').map((c: string) => c.trim());
       const isHeader = result[result.length - 1] === '<table><tbody>';
       const cellTag = isHeader ? 'th' : 'td';
-      const cellsHtml = cells.map(c => `<${cellTag}>${processInline(c)}</${cellTag}>`).join('');
+      const cellsHtml = cells.map((c: string) => `<${cellTag}>${processInline(c)}</${cellTag}>`).join('');
       result.push(`<tr>${cellsHtml}</tr>`);
       continue;
     } else if (result.length && result[result.length - 1].endsWith('</tr>')) {
-      // Close table if we were in one
       result.push('</tbody></table>');
     }
 
-    // Task list: - [ ] or - [x]
+    // Task list
     const taskMatch = trimmed.match(/^[-*]\s+\[([ xX])\]\s+(.*)$/);
     if (taskMatch) {
       if (!inTaskList) {
@@ -325,7 +333,7 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Bullet list item: - or *
+    // Bullet list
     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       if (inTaskList) closeList();
       if (!inList || listType !== 'ul') {
@@ -339,7 +347,7 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Ordered list item: 1.
+    // Ordered list
     const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (orderedMatch) {
       if (inTaskList) closeList();
@@ -354,20 +362,23 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
+    // Horizontal rule
+    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+      closeList();
+      result.push('<hr />');
+      continue;
+    }
+
     // Regular paragraph
     closeList();
     if (trimmed) {
       const content = processInline(trimmed);
       result.push(`<p>${content}</p>`);
     } else {
-      // Preserve blank line
       result.push('<p><br></p>');
     }
   }
 
   closeList();
-
-  // Preserve blank lines as-is without aggressive normalization
-  // Users may intentionally want multiple blank lines for visual separation
   return result.join('');
 }
