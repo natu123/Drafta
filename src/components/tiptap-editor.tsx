@@ -220,8 +220,28 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
     if (isPlainTextMode) {
       // Plain → Rich: Convert markdown-style back to rich text
-      // Use getText with block separator to ensure newlines are preserved correctly
-      const markdownText = editor.getText({ blockSeparator: '\n' });
+      // Use getHTML() instead of getText() to avoid <br> being counted as extra \n
+      const plainHtml = editor.getHTML();
+
+      // Parse HTML to extract text from each <p> element
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = plainHtml;
+
+      // Extract text from each paragraph, preserving empty paragraphs as blank lines
+      const lines: string[] = [];
+      tempDiv.querySelectorAll('p').forEach(p => {
+        // Check if paragraph is empty (only contains <br> or is truly empty)
+        const isEmptyP = (p.children.length === 1 && p.children[0].tagName === 'BR') ||
+          (p.textContent?.trim() === '' && p.children.length === 0);
+        if (isEmptyP) {
+          lines.push(''); // Empty line
+        } else {
+          lines.push(p.textContent?.trim() || '');
+        }
+      });
+
+      // Convert to markdown text and then to rich HTML
+      const markdownText = lines.join('\n');
       const richContent = plainMarkdownToRich(markdownText);
       // Don't add to history to prevent undo interference
       editor.chain().setContent(richContent, false, { preserveWhitespace: 'full' }).run();
@@ -236,7 +256,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         lines.pop();
       }
       const wrappedContent = lines
-        .map(p => p === '' ? '<p><br></p>' : `<p>${p}</p>`)
+        .map(p => p === '' ? '<p></p>' : `<p>${p}</p>`)
         .join('');
       // Don't add to history to prevent undo interference
       editor.chain().setContent(wrappedContent, false, { preserveWhitespace: 'full' }).run();

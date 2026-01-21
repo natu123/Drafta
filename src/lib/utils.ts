@@ -72,144 +72,164 @@ export function htmlToSimpleText(html: string): string {
 }
 
 // Rich Text to Plain Text (Markdown-like)
+// NEW APPROACH: Instead of relying on textContent, explicitly process each top-level element
+// and build output array. This ensures blank lines are counted exactly once.
 export function richToPlainMarkdown(html: string): string {
   if (typeof document === 'undefined') return '';
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // IMPORTANT: Handle code blocks FIRST before any inline processing
-  // This prevents the inline `code` handler from wrapping <pre><code> content
-  tempDiv.querySelectorAll('pre').forEach(pre => {
-    const code = pre.querySelector('code');
-    const languageClass = code?.className.match(/language-(\w+)/);
-    const language = languageClass ? languageClass[1] : '';
+  const output: string[] = [];
 
-    // Use textContent to get the actual code content (innerText may add extra newlines)
-    let content = code?.textContent || pre.textContent || '';
+  // Helper to process inline formatting
+  const processInline = (text: string): string => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '**$1**')  // Already has **
+      .trim();
+  };
 
-    // Trim trailing newlines and ensure exactly one at the end
-    content = content.replace(/\n+$/, '');
-    const codeContent = content + '\n';
+  // Helper to get clean text content (handles inline formatting)
+  const getCleanText = (el: Element): string => {
+    // Clone to avoid modifying original
+    const clone = el.cloneNode(true) as Element;
 
-    // Robust fence generation (N+1 rule)
-    const backtickSequences = codeContent.match(/`+/g) || [];
-    const maxBacktickLength = Math.max(0, ...backtickSequences.map(s => s.length));
-    const fenceLength = Math.max(3, maxBacktickLength + 1);
-    const fence = '`'.repeat(fenceLength);
-
-    pre.replaceWith(fence + language + '\n' + codeContent + fence + '\n');
-  });
-
-  // Note: We do NOT convert <br> to \n here because block separation handles it.
-  // Converting br causes double newlines in empty paragraphs like <p><br></p>.
-
-  // Handle inline formatting (AFTER pre blocks are removed)
-  tempDiv.querySelectorAll('strong, b').forEach(el => {
-    el.replaceWith(`**${el.textContent}**`);
-  });
-  tempDiv.querySelectorAll('em, i').forEach(el => {
-    el.replaceWith(`_${el.textContent}_`);
-  });
-  tempDiv.querySelectorAll('s, strike, del').forEach(el => {
-    el.replaceWith(`~~${el.textContent}~~`);
-  });
-  tempDiv.querySelectorAll('code').forEach(el => {
-    el.replaceWith(`\`${el.textContent}\``);
-  });
-
-  // Handle headings
-  tempDiv.querySelectorAll('h1').forEach(el => {
-    el.prepend(document.createTextNode('# '));
-  });
-  tempDiv.querySelectorAll('h2').forEach(el => {
-    el.prepend(document.createTextNode('## '));
-  });
-  tempDiv.querySelectorAll('h3').forEach(el => {
-    el.prepend(document.createTextNode('### '));
-  });
-
-  // Handle blockquotes
-  tempDiv.querySelectorAll('blockquote').forEach(bq => {
-    const lines = (bq.textContent || '').split('\n');
-    const quoted = lines.map(l => `> ${l.trim()}`).join('\n');
-    bq.replaceWith(quoted);
-  });
-
-  // Handle task lists - convert entire list to text lines
-  tempDiv.querySelectorAll('ul[data-type="taskList"]').forEach(ul => {
-    const items = ul.querySelectorAll('li[data-type="taskItem"]');
-    const lines: string[] = [];
-    items.forEach(li => {
-      const isChecked = li.getAttribute('data-checked') === 'true';
-      const prefix = isChecked ? '- [x] ' : '- [ ] ';
-      const textDiv = li.querySelector('div');
-      const textContent = textDiv?.textContent?.trim() || '';
-      lines.push(prefix + textContent);
+    // Process inline formatting
+    clone.querySelectorAll('strong, b').forEach(e => {
+      e.replaceWith(`**${e.textContent}**`);
     });
-    ul.replaceWith(lines.join('\n') + '\n');
-  });
-
-  // Handle regular unordered lists
-  tempDiv.querySelectorAll('ul:not([data-type="taskList"])').forEach(ul => {
-    const items = ul.querySelectorAll('li');
-    const lines: string[] = [];
-    items.forEach(li => {
-      const textContent = li.textContent?.trim() || '';
-      lines.push('- ' + textContent);
+    clone.querySelectorAll('em, i').forEach(e => {
+      e.replaceWith(`_${e.textContent}_`);
     });
-    ul.replaceWith(lines.join('\n') + '\n');
-  });
-
-  // Handle ordered lists
-  tempDiv.querySelectorAll('ol').forEach(ol => {
-    const items = ol.querySelectorAll('li');
-    const lines: string[] = [];
-    items.forEach((li, idx) => {
-      const textContent = li.textContent?.trim() || '';
-      lines.push(`${idx + 1}. ` + textContent);
+    clone.querySelectorAll('s, strike, del').forEach(e => {
+      e.replaceWith(`~~${e.textContent}~~`);
     });
-    ol.replaceWith(lines.join('\n') + '\n');
-  });
-
-  // Handle tables
-  tempDiv.querySelectorAll('table').forEach(table => {
-    const rows = table.querySelectorAll('tr');
-    const mdRows: string[] = [];
-
-    rows.forEach((row, rowIdx) => {
-      const cells = row.querySelectorAll('th, td');
-      const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim() || '');
-      mdRows.push('| ' + cellTexts.join(' | ') + ' |');
-
-      // Add separator after header row
-      if (rowIdx === 0) {
-        const separator = cellTexts.map(() => '---').join(' | ');
-        mdRows.push('| ' + separator + ' |');
-      }
+    clone.querySelectorAll('code').forEach(e => {
+      e.replaceWith(`\`${e.textContent}\``);
     });
 
-    table.replaceWith(mdRows.join('\n') + '\n');
-  });
+    return clone.textContent?.trim() || '';
+  };
 
-  // Handle horizontal rules with markdown-style
-  tempDiv.querySelectorAll('hr').forEach(hr => {
-    hr.replaceWith('---\n');  // No leading \n to prevent extra blank line
-  });
+  // Check if element is an empty paragraph
+  const isEmptyParagraph = (el: Element): boolean => {
+    if (el.tagName !== 'P') return false;
+    const onlyBr = el.children.length === 1 && el.children[0].tagName === 'BR';
+    const isEmpty = el.textContent?.trim() === '' && el.children.length === 0;
+    return onlyBr || isEmpty;
+  };
 
-  // Ensure block separation
-  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6').forEach(block => {
-    if (!block.textContent?.endsWith('\n')) {
-      block.appendChild(document.createTextNode('\n'));
+  // Process each top-level child
+  Array.from(tempDiv.children).forEach(child => {
+    const tagName = child.tagName.toUpperCase();
+
+    // Code block (pre)
+    if (tagName === 'PRE') {
+      const code = child.querySelector('code');
+      const languageClass = code?.className.match(/language-(\w+)/);
+      const language = languageClass ? languageClass[1] : '';
+      let content = code?.textContent || child.textContent || '';
+      content = content.replace(/\n+$/, '');
+
+      // Robust fence generation
+      const backtickSequences = content.match(/`+/g) || [];
+      const maxBacktickLength = Math.max(0, ...backtickSequences.map(s => s.length));
+      const fence = '`'.repeat(Math.max(3, maxBacktickLength + 1));
+
+      output.push(fence + language);
+      content.split('\n').forEach(line => output.push(line));
+      output.push(fence);
+      return;
+    }
+
+    // Headings
+    if (tagName === 'H1') {
+      output.push('# ' + getCleanText(child));
+      return;
+    }
+    if (tagName === 'H2') {
+      output.push('## ' + getCleanText(child));
+      return;
+    }
+    if (tagName === 'H3') {
+      output.push('### ' + getCleanText(child));
+      return;
+    }
+
+    // Horizontal rule
+    if (tagName === 'HR') {
+      output.push('---');
+      return;
+    }
+
+    // Blockquote
+    if (tagName === 'BLOCKQUOTE') {
+      const text = getCleanText(child);
+      text.split('\n').forEach(line => output.push('> ' + line.trim()));
+      return;
+    }
+
+    // Task list
+    if (tagName === 'UL' && child.getAttribute('data-type') === 'taskList') {
+      child.querySelectorAll('li[data-type="taskItem"]').forEach(li => {
+        const isChecked = li.getAttribute('data-checked') === 'true';
+        const prefix = isChecked ? '- [x] ' : '- [ ] ';
+        const textDiv = li.querySelector('div');
+        const text = textDiv?.textContent?.trim() || '';
+        output.push(prefix + text);
+      });
+      return;
+    }
+
+    // Unordered list
+    if (tagName === 'UL') {
+      child.querySelectorAll('li').forEach(li => {
+        output.push('- ' + (li.textContent?.trim() || ''));
+      });
+      return;
+    }
+
+    // Ordered list
+    if (tagName === 'OL') {
+      child.querySelectorAll('li').forEach((li, idx) => {
+        output.push(`${idx + 1}. ` + (li.textContent?.trim() || ''));
+      });
+      return;
+    }
+
+    // Table
+    if (tagName === 'TABLE') {
+      const rows = child.querySelectorAll('tr');
+      rows.forEach((row, rowIdx) => {
+        const cells = row.querySelectorAll('th, td');
+        const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim() || '');
+        output.push('| ' + cellTexts.join(' | ') + ' |');
+        if (rowIdx === 0) {
+          output.push('| ' + cellTexts.map(() => '---').join(' | ') + ' |');
+        }
+      });
+      return;
+    }
+
+    // Empty paragraph = blank line
+    if (isEmptyParagraph(child)) {
+      output.push('');  // Exactly one blank line
+      return;
+    }
+
+    // Regular paragraph
+    if (tagName === 'P') {
+      output.push(getCleanText(child));
+      return;
+    }
+
+    // Div (fallback)
+    if (tagName === 'DIV') {
+      output.push(getCleanText(child));
+      return;
     }
   });
 
-  const text = tempDiv.textContent || '';
-
-  // Preserve blank lines as-is without aggressive normalization
-  // Users may intentionally want multiple blank lines for visual separation
-  return text.split('\n')
-    .map(line => line.trim())
-    .join('\n');
+  return output.join('\n');
 }
 
 // Plain Text (Markdown-like) to Rich Text HTML
@@ -375,7 +395,7 @@ export function plainMarkdownToRich(text: string): string {
       const content = processInline(trimmed);
       result.push(`<p>${content}</p>`);
     } else {
-      result.push('<p><br></p>');
+      result.push('<p></p>');
     }
   }
 
