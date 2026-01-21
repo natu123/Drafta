@@ -18,11 +18,13 @@ export function removeFormatting(html: string): string {
     // Unwrap paragraphs inside list items to prevent double newlines (li + p both getting \n)
     const paragraphs = li.querySelectorAll('p');
     paragraphs.forEach(p => {
-      // Move all children of p to li, before p
-      while (p.firstChild) {
-        li.insertBefore(p.firstChild, p);
+      // Move all children of p to its parent, before p
+      if (p.parentNode) {
+        while (p.firstChild) {
+          p.parentNode.insertBefore(p.firstChild, p);
+        }
+        p.remove();
       }
-      p.remove();
     });
 
     const parent = li.parentElement;
@@ -172,7 +174,7 @@ export function richToPlainMarkdown(html: string): string {
   });
 
   // Ensure block separation
-  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol, blockquote').forEach(block => {
+  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol, blockquote, table, pre').forEach(block => {
     if (!block.textContent?.endsWith('\n')) {
       block.appendChild(document.createTextNode('\n'));
     }
@@ -194,6 +196,9 @@ export function plainMarkdownToRich(text: string): string {
   let inList = false;
   let inTaskList = false;
   let listType: 'ul' | 'ol' | 'task' | null = null;
+  let inCodeBlock = false;
+  let codeBlockLang = '';
+  let codeBlockContent: string[] = [];
 
   // Helper to process inline formatting
   const processInline = (str: string): string => {
@@ -225,10 +230,42 @@ export function plainMarkdownToRich(text: string): string {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Horizontal rule: --- or -- or ***
-    if (trimmed === '---' || trimmed === '--' || trimmed === '***') {
-      closeList();
-      result.push('<hr />');
+    // Code block: ```lang ... ```
+    if (trimmed.startsWith('```')) {
+      if (inCodeBlock) {
+        // End of code block
+        const codeHtml = codeBlockContent.join('\n');
+        // Simple escaping for < and > to prevent breakage
+        const escapedHtml = codeHtml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        result.push(`<pre><code${codeBlockLang ? ` class="language-${codeBlockLang}"` : ''}>${escapedHtml}</code></pre>`);
+        inCodeBlock = false;
+        codeBlockContent = [];
+        codeBlockLang = '';
+        continue;
+      } else {
+        closeList();
+        // Check for single line block ```code```
+        if (trimmed.length > 3 && trimmed.endsWith('```') && trimmed !== '```') {
+          const content = trimmed.slice(3, -3);
+          const escapedContent = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          result.push(`<pre><code>${escapedContent}</code></pre>`);
+          continue;
+        }
+
+        // Start multi-line
+        codeBlockLang = trimmed.slice(3).trim();
+        inCodeBlock = true;
+        continue;
+      }
+    }
+
+    if (inCodeBlock) {
+      // Preserve whitespace/indentation for code content (use original line, not trimmed)
+      // But we need to handle if the line IS the closing backticks (handled above if it starts with ```)
+      // If code block is indented?
+      // Standard markdown: closing ``` must be at start of line (or same indent).
+      // Here we assume startsWith works.
+      codeBlockContent.push(line);
       continue;
     }
 
