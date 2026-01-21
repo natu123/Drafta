@@ -341,10 +341,111 @@
 }
 
 
-.ProseMirror h1.is-empty:first-child::before {
-    content: attr(data-placeholder);
-    float: left;
-    color: hsl(var(--muted-foreground));
-    pointer-events: none;
-    height: 0;
+
+/* Code Block Syntax Highlighting (Bearded Theme Milkshake Blueberry inspired) */
+pre {
+    background: #EAEBFB;
+    /* Pale Periwinkle/Blueberry Milkshake Background */
+    color: #3B4252;
+    /* Dark Grey Foreground */
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    overflow-x: auto;
+    border: 1px solid #D8DEE9;
+    /* Subtle border for definition */
+}
+
+code {
+    font-family: inherit;
+    font-size: 0.9em;
+    background: inherit;
+    color: inherit;
+    padding: 0;
+}
+
+/* Syntax highlighting classes */
+
+/* Comments: Grayish Lavender */
+.hljs-comment,
+.hljs-quote {
+    color: #A0A8C1;
+    font-style: italic;
+}
+
+/* Keywords: Teal / Cyan */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-operator {
+    color: #00A69D;
+    /* Bearded Teal */
+}
+
+/* Functions/Methods: Blue */
+.hljs-title,
+.hljs-section,
+.hljs-function {
+    color: #2D74DA;
+    /* Bearded Blue */
+}
+
+/* Variables: Dark Grey / Default */
+.hljs-variable,
+.hljs-template-variable {
+    color: #3B4252;
+}
+
+/* Properties / Attributes: Light Blue */
+.hljs-attribute,
+.hljs-attr,
+.hljs-selector-id,
+.hljs-selector-class {
+    color: #00A69D;
+    /* Match keyword or slightly different? Let's go Teal for consistency with image 'const' */
+}
+
+/* Strings: Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet {
+    color: #55B359;
+    /* Bearded Green */
+}
+
+/* Numbers: Orange / Pink */
+.hljs-number,
+.hljs-meta {
+    color: #ED5C8B;
+    /* Bearded Pink/Red for numbers */
+}
+
+/* Types / Built-ins: Purple or Teal? */
+.hljs-type,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-params {
+    color: #9C5CBA;
+    /* Bearded Purple */
+}
+
+/* Interpolation in template strings */
+.hljs-subst {
+    color: #ED5C8B;
+    /* Pink for interpolated values */
+}
+
+/* Tags (HTML/XML) */
+.hljs-tag,
+.hljs-name {
+    color: #2D74DA;
+    /* Blue for tag names */
+}
+
+.hljs-emphasis {
+    font-style: italic;
+}
+
+.hljs-strong {
+    font-weight: bold;
 }

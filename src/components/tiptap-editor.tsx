@@ -3,6 +3,8 @@
 import { DOMSerializer, DOMParser } from '@tiptap/pm/model';
 
 import * as React from 'react';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -23,6 +25,8 @@ import { Separator } from './ui/separator';
 import { Input } from './ui/input';
 import type { Note } from '@/lib/types';
 
+// Create lowlight instance with common languages (includes JS, TS, CSS, HTML, SQL, Python, C++, C#, etc.)
+const lowlight = createLowlight(common);
 
 interface TiptapEditorProps {
   note: Note;
@@ -37,7 +41,7 @@ const colors = [
   { name: 'Green', value: '#64A364' },
   { name: 'Blue', value: '#51A2FF' },
   { name: 'Purple', value: '#AD46FF' },
-  { name: 'Rose', value: '#FF6467' },
+  { name: 'Rose', value: '#E7A1B0' },
   { name: 'Orange', value: '#C49547' },
 ];
 
@@ -46,6 +50,11 @@ const extensions = [
     heading: {
       levels: [1, 2, 3], // All heading levels enabled
     },
+    codeBlock: false, // Disable default codeBlock to use lowlight
+  }),
+  CodeBlockLowlight.configure({
+    lowlight,
+    defaultLanguage: 'plaintext',
   }),
   Placeholder.configure({
     placeholder: 'Start writing your note here...',
@@ -359,11 +368,15 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={isPlainTextMode ? 'secondary' : 'ghost'} size="icon" onClick={handleTogglePlainTextMode}>
-                {isPlainTextMode ? <Type /> : <FileText />}
+              <Button variant="ghost" size="icon" onClick={handleTogglePlainTextMode}>
+                {isPlainTextMode ? (
+                  <span className="flex items-center text-xs font-bold">→<FileText className="w-4 h-4 ml-0.5" /></span>
+                ) : (
+                  <span className="flex items-center text-xs font-bold">→<Type className="w-4 h-4 ml-0.5" /></span>
+                )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>{isPlainTextMode ? 'Convert to Rich' : 'Convert to Plain'}</p></TooltipContent>
+            <TooltipContent><p>{isPlainTextMode ? 'To Rich Text' : 'To Plain Text'}</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
