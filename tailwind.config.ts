@@ -92,7 +92,7 @@ export default {
             '--tw-prose-captions': theme('colors.muted.foreground'),
             '--tw-prose-code': theme('colors.foreground'),
             '--tw-prose-pre-code': theme('colors.foreground'),
-            '--tw-prose-pre-bg': theme('colors.muted.DEFAULT'),
+            '--tw-prose-pre-bg': '#EAEBFB', // Milkshake Blueberry background
             '--tw-prose-th-borders': theme('colors.border'),
             '--tw-prose-td-borders': theme('colors.border'),
             '--tw-prose-invert-body': theme('colors.foreground'),
@@ -108,7 +108,7 @@ export default {
             '--tw-prose-invert-captions': theme('colors.muted.foreground'),
             '--tw-prose-invert-code': theme('colors.foreground'),
             '--tw-prose-invert-pre-code': theme('colors.foreground'),
-            '--tw-prose-invert-pre-bg': theme('colors.muted.DEFAULT'),
+            '--tw-prose-invert-pre-bg': '#EAEBFB', // Milkshake Blueberry background
             '--tw-prose-invert-th-borders': theme('colors.border'),
             '--tw-prose-invert-td-borders': theme('colors.border'),
             p: {
