@@ -505,9 +505,14 @@ export default function Home() {
 
       const currentTotalUsed = listsWidth + notesWidth + editorWidth;
 
-      // If window got larger, expand editor to fill the gap
+      // If window got larger, restore proportional layout (2:4:6 ratio)
       if (totalWidth > currentTotalUsed) {
-        setEditorWidth(totalWidth - listsWidth - notesWidth);
+        const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (2 / 12)));
+        const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (4 / 12)));
+        const rightWidth = totalWidth - leftWidth - centerWidth;
+        setListsWidth(leftWidth);
+        setNotesWidth(centerWidth);
+        setEditorWidth(rightWidth);
       }
       // If window got smaller, shrink left and center first, editor stays at minimum
       else if (totalWidth < currentTotalUsed) {
