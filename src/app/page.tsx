@@ -381,8 +381,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
                         {/* Always visible on desktop now, to fix "can't see" issue. Optional: restore opacity logic if requested. */}
                         <div className="flex items-center gap-1 shrink-0">
+                          {/* Actions depending on view */}
                           {!isSelectionMode && (
-                            isTrash && (
+                            isTrash ? (
                               <>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
                                   <RotateCcw className="w-4 h-4" />
@@ -391,6 +392,19 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </>
+                            ) : (
+                              // Normal view: Show Delete button if not protected
+                              !item.isProtected && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => { e.stopPropagation(); onDeleteItem?.(item.id); }}
+                                  title="Move to Trash"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )
                             )
                           )}
                         </div>

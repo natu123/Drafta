@@ -96,7 +96,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-0 pb-2 flex-1',
+        class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-0 pb-0 flex-1',
       },
       // Serialize to plain text with markdown formatting
       clipboardTextSerializer: (slice, view) => {
