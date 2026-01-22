@@ -252,9 +252,13 @@
 .ProseMirror blockquote {
     border-left: 4px solid hsl(var(--primary));
     padding-left: 1rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     font-style: italic;
     color: hsl(var(--muted-foreground));
+}
+
+.ProseMirror blockquote p {
+    margin: 0 !important;
 }
 
 /* Remove default prose quotes */
@@ -367,6 +371,8 @@ pre {
     /* Dark Grey Foreground */
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
+    margin-top: 0.25em !important;
+    margin-bottom: 0.25em !important;
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
     overflow-x: auto;
     border: 1px solid #D8DEE9;
