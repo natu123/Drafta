@@ -13,10 +13,10 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Drafta',
     icon: '🌱',
-    content: `<h3><em>Organize to-dos and thoughts seamlessly.</em></h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Before</p></th><th colspan="1" rowspan="1"><p>➛ After</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough thought</s></p></td><td colspan="1" rowspan="1"><p>Polished ideas</p></td></tr></tbody></table><p></p><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Put your tasks in ToDo app, memos in note-taking app.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Every thought in one place, Drafta!</p></div></li></ul><p></p><hr /><pre><code class="language-css">/* Welcome to Drafta! */
-.thought {
-  state: brilliant;
-}</code></pre><blockquote><p>You're accelerating now!</p></blockquote>`,
+    content: `<h3><span style="color: #64A364"><em>Organize to-dos and thoughts seamlessly.</em></span></h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Before</p></th><th colspan="1" rowspan="1"><p>➛ After</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough thought</s></p></td><td colspan="1" rowspan="1"><p>Polished ideas</p></td></tr></tbody></table><p></p><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Put your tasks in ToDo app, memos in note-taking app.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Every thought in one place, Drafta!</p></div></li></ul><p></p><hr /><pre><code class="language-css">/* Welcome to Drafta! */
+    .thought {
+      state: brilliant;
+    }</code></pre><blockquote><p>You're accelerating now!</p></blockquote>`,
     plainTextContent: `### _Organize to-dos and thoughts seamlessly._
 | Before | ➛ After |
 | --- | --- |
