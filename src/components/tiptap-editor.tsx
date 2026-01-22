@@ -87,6 +87,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     extensions,
     content: note.content,
     immediatelyRender: false,
+    editable: !note.isProtected, // Protected notes are read-only
     enableInputRules: false, // Disables automatic markdown-like shortcuts (e.g. typing "- " for a list)
     enablePasteRules: false,
     onUpdate: ({ editor }) => {
@@ -95,7 +96,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-4 pb-8 flex-1',
+        class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-0 pb-8 flex-1',
       },
       // Serialize to plain text with markdown formatting
       clipboardTextSerializer: (slice, view) => {
@@ -309,25 +310,27 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         <div className="px-4 border-b flex items-center gap-1 shrink-0 h-[57px]">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0">
+              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>
                 {note.icon || '📝'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2">
-              <div className="grid grid-cols-5 gap-2">
-                {emojis.map((emoji) => (
-                  <Button
-                    key={emoji}
-                    variant="ghost"
-                    size="icon"
-                    className={cn("text-xl rounded-md", note.icon === emoji && "bg-primary/20")}
-                    onClick={() => onIconChange(emoji)}
-                  >
-                    {emoji}
-                  </Button>
-                ))}
-              </div>
-            </PopoverContent>
+            {!note.isProtected && (
+              <PopoverContent className="w-auto p-2">
+                <div className="grid grid-cols-5 gap-2">
+                  {emojis.map((emoji) => (
+                    <Button
+                      key={emoji}
+                      variant="ghost"
+                      size="icon"
+                      className={cn("text-xl rounded-md", note.icon === emoji && "bg-primary/20")}
+                      onClick={() => onIconChange(emoji)}
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            )}
           </Popover>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
@@ -394,7 +397,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleRemoveFormatting}>
+              <Button variant="ghost" size="icon" onClick={handleRemoveFormatting} disabled={note.isProtected}>
                 <Pilcrow />
               </Button>
             </TooltipTrigger>
@@ -454,9 +457,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             placeholder="Untitled Note"
-            className="text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-8 pb-4 h-auto"
+            className="text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 pt-4 px-8 pb-2 h-auto"
           />
-          <Separator className="mx-8 w-auto h-[2px] mb-8 bg-foreground/20" />
+          <Separator className="mx-8 w-auto h-[2px] mb-4 bg-foreground/20" />
           <EditorContent editor={editor} />
         </div>
       </div>

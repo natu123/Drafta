@@ -302,8 +302,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         className={cn(
                           "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
                           activeId === item.id && !isSelectionMode
-                            ? "bg-accent/10 border-accent/50 shadow-sm"
-                            : "bg-card border-border/60 hover:border-primary/30",
+                            ? "bg-[#E7A1B0]/10 border-[#E7A1B0]/50 shadow-sm"
+                            : item.isProtected
+                              ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
+                              : "bg-card border-border/60 hover:border-primary/30",
                           isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
                         )}
                         onClick={() => {
@@ -339,27 +341,30 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                                     size="icon"
                                     className={cn(
                                       "h-7 w-7 text-base hover:bg-accent/20 transition-colors rounded-md shrink-0",
-                                      isSelectionMode && "pointer-events-none"
+                                      (isSelectionMode || item.isProtected) && "pointer-events-none"
                                     )}
+                                    disabled={item.isProtected}
                                   >
                                     {item.icon || '📝'}
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-2" align="start">
-                                  <div className="grid grid-cols-5 gap-2">
-                                    {emojis.map((emoji) => (
-                                      <Button
-                                        key={emoji}
-                                        variant="ghost"
-                                        size="icon"
-                                        className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
-                                        onClick={() => onIconChange?.(item.id, emoji)}
-                                      >
-                                        {emoji}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </PopoverContent>
+                                {!item.isProtected && (
+                                  <PopoverContent className="w-auto p-2" align="start">
+                                    <div className="grid grid-cols-5 gap-2">
+                                      {emojis.map((emoji) => (
+                                        <Button
+                                          key={emoji}
+                                          variant="ghost"
+                                          size="icon"
+                                          className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
+                                          onClick={() => onIconChange?.(item.id, emoji)}
+                                        >
+                                          {emoji}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                )}
                               </Popover>
                             </div>
                             <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
@@ -916,6 +921,8 @@ export default function Home() {
 
   // Delete helpers
   const handleDeleteNote = (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (note?.isProtected) return; // Protect special notes
     setNotes(prev => prev.map(note => note.id === id ? { ...note, isDeleted: true } : note));
     if (activeTabId === id) setActiveTabId(null);
   };
@@ -923,6 +930,8 @@ export default function Home() {
     setNotes(prev => prev.map(note => note.id === id ? { ...note, isDeleted: false } : note));
   };
   const handlePermanentDeleteNote = (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (note?.isProtected) return; // Protect special notes
     setNotes(prev => prev.filter(note => note.id !== id));
     if (activeTabId === id) setActiveTabId(null);
     closeTab(id);
@@ -1159,9 +1168,9 @@ export default function Home() {
                               "w-full justify-start gap-2 h-9 pr-8",
                               group.id === 'inbox' ?
                                 cn(
-                                  activeGroupId === group.id ? "bg-accent/20 text-foreground font-medium hover:bg-accent/25" : "bg-accent/10 text-foreground hover:bg-accent/15"
+                                  activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
                                 ) :
-                                activeGroupId === group.id && "bg-primary/10 text-primary hover:bg-primary/20",
+                                activeGroupId === group.id && "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20",
 
                               // Dragged styling
                               draggedGroupId === group.id && "opacity-50",

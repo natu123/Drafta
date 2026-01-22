@@ -127,7 +127,7 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
           }}
           className={cn(
             'w-full text-left p-2 pr-4 border-b border-border transition-colors flex items-center gap-2 cursor-pointer relative',
-            activeNoteId === note.id ? 'bg-primary/10' : 'hover:bg-secondary',
+            activeNoteId === note.id ? 'bg-[#E7A1B0]/10' : 'hover:bg-secondary',
             isDropTarget && dropPosition === 'inside' ? 'bg-primary/20' : ''
           )}
           style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
