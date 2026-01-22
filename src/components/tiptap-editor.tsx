@@ -158,6 +158,13 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     },
   });
 
+  // Sync editable state
+  React.useEffect(() => {
+    if (editor) {
+      editor.setEditable(!note.isProtected);
+    }
+  }, [editor, note.isProtected]);
+
   // Scroll to bottom on mount depends on setting
   React.useEffect(() => {
     if (scrollContainerRef.current) {
@@ -335,7 +342,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
+              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || note.isProtected}>
                 <Undo />
               </Button>
             </TooltipTrigger>
@@ -343,7 +350,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>
+              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || note.isProtected}>
                 <Redo />
               </Button>
             </TooltipTrigger>
@@ -352,7 +359,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={note.isProtected}>
                 <Minus />
               </Button>
             </TooltipTrigger>
@@ -360,7 +367,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()}>
+              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={note.isProtected}>
                 <List />
               </Button>
             </TooltipTrigger>
@@ -368,7 +375,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleTaskList().run()}>
+              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={note.isProtected}>
                 <ListChecks />
               </Button>
             </TooltipTrigger>
@@ -376,7 +383,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+              <Button variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} disabled={note.isProtected}>
                 <ListOrdered />
               </Button>
             </TooltipTrigger>
@@ -413,6 +420,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                     size="icon"
                     className={cn("w-6 h-6 rounded-full p-0", editor.isActive('textStyle', { color: color.value }) && "ring-2 ring-primary ring-offset-2")}
                     style={{ backgroundColor: color.value }}
+                    disabled={note.isProtected}
                     onClick={() => handleSetColor(color.value)}
                   >
                     <span className="sr-only">{color.name}</span>
@@ -424,29 +432,31 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </div>
         </div>
 
-        <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="bg-background border rounded-md shadow-lg p-1 flex gap-1">
-          <Button
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
-            size="icon"
-          >
-            <Bold />
-          </Button>
-          <Button
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
-            size="icon"
-          >
-            <Italic />
-          </Button>
-          <Button
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
-            size="icon"
-          >
-            <Strikethrough />
-          </Button>
-        </BubbleMenu>
+        {!note.isProtected && (
+          <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="bg-background border rounded-md shadow-lg p-1 flex gap-1">
+            <Button
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
+              size="icon"
+            >
+              <Bold />
+            </Button>
+            <Button
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
+              size="icon"
+            >
+              <Italic />
+            </Button>
+            <Button
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
+              size="icon"
+            >
+              <Strikethrough />
+            </Button>
+          </BubbleMenu>
+        )}
 
         <div
           ref={scrollContainerRef}
@@ -457,13 +467,17 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             placeholder="Untitled Note"
-            className="text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 pt-4 px-8 pb-2 h-auto"
+            readOnly={note.isProtected}
+            className={cn(
+              "text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 pt-4 px-8 pb-2 h-auto",
+              note.isProtected && "opacity-80 cursor-default"
+            )}
           />
           <Separator className="mx-8 w-auto h-[2px] mb-4 bg-foreground/20" />
           <EditorContent editor={editor} />
         </div>
       </div>
-    </TooltipProvider>
+    </TooltipProvider >
   );
 };
 
