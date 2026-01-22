@@ -16,6 +16,7 @@ export type Note = {
   parentId?: string;
   children?: Note[];
   isDeleted?: boolean;
+  isProtected?: boolean;
 };
 
 export type Group = {
