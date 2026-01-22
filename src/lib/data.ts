@@ -61,10 +61,50 @@ export const notes: Note[] = [
   },
   {
     id: 'note-3',
-    title: 'Q3 Project brainstorming',
+    title: '(example) Q3 Project Brainstorming',
     icon: '💡',
-    content: '<p>Initial ideas for the next quarter project. Focus on improving user engagement and retention. Potential features: gamification, community forums, personalized recommendations.</p>',
-    plainTextContent: 'Initial ideas for the next quarter project. Focus on improving user engagement and retention. Potential features: gamification, community forums, personalized recommendations.',
+    content: `<h2>Project Goals</h2><p>Focus on improving <strong>user engagement</strong> and <strong>retention</strong>.</p><h3>Key Features</h3><ul><li><p>🎮 <strong>Gamification</strong> - Points, badges, streaks</p></li><li><p>💬 <strong>Community Forums</strong> - User discussions</p></li><li><p>🎯 <strong>Personalized Recommendations</strong> - AI-driven suggestions</p></li></ul><hr /><h3>Data Structure Draft</h3><pre><code class="language-json">{
+  "user": {
+    "id": "u_123",
+    "gamification": {
+      "points": 1500,
+      "badges": ["early_adopter", "power_user"],
+      "streak_days": 14
+    }
+  }
+}</code></pre><h3>Timeline</h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Phase</p></th><th colspan="1" rowspan="1"><p>Duration</p></th><th colspan="1" rowspan="1"><p>Status</p></th></tr><tr><td colspan="1" rowspan="1"><p>Research</p></td><td colspan="1" rowspan="1"><p>2 weeks</p></td><td colspan="1" rowspan="1"><p>✅ Done</p></td></tr><tr><td colspan="1" rowspan="1"><p>Design</p></td><td colspan="1" rowspan="1"><p>3 weeks</p></td><td colspan="1" rowspan="1"><p>🔄 In Progress</p></td></tr><tr><td colspan="1" rowspan="1"><p>Development</p></td><td colspan="1" rowspan="1"><p>6 weeks</p></td><td colspan="1" rowspan="1"><p>⏳ Pending</p></td></tr></tbody></table><blockquote><p>Ship fast, iterate faster!</p></blockquote>`,
+    plainTextContent: `## Project Goals
+Focus on improving **user engagement** and **retention**.
+
+### Key Features
+- 🎮 **Gamification** - Points, badges, streaks
+- 💬 **Community Forums** - User discussions
+- 🎯 **Personalized Recommendations** - AI-driven suggestions
+
+---
+
+### Data Structure Draft
+\`\`\`json
+{
+  "user": {
+    "id": "u_123",
+    "gamification": {
+      "points": 1500,
+      "badges": ["early_adopter", "power_user"],
+      "streak_days": 14
+    }
+  }
+}
+\`\`\`
+
+### Timeline
+| Phase | Duration | Status |
+| --- | --- | --- |
+| Research | 2 weeks | ✅ Done |
+| Design | 3 weeks | 🔄 In Progress |
+| Development | 6 weeks | ⏳ Pending |
+
+> Ship fast, iterate faster!`,
     group: 'work',
     stars: 1,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
@@ -74,10 +114,32 @@ export const notes: Note[] = [
   },
   {
     id: 'note-4',
-    title: 'Grocery List',
+    title: '(example) Weekly Grocery List',
     icon: '🛒',
-    content: '<ul><li><p>Milk</p></li><li><p>Bread</p></li><li><p>Eggs</p></li><li><p>Cheese</p></li><li><p>Apples</p></li></ul>',
-    plainTextContent: 'Milk Bread Eggs Cheese Apples',
+    content: `<h3>🥛 Dairy</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Milk (2L)</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Greek Yogurt</p></div></li><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Cheddar Cheese</p></div></li></ul><h3>🍞 Bakery</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Whole Wheat Bread</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Croissants (4 pack)</p></div></li></ul><h3>🍎 Produce</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Apples</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Bananas</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Spinach</p></div></li></ul><hr /><h3>Budget Planner</h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Category</p></th><th colspan="1" rowspan="1"><p>Est. Cost</p></th></tr><tr><td colspan="1" rowspan="1"><p>Dairy</p></td><td colspan="1" rowspan="1"><p>$15.00</p></td></tr><tr><td colspan="1" rowspan="1"><p>Bakery</p></td><td colspan="1" rowspan="1"><p>$8.50</p></td></tr><tr><td colspan="1" rowspan="1"><p>Produce</p></td><td colspan="1" rowspan="1"><p>$12.00</p></td></tr><tr><td colspan="1" rowspan="1"><p><strong>Total</strong></p></td><td colspan="1" rowspan="1"><p><strong>$35.50</strong></p></td></tr></tbody></table>`,
+    plainTextContent: `### 🥛 Dairy
+- [x] Milk (2L)
+- [ ] Greek Yogurt
+- [x] Cheddar Cheese
+
+### 🍞 Bakery
+- [ ] Whole Wheat Bread
+- [ ] Croissants (4 pack)
+
+### 🍎 Produce
+- [x] Apples
+- [ ] Bananas
+- [ ] Spinach
+
+---
+
+### Budget Planner
+| Category | Est. Cost |
+| --- | --- |
+| Dairy | $15.00 |
+| Bakery | $8.50 |
+| Produce | $12.00 |
+| **Total** | **$35.50** |`,
     group: 'personal',
     stars: 0,
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
@@ -86,10 +148,44 @@ export const notes: Note[] = [
   },
   {
     id: 'note-5',
-    title: 'Meeting Notes',
+    title: '(example) Design Team Meeting',
     icon: '💼',
-    content: '<p>Meeting with the design team.</p>',
-    plainTextContent: 'Meeting with the design team.',
+    content: `<h2>Meeting Notes - Jan 15</h2><p><strong>Attendees:</strong> Alex, Jamie, Sam, Taylor</p><hr /><h3>Agenda</h3><ol><li><p>Review Q4 metrics</p></li><li><p>Discuss new color system</p></li><li><p>Plan user testing sessions</p></li></ol><h3>Deployment Plan</h3><pre><code class="language-bash"># Run tests before deploying
+npm run test:ui
+
+# Build production bundle
+npm run build:prod
+
+# Deploy to staging
+vercel deploy --prebuilt</code></pre><h3>Action Items</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Alex: Prepare color palette documentation</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Jamie: Draft user testing script</p></div></li><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Sam: Update Figma components</p></div></li></ul><blockquote><p>Next meeting: Jan 22, 10:00 AM</p></blockquote>`,
+    plainTextContent: `## Meeting Notes - Jan 15
+**Attendees:** Alex, Jamie, Sam, Taylor
+
+---
+
+### Agenda
+1. Review Q4 metrics
+2. Discuss new color system
+3. Plan user testing sessions
+
+### Deployment Plan
+\`\`\`bash
+# Run tests before deploying
+npm run test:ui
+
+# Build production bundle
+npm run build:prod
+
+# Deploy to staging
+vercel deploy --prebuilt
+\`\`\`
+
+### Action Items
+- [ ] Alex: Prepare color palette documentation
+- [ ] Jamie: Draft user testing script
+- [x] Sam: Update Figma components
+
+> Next meeting: Jan 22, 10:00 AM`,
     group: 'work',
     stars: 0,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
