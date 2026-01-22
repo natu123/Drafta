@@ -1323,10 +1323,10 @@ export default function Home() {
           {!isMobileLayout && (
             <div
               className={cn(
-                "bg-background relative overflow-hidden shrink-0",
-                activeView === 'editor' ? "flex" : "hidden md:flex"
+                "bg-background relative overflow-hidden",
+                activeView === 'editor' ? "flex flex-1 min-w-0" : "hidden md:flex shrink-0"
               )}
-              style={{ width: activeView === 'editor' ? '100%' : editorWidth }}
+              style={activeView === 'editor' ? undefined : { width: editorWidth }}
             >
               {activeNote ? (
                 <Editor
