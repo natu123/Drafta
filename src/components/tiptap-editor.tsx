@@ -96,7 +96,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none px-8 pt-0 pb-0 flex-1',
+        class: 'prose dark:prose-invert max-w-none focus:outline-none',
       },
       // Serialize to plain text with markdown formatting
       clipboardTextSerializer: (slice, view) => {
@@ -460,7 +460,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto px-4"
         >
           <Input
             value={currentTitle}
@@ -469,11 +469,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             placeholder="Untitled Note"
             readOnly={note.isProtected}
             className={cn(
-              "text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 pt-4 px-8 pb-2 h-auto",
+              "text-3xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 pt-4 pb-2 h-auto w-full",
               note.isProtected && "opacity-80 cursor-default"
             )}
           />
-          <Separator className="mx-8 w-auto h-[2px] mb-4 bg-foreground/20" />
+          <Separator className="h-[2px] mb-4 bg-foreground/20" />
           <EditorContent editor={editor} />
         </div>
       </div>
