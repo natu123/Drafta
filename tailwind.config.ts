@@ -119,6 +119,15 @@ export default {
               marginTop: '1rem',
               marginBottom: '1rem',
             },
+            blockquote: {
+              quotes: 'none',
+            },
+            'blockquote p:first-of-type::before': {
+              content: 'none',
+            },
+            'blockquote p:last-of-type::after': {
+              content: 'none',
+            },
             // Make the textarea blend in
             'textarea': {
               'backgroundColor': 'transparent',

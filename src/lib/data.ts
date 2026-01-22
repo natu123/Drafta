@@ -13,50 +13,41 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Drafta',
     icon: '🌱',
-    content: `<h2>Organize your to-dos and thoughts seamlessly.</h2><hr /><h3>Drafta shapes raw thoughts into brilliant ideas.</h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Raw Thought</p></th><th colspan="1" rowspan="1"><p>Brilliant Idea</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough ideas</s></p></td><td colspan="1" rowspan="1"><p>Polished Plans</p></td></tr></tbody></table><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Capture notes any way you like using <strong>Markdown</strong>.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Try switching to <strong>Plain Text</strong> mode to see the magic!</p></div></li></ul><hr /><p>You can create code blocks like this:</p><pre><code class="language-css">/* Welcome to Drafta! */
+    content: `<h3><em>Organize to-dos and thoughts seamlessly.</em></h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Before</p></th><th colspan="1" rowspan="1"><p>➛ After</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough thought</s></p></td><td colspan="1" rowspan="1"><p>Polished ideas</p></td></tr></tbody></table><p></p><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Put your tasks in ToDo app, memos in note-taking app.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Every thought in one place, Drafta!</p></div></li></ul><p></p><hr /><pre><code class="language-css">/* Welcome to Drafta! */
 .thought {
   state: brilliant;
-}</code></pre><blockquote><p>Everything starts with a draft.</p></blockquote>`,
-    plainTextContent: `Organize your to-dos and thoughts seamlessly.
-
----
-
-### Drafta shapes raw thoughts into brilliant ideas.
-
-| Raw Thought | Brilliant Idea |
-|---|---|
+}</code></pre><blockquote><p>You're accelerating now!</p></blockquote>`,
+    plainTextContent: `### _Organize to-dos and thoughts seamlessly._
+| Before | ➛ After |
+| --- | --- |
 | ~~Scattered notes~~ | Structured Knowledge |
-| ~~Rough ideas~~ | Polished Plans |
+| ~~Rough thought~~ | Polished ideas |
 
 ---
-
-- [x] Capture notes any way you like using **Markdown**.
-- [ ] Try switching to **Plain Text** mode to see the magic!
+- [x] Put your tasks in ToDo app, memos in note-taking app.
+- [ ] Every thought in one place, Drafta!
 
 ---
-
-You can create code blocks like this:
-
 \`\`\`css
 /* Welcome to Drafta! */
 .thought {
   state: brilliant;
 }
 \`\`\`
-
-> Everything starts with a draft.`,
+> You're accelerating now!`,
     group: 'inbox',
     stars: 3,
     isPinned: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     updatedAt: new Date().toISOString(),
     lastAccessedAt: new Date().toISOString(),
-    thumbnailUrl: 'https://picsum.photos/seed/1/600/400'
+    thumbnailUrl: 'https://picsum.photos/seed/1/600/400',
+    isProtected: true
   },
   {
     id: 'note-2',
     title: 'Quick Reference',
-    icon: '📝',
+    icon: '🌱',
     content: `<p>This is a quick reference for text formatting.</p><p></p><p>You can use the toolbar to apply formatting like bold, italic, and strikethrough.</p><p></p><ul><li><p>This is an unordered list item.</p></li><li><p>You can create lists to organize your thoughts.</p></li></ul><p></p><ol><li><p>This is an ordered list item.</p></li><li><p>Use them for step-by-step instructions.</p></li></ol>`,
     plainTextContent: `This is a quick reference for text formatting. You can use the toolbar to apply formatting like bold, italic, and strikethrough. This is an unordered list item. You can create lists to organize your thoughts. 1. This is an ordered list item. 2. Use them for step-by-step instructions.`,
     group: 'inbox',
@@ -65,7 +56,8 @@ You can create code blocks like this:
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     parentId: 'note-1',
-    thumbnailUrl: 'https://picsum.photos/seed/2/600/400'
+    thumbnailUrl: 'https://picsum.photos/seed/2/600/400',
+    isProtected: true
   },
   {
     id: 'note-3',

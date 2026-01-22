@@ -174,7 +174,7 @@ export function richToPlainMarkdown(html: string): string {
         const isChecked = li.getAttribute('data-checked') === 'true';
         const prefix = isChecked ? '- [x] ' : '- [ ] ';
         const textDiv = li.querySelector('div');
-        const text = textDiv?.textContent?.trim() || '';
+        const text = textDiv ? getCleanText(textDiv) : '';
         output.push(prefix + text);
       });
       return;
@@ -183,7 +183,7 @@ export function richToPlainMarkdown(html: string): string {
     // Unordered list
     if (tagName === 'UL') {
       child.querySelectorAll('li').forEach(li => {
-        output.push('- ' + (li.textContent?.trim() || ''));
+        output.push('- ' + getCleanText(li));
       });
       return;
     }
@@ -191,7 +191,7 @@ export function richToPlainMarkdown(html: string): string {
     // Ordered list
     if (tagName === 'OL') {
       child.querySelectorAll('li').forEach((li, idx) => {
-        output.push(`${idx + 1}. ` + (li.textContent?.trim() || ''));
+        output.push(`${idx + 1}. ` + getCleanText(li));
       });
       return;
     }
@@ -201,7 +201,7 @@ export function richToPlainMarkdown(html: string): string {
       const rows = child.querySelectorAll('tr');
       rows.forEach((row, rowIdx) => {
         const cells = row.querySelectorAll('th, td');
-        const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim() || '');
+        const cellTexts = Array.from(cells).map(cell => getCleanText(cell));
         output.push('| ' + cellTexts.join(' | ') + ' |');
         if (rowIdx === 0) {
           output.push('| ' + cellTexts.map(() => '---').join(' | ') + ' |');
@@ -248,6 +248,7 @@ export function plainMarkdownToRich(text: string): string {
     return str
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.+?)__/g, '<strong>$1</strong>')
+      .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '<em>$1</em>')
       .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>')
       .replace(/~~(.+?)~~/g, '<s>$1</s>')
       .replace(/`([^`]+)`/g, '<code>$1</code>');

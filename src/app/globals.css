@@ -251,6 +251,26 @@
     border-top: 2px dashed hsl(var(--border));
 }
 
+/* BLOCKQUOTE STYLES */
+.ProseMirror blockquote {
+    border-left: 4px solid hsl(var(--primary));
+    padding-left: 1rem;
+    margin: 0.5rem 0;
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+}
+
+/* Remove default prose quotes */
+.ProseMirror blockquote::before,
+.ProseMirror blockquote::after {
+    content: none !important;
+}
+
+.prose blockquote::before,
+.prose blockquote::after {
+    content: none !important;
+}
+
 /* TASK LIST (Checkbox) Styles */
 .ProseMirror ul[data-type="taskList"] li {
     gap: 0.5rem;
