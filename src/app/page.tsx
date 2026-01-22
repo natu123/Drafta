@@ -457,6 +457,25 @@ export default function Home() {
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
 
+  // Dynamic key replacement for Quick Reference (Cmd/Ctrl)
+  React.useEffect(() => {
+    const isMac = typeof navigator !== 'undefined' ? /Mac|iPod|iPhone|iPad/.test(navigator.platform) : false;
+    const modKey = isMac ? 'Cmd' : 'Ctrl';
+
+    setNotes(prev => prev.map(note => {
+      const hasPlaceholder = note.content.includes('{{Mod}}') || (note.plainTextContent && note.plainTextContent.includes('{{Mod}}'));
+
+      if (hasPlaceholder) {
+        return {
+          ...note,
+          content: note.content.replace(/{{Mod}}/g, modKey),
+          plainTextContent: note.plainTextContent ? note.plainTextContent.replace(/{{Mod}}/g, modKey) : undefined
+        };
+      }
+      return note;
+    }));
+  }, []);
+
   // Initialize with 'Welcome to Drafta' note (note-1)
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
     initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
