@@ -55,7 +55,7 @@ Drafta is a modern, privacy-focused note-taking application designed to bridge t
    ```
 
 4. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+   Navigate to [http://localhost:9002](http://localhost:9002)
 
 ---
 
