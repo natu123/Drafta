@@ -13,27 +13,28 @@ export const notes: Note[] = [
     id: 'note-1',
     title: 'Welcome to Drafta',
     icon: '🌱',
-    content: `<h3><span style="color: #64A364"><em>Organize to-dos and thoughts seamlessly.</em></span></h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Before</p></th><th colspan="1" rowspan="1"><p>➛ After</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough thought</s></p></td><td colspan="1" rowspan="1"><p>Polished ideas</p></td></tr></tbody></table><p></p><hr /><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Put your tasks in ToDo app, memos in note-taking app.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Every thought in one place, Drafta!</p></div></li></ul><p></p><hr /><pre><code class="language-css">/* Welcome to Drafta! */
+    content: `<pre><code class="language-css">/* Welcome to Drafta! */
     .thought {
       state: brilliant;
-    }</code></pre><blockquote><p>You're accelerating now!</p></blockquote>`,
-    plainTextContent: `### _Organize to-dos and thoughts seamlessly._
+    }</code></pre><p></p><h3><span style="color: #64A364"><em>Organize to-dos and thoughts seamlessly.</em></span></h3><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Put your tasks in ToDo app, memos in note-taking app.</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Every thought in one place, Drafta!</p></div></li></ul><p></p><hr /><table><tbody><tr><th colspan="1" rowspan="1"><p>Before</p></th><th colspan="1" rowspan="1"><p>➛ After</p></th></tr><tr><td colspan="1" rowspan="1"><p><s>Scattered notes</s></p></td><td colspan="1" rowspan="1"><p>Structured Knowledge</p></td></tr><tr><td colspan="1" rowspan="1"><p><s>Rough thought</s></p></td><td colspan="1" rowspan="1"><p>Polished ideas</p></td></tr></tbody></table><p></p><hr /><blockquote><p>You're accelerating now!</p></blockquote>`,
+    plainTextContent: `\`\`\`css
+/* Welcome to Drafta! */
+    .thought {
+      state: brilliant;
+    }
+\`\`\`
+
+### <span style="color: #64A364">_Organize to-dos and thoughts seamlessly._</span>
+- [x] Put your tasks in ToDo app, memos in note-taking app.
+- [ ] Every thought in one place, Drafta!
+
+---
 | Before | ➛ After |
 | --- | --- |
 | ~~Scattered notes~~ | Structured Knowledge |
 | ~~Rough thought~~ | Polished ideas |
 
 ---
-- [x] Put your tasks in ToDo app, memos in note-taking app.
-- [ ] Every thought in one place, Drafta!
-
----
-\`\`\`css
-/* Welcome to Drafta! */
-.thought {
-  state: brilliant;
-}
-\`\`\`
 > You're accelerating now!`,
     group: 'inbox',
     stars: 3,
@@ -48,8 +49,55 @@ export const notes: Note[] = [
     id: 'note-2',
     title: 'Quick Reference',
     icon: '🌱',
-    content: `<p>This is a quick reference for text formatting.</p><p></p><p>You can use the toolbar to apply formatting like bold, italic, and strikethrough.</p><p></p><ul><li><p>This is an unordered list item.</p></li><li><p>You can create lists to organize your thoughts.</p></li></ul><p></p><ol><li><p>This is an ordered list item.</p></li><li><p>Use them for step-by-step instructions.</p></li></ol>`,
-    plainTextContent: `This is a quick reference for text formatting. You can use the toolbar to apply formatting like bold, italic, and strikethrough. This is an unordered list item. You can create lists to organize your thoughts. 1. This is an ordered list item. 2. Use them for step-by-step instructions.`,
+    content: `<p>Drafta supports standard Markdown syntax and powerful rich text features.</p><p></p><hr /><h3>Text Styling</h3><ul><li><p><strong>Bold</strong>: <code>**Bold**</code> or <code>{{Mod}}+B</code></p></li><li><p><em>Italic</em>: <code>*Italic*</code> or <code>{{Mod}}+I</code></p></li><li><p><s>Strikethrough</s>: <code>~~Strike~~</code> or <code>{{Mod}}+Shift+X</code></p></li><li><p><code>Inline Code</code>: \`Code\` or <code>{{Mod}}+E</code></p></li></ul><p></p><h3>Lists & Structure</h3><h4>Bullet Lab</h4><ul><li><p>Item A</p></li><li><p>Item B</p></li></ul><p></p><h4>Ordered Lab</h4><ol><li><p>Step 1</p></li><li><p>Step 2</p></li></ol><p></p><h4>Task List</h4><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Todo item</p></div></li><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Done item</p></div></li></ul><p></p><blockquote><p><strong>Quote</strong>: Use <code>></code> at the start of a line to create a blockquote.</p></blockquote><p></p><hr /><h3>Advanced</h3><h4>Code Blocks</h4><pre><code class="language-typescript">const drafta = "Awesome";
+console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th colspan="1" rowspan="1"><p>Feature</p></th><th colspan="1" rowspan="1"><p>Status</p></th></tr><tr><td colspan="1" rowspan="1"><p>Markdown</p></td><td colspan="1" rowspan="1"><p>✅</p></td></tr><tr><td colspan="1" rowspan="1"><p>Rich Text</p></td><td colspan="1" rowspan="1"><p>✅</p></td></tr></tbody></table><p></p><hr /><h3>Drafta Power Tips</h3><ul><li><p><strong>List/Grid View</strong>: Toggle layouts from the header.</p></li><li><p><strong>Organization</strong>: Drag notes to reorder.</p></li><li><p><strong>Focus Mode</strong>: Collapse the sidebar for distraction-free writing.</p></li><li><p><strong>Shortcuts</strong>: <code>/</code> for commands (coming soon!).</p></li></ul>`,
+    plainTextContent: `Drafta supports standard Markdown syntax and powerful rich text features.
+
+---
+
+### Text Styling
+- **Bold**: \`**Bold**\` or \`{{Mod}}+B\`
+- *Italic*: \`*Italic*\` or \`{{Mod}}+I\`
+- ~~Strikethrough~~: \`~~Strike~~\` or \`{{Mod}}+Shift+X\`
+- \`Inline Code\`: \`Code\` or \`{{Mod}}+E\`
+
+### Lists & Structure
+#### Bullet Lab
+- Item A
+- Item B
+
+#### Ordered Lab
+1. Step 1
+2. Step 2
+
+#### Task List
+- [ ] Todo item
+- [x] Done item
+
+> **Quote**: Use \`>\` at the start of a line to create a blockquote.
+
+---
+
+### Advanced
+#### Code Blocks
+\`\`\`typescript
+const drafta = "Awesome";
+console.log(drafta);
+\`\`\`
+
+#### Tables
+| Feature | Status |
+| --- | --- |
+| Markdown | ✅ |
+| Rich Text | ✅ |
+
+---
+
+### Drafta Power Tips
+- **List/Grid View**: Toggle layouts from the header.
+- **Organization**: Drag notes to reorder.
+- **Focus Mode**: Collapse the sidebar for distraction-free writing.
+- **Shortcuts**: \`/\` for commands (coming soon!).`,
     group: 'inbox',
     stars: 2,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
