@@ -95,10 +95,7 @@
 }
 
 
-/* Tiptap styles */
-.ProseMirror {
-    @apply min-h-[calc(100vh-200px)];
-}
+/* Tiptap styles - No min-height restriction to let content flow naturally */
 
 .ProseMirror-focused {
     @apply outline-none;
