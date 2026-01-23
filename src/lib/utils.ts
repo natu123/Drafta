@@ -106,6 +106,29 @@ export function richToPlainMarkdown(html: string): string {
     clone.querySelectorAll('code').forEach(e => {
       e.replaceWith(`\`${e.textContent}\``);
     });
+    // Handle colored text: <span style="color: ..."> → {color:#XXX}text{/color}
+    // Supports both HEX (#XXXXXX) and RGB (rgb(r, g, b)) formats
+    clone.querySelectorAll('span[style*="color"]').forEach(e => {
+      const style = e.getAttribute('style') || '';
+
+      // Try HEX format first: #XXXXXX or #XXX
+      let hexMatch = style.match(/color:\s*(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})/i);
+      if (hexMatch) {
+        e.replaceWith(`{color:${hexMatch[1]}}${e.textContent}{/color}`);
+        return;
+      }
+
+      // Try RGB format: rgb(r, g, b)
+      const rgbMatch = style.match(/color:\s*rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
+      if (rgbMatch) {
+        const r = parseInt(rgbMatch[1], 10);
+        const g = parseInt(rgbMatch[2], 10);
+        const b = parseInt(rgbMatch[3], 10);
+        const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        e.replaceWith(`{color:${hex}}${e.textContent}{/color}`);
+        return;
+      }
+    });
 
     return clone.textContent?.trim() || '';
   };
@@ -246,6 +269,8 @@ export function plainMarkdownToRich(text: string): string {
 
   const processInline = (str: string): string => {
     return str
+      // Color syntax: {color:#XXXXXX}text{/color} → <span style="color: #XXXXXX">text</span>
+      .replace(/\{color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\}(.+?)\{\/color\}/gi, '<span style="color: $1">$2</span>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.+?)__/g, '<strong>$1</strong>')
       .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '<em>$1</em>')
