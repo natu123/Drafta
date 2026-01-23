@@ -1159,88 +1159,96 @@ export default function Home() {
               <ScrollArea className="flex-1 px-4">
                 <div ref={listTopScrollRef} />
                 <ul className="space-y-1 py-2">
-                  {filteredGroups.map(group => (
-                    <li
-                      key={group.id}
-                      className="relative group/list"
-                      onDragOver={(e) => handleGroupDragOver(e, group.id)}
-                      onDrop={(e) => handleGroupDrop(e, group.id)}
-                      onDragLeave={handleGroupDragLeave}
-                    >
-                      {dropTargetGroupId === group.id && dropGroupPosition === 'before' && (
-                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
-                      )}
+                  {filteredGroups.map(group => {
+                    const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
+                    return (
+                      <li
+                        key={group.id}
+                        className="relative group/list"
+                        onDragOver={(e) => handleGroupDragOver(e, group.id)}
+                        onDrop={(e) => handleGroupDrop(e, group.id)}
+                        onDragLeave={handleGroupDragLeave}
+                      >
+                        {dropTargetGroupId === group.id && dropGroupPosition === 'before' && (
+                          <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
+                        )}
 
-                      {group.type === 'separator' ? (
-                        <div
-                          draggable
-                          onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                          className={cn(
-                            "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
-                            draggedGroupId === group.id ? "opacity-30" : "opacity-100",
-                            dropTargetGroupId === group.id && "bg-secondary/50"
-                          )}
-                        >
-                          <div className="w-8 flex justify-center shrink-0">
+                        {group.type === 'separator' ? (
+                          <div
+                            draggable
+                            onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                            className={cn(
+                              "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
+                              draggedGroupId === group.id ? "opacity-30" : "opacity-100",
+                              dropTargetGroupId === group.id && "bg-secondary/50"
+                            )}
+                          >
+                            <div className="w-8 flex justify-center shrink-0">
+                            </div>
+                            <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
+                            <div className="w-8 flex justify-center shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
+                                onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
-                          <div className="w-8 flex justify-center shrink-0">
+                        ) : (
+                          <div
+                            draggable={group.id !== 'inbox'}
+                            onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                          >
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
-                              onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
+                              className={cn(
+                                "w-full justify-start gap-2 h-9 pr-8",
+                                group.id === 'inbox' ?
+                                  cn(
+                                    activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
+                                  ) :
+                                  activeGroupId === group.id
+                                    ? cn(
+                                      "bg-[#E7A1B0]/15 hover:bg-[#E7A1B0]/20",
+                                      hasNotes ? "text-foreground font-medium" : "text-muted-foreground font-normal opacity-70"
+                                    )
+                                    : (!hasNotes && "text-muted-foreground font-normal opacity-70 hover:text-muted-foreground hover:opacity-70"),
+
+                                // Dragged styling
+                                draggedGroupId === group.id && "opacity-50",
+
+                                // Drop Target Styling:
+                                // If dropping a GROUP (Reorder), default logic handled by lines, but maybe highlight?
+                                dropTargetGroupId === group.id && "bg-secondary"
+                              )}
+                              onClick={() => setActiveGroupId(group.id)}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Inbox className="w-4 h-4" />
+                              <span className="truncate">{group.name}</span>
                             </Button>
                           </div>
-                        </div>
-                      ) : (
-                        <div
-                          draggable={group.id !== 'inbox'}
-                          onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                        >
+                        )}
+
+                        {dropTargetGroupId === group.id && dropGroupPosition === 'after' && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
+                        )}
+
+                        {group.id !== 'inbox' && group.type !== 'separator' && (
                           <Button
                             variant="ghost"
-                            className={cn(
-                              "w-full justify-start gap-2 h-9 pr-8",
-                              group.id === 'inbox' ?
-                                cn(
-                                  activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
-                                ) :
-                                activeGroupId === group.id && "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20",
-
-                              // Dragged styling
-                              draggedGroupId === group.id && "opacity-50",
-
-                              // Drop Target Styling:
-                              // If dropping a GROUP (Reorder), default logic handled by lines, but maybe highlight?
-                              dropTargetGroupId === group.id && "bg-secondary"
-                            )}
-                            onClick={() => setActiveGroupId(group.id)}
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/list:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
                           >
-                            <Inbox className="w-4 h-4" />
-                            <span className="truncate">{group.name}</span>
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
-                        </div>
-                      )}
-
-                      {dropTargetGroupId === group.id && dropGroupPosition === 'after' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
-                      )}
-
-                      {group.id !== 'inbox' && group.type !== 'separator' && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/list:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </li>
-                  ))}
+                        )}
+                      </li>
+                    )
+                  })}
                   <div ref={listScrollRef} />
 
                   <li className="pt-2 mt-2 border-t">
