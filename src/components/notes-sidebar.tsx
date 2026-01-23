@@ -5,7 +5,7 @@ import { Star, Search, ChevronRight, Pin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Note } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, parseColorMarkdown } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NotesSidebarProps {
@@ -152,7 +152,17 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
             )}
             <span className="text-lg shrink-0">{note.icon || '📝'}</span>
             <div className="flex-1 overflow-hidden">
-              <h3 className={cn("font-semibold truncate", note.isCompleted && "line-through opacity-70")}>{note.title}</h3>
+              {(() => {
+                const { color, text } = parseColorMarkdown(note.title);
+                return (
+                  <h3
+                    className={cn("font-semibold truncate", note.isCompleted && "line-through opacity-70")}
+                    style={color ? { color } : undefined}
+                  >
+                    {text}
+                  </h3>
+                );
+              })()}
               <p className="text-xs text-muted-foreground truncate">
                 {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
               </p>

@@ -5,6 +5,29 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Color Markdown helpers for title color feature
+// Syntax: {color:#XXXXXX}text{/color}
+
+/**
+ * Strip Color Markdown tags from text, returning plain text only
+ * Used for Central Column where no color should be displayed
+ */
+export function stripColorMarkdown(text: string): string {
+  return text.replace(/\{color:#[0-9A-Fa-f]{3,6}\}(.+?)\{\/color\}/gi, '$1');
+}
+
+/**
+ * Parse Color Markdown to extract color and clean text
+ * Returns { color: string | null, text: string }
+ */
+export function parseColorMarkdown(text: string): { color: string | null; text: string } {
+  const match = text.match(/^\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}$/i);
+  if (match) {
+    return { color: match[1], text: match[2] };
+  }
+  return { color: null, text };
+}
+
 export function removeFormatting(html: string): string {
   if (typeof document === 'undefined') return '';
   const tempDiv = document.createElement('div');

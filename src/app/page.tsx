@@ -11,7 +11,7 @@ import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
-import { cn, htmlToSimpleText } from '@/lib/utils';
+import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -368,7 +368,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                               </Popover>
                             </div>
                             <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
-                              {item.title || 'Untitled'}
+                              {stripColorMarkdown(item.title) || 'Untitled'}
                             </p>
                           </div>
                           <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
@@ -436,7 +436,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         </div>
                       </CardContent>
                       <CardFooter className="p-2 border-t bg-card">
-                        <p className="text-sm truncate font-medium">{item.title || 'Untitled'}</p>
+                        <p className="text-sm truncate font-medium">{stripColorMarkdown(item.title) || 'Untitled'}</p>
                       </CardFooter>
                     </Card>
                   )
