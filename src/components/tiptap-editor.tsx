@@ -16,7 +16,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Copy, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -88,6 +88,7 @@ const extensions = [
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom' }) => {
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
+  const [isCopied, setIsCopied] = React.useState(false);
   const contentRef = React.useRef(note.content);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -125,6 +126,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     return `<h1>${titleHtml}</h1>${bodyContent}`;
   }, [titleToHtml]);
 
+  // Ref to track plain text mode in callbacks without re-triggering dependency changes
+  const isPlainTextModeRef = React.useRef(isPlainTextMode);
+  React.useEffect(() => {
+    isPlainTextModeRef.current = isPlainTextMode;
+  }, [isPlainTextMode]);
+
   const handleSave = React.useCallback((editorInstance: Editor) => {
     // Extract title (first H1) and content (rest)
     const json = editorInstance.getJSON();
@@ -133,27 +140,60 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     let newTitle = '';
     let newContent = '';
 
-    // Check if first node is H1
-    if (json.content && json.content.length > 0 && json.content[0].type === 'heading' && json.content[0].attrs?.level === 1) {
-      // It's the title. Use DOM parser to get inner HTML of the first node for accurate color extraction
-      // Or simpler: parse the full HTML
+    // Logic separation based on View Mode
+    if (isPlainTextModeRef.current) {
+      // PLAIN TEXT MODE
+      // Strategy: Check if first child is H1 (due to Schema Enforcement in handleTogglePlainTextMode)
+
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
-      const firstH1 = tempDiv.querySelector('h1');
 
-      if (firstH1) {
-        // Extract title with colors
-        newTitle = htmlToTitle(firstH1.innerHTML);
-        // Remove the first H1 from content
-        firstH1.remove();
+      const firstChild = tempDiv.firstElementChild;
+
+      // We expect first child to be H1 because we forced it in toggle/schema.
+      if (firstChild && firstChild.tagName === 'H1') {
+        // In Hybrid Plain Mode, H1 is Rich (HTML), so we use htmlToTitle to extract proper title string with color tags
+        newTitle = htmlToTitle(firstChild.innerHTML);
+        // Remove H1 from content
+        firstChild.remove();
         newContent = tempDiv.innerHTML;
       } else {
-        // Fallback if H1 missing in HTML but present in JSON (unlikely)
+        // Fallback logic
+        const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
+        if (paragraphs.length > 0) {
+          // If no H1, try to parse first paragraph? But Schema enforces H1.
+          // Fallback to text content
+          newTitle = paragraphs[0].textContent || '';
+          paragraphs[0].remove();
+          newContent = tempDiv.innerHTML;
+        } else {
+          newContent = content;
+        }
+      }
+
+    } else {
+      // RICH TEXT MODE: Look for H1 Node
+
+      // Check if first node is H1
+      if (json.content && json.content.length > 0 && json.content[0].type === 'heading' && json.content[0].attrs?.level === 1) {
+        // It's the title. Use DOM parser to get inner HTML of the first node for accurate color extraction
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        const firstH1 = tempDiv.querySelector('h1');
+
+        if (firstH1) {
+          // Extract title with colors
+          newTitle = htmlToTitle(firstH1.innerHTML);
+          // Remove the first H1 from content
+          firstH1.remove();
+          newContent = tempDiv.innerHTML;
+        } else {
+          newContent = content;
+        }
+      } else {
+        // No H1 found (safe fallback)
         newContent = content;
       }
-    } else {
-      // No H1 found (should be impossible with TitleDocument, but safe fallback)
-      newContent = content;
     }
 
     contentRef.current = newContent;
@@ -236,28 +276,13 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const prevNoteIdRef = React.useRef(note.id);
   React.useEffect(() => {
     if (editor && note.id !== prevNoteIdRef.current) {
-      // Clear undo history implicitly by setting new content?
-      // Tiptap doesn't clear history on setContent unless we use new editor.
-      // But we are reusing editor.
-      // Ideally we should clear history.
-      // editor.commands.clearContent(false); // Can trigger update, be careful.
-
       const newContent = getInitialContent(note.title, note.content);
-      editor.commands.setContent(newContent, false); // emitUpdate: false to avoid saving back immediately?
-
-      // Need to clear history to prevents undoing to previous note
-      // Unfortunately Tiptap doesn't expose clean way to clear history on same instance without hacking state 
-      // or recreating editor.
-      // Recreating editor (by key) might be better if we want clean history.
-
+      editor.commands.setContent(newContent, false);
       contentRef.current = note.content;
       setIsPlainTextMode(false);
       prevNoteIdRef.current = note.id;
     }
   }, [note.id, note.title, note.content, editor, getInitialContent]);
-
-  // NOTE: Simple content sync for same-note external update is complex with Title integration.
-  // We skip complex sync logic for now assuming single user.
 
   if (!editor) {
     return null;
@@ -268,70 +293,177 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   };
 
   const handleTogglePlainTextMode = () => {
-    // (省略: 基本的に既存ロジックと同じだが、タイトル(H1)の扱いをどうするか？)
-    // Plain Text Modeでは構造が崩れる可能性がある。
-    // 今回は一旦 Plain Text Mode への切り替え時、「今のHTML」をMarkdownにするので、
-    // H1は `# Title` になる。
-    // 戻すときに `<h1>` に戻ればOK。
-    // plainMarkdownToRich が `# ` を `<h1>` に変換するならOK。
-    // utils.ts の実装次第。現状はStarterKit準拠なら `# ` はH1になるはず。
-
-    // ...Existing logic...
-    // For simplicity, reusing existing logic (might need refinement for H1 enforcement if plain text mode doesn't respect it)
     if (!editor) return;
 
+    // Calculate next mode
+    const nextMode = !isPlainTextMode;
+
+    // CRITICAL: Manually update ref BEFORE setContent triggers synchronous handleSave/onUpdate
+    isPlainTextModeRef.current = nextMode;
+
     if (isPlainTextMode) {
-      const plainHtml = editor.getHTML();
+      // Switching: Plain -> Rich
+      // Current Content: H1 (Rich HTML) + P (Markdown Text)
+      const currentHtml = editor.getHTML();
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = plainHtml;
-      const lines: string[] = [];
-      tempDiv.querySelectorAll('p').forEach(p => {
-        const isEmptyP = (p.children.length === 1 && p.children[0].tagName === 'BR') ||
-          (p.textContent?.trim() === '' && p.children.length === 0);
-        if (isEmptyP) lines.push('');
-        else lines.push(p.textContent?.trim() || '');
+      tempDiv.innerHTML = currentHtml;
+
+      const firstChild = tempDiv.firstElementChild;
+      let titleHtml = '';
+      let bodyMarkdownLines: string[] = [];
+
+      // Extract Rich Title
+      if (firstChild && firstChild.tagName === 'H1') {
+        titleHtml = firstChild.outerHTML; // Keep H1 tag and innerHTML
+        firstChild.remove();
+      }
+
+      const { from } = editor.state.selection;
+
+      // Extract Body (Markdown Text)
+      Array.from(tempDiv.children).forEach(child => {
+        const isEmptyP = child.tagName === 'P' && (
+          (child.children.length === 1 && child.children[0].tagName === 'BR') ||
+          (child.textContent?.trim() === '' && child.children.length === 0)
+        );
+        if (isEmptyP) {
+          bodyMarkdownLines.push('');
+        } else {
+          bodyMarkdownLines.push(child.textContent || ''); // Raw markdown text
+        }
       });
-      const markdownText = lines.join('\n');
-      const richContent = plainMarkdownToRich(markdownText);
-      // Ensure richContent starts with H1? 
-      // If markdown text didn't start with #, richContent won't have H1.
-      // TitleDocument will enforce H1, so setContent might fail or auto-fix.
-      editor.chain().setContent(richContent, false, { preserveWhitespace: 'full' }).run();
+
+      const markdownText = bodyMarkdownLines.join('\n'); // No trim to preserve intentional structure
+      const richBody = plainMarkdownToRich(markdownText);
+
+      // Combine: Rich Title + Rich Body
+      // richBody might contain wrapper div or just HTML string. plainMarkdownToRich returns HTML string.
+      const finalContent = titleHtml + richBody;
+
+      editor.chain().setContent(finalContent, false, { preserveWhitespace: 'full' }).setTextSelection(from).run();
     } else {
-      const currentContent = editor.getHTML();
-      const plainContent = richToPlainMarkdown(currentContent);
-      const lines = plainContent.split('\n').map(p => p.trim());
+      // Switching: Rich -> Plain
+      // Strategy: Keep Title Rich (H1 HTML), Convert Body to Plain (MD in P)
+      const currentHtml = editor.getHTML();
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = currentHtml;
+
+      const firstChild = tempDiv.firstElementChild;
+      let titleHtml = '';
+
+      // Extract Title
+      if (firstChild && firstChild.tagName === 'H1') {
+        titleHtml = firstChild.outerHTML;
+        firstChild.remove();
+      } else {
+        // Force H1 if missing (shouldn't happen with Schema)
+        titleHtml = '<h1></h1>';
+      }
+
+      // Convert Body (Remaining HTML) to Markdown
+      const bodyHtml = tempDiv.innerHTML;
+      const plainBody = richToPlainMarkdown(bodyHtml);
+
+      const { from } = editor.state.selection;
+
+      const lines = plainBody.split('\n');
       while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
-      const wrappedContent = lines.map(p => p === '' ? '<p></p>' : `<p>${p}</p>`).join('');
-      editor.chain().setContent(wrappedContent, false, { preserveWhitespace: 'full' }).run();
+
+      // Wrap Markdown lines in P tags
+      const wrappedBody = lines.map(line => {
+        return line === '' ? '<p></p>' : `<p>${line}</p>`;
+      }).join('');
+
+      const finalContent = titleHtml + (wrappedBody || '<p></p>');
+
+      editor.chain().setContent(finalContent, false, { preserveWhitespace: 'full' }).setTextSelection(from).run();
     }
-    setIsPlainTextMode(!isPlainTextMode);
-    editor.commands.focus();
+
+    setIsPlainTextMode(nextMode);
+
+    // REMOVED: forced focus('start') per user feedback.
+    // editor.commands.focus(); 
+    // We already set selection in the chain above. Just ensure focus.
+    if (!editor.isFocused) {
+      editor.commands.focus();
+    }
+
   };
 
   const handleRemoveFormatting = () => {
     if (editor) {
-      const currentContent = editor.getHTML();
-      const plainText = removeFormatting(currentContent);
-      // ... same logic ...
-      // Need to ensuring H1 is preserved? 
-      // removeFormatting returns plain text.
-      // Converting back to HTML <p> will lose H1.
-      // This function needs update to respect H1.
+      const json = editor.getJSON();
+      let plainText = '';
 
-      // Better: Use Tiptap's unsetAllMarks() and distinct commands instead of brute force removeFormatting utility?
-      // Or manually reconstruct H1 for first line.
+      // Traverse JSON to extract text with correct newlines
+      // Use \n\n for block separators, \n for hardBreaks
+      // IMPORTANT: Handle "empty blocks" (paragraph with only hardBreak) specially
+      const traverse = (node: any) => {
+        // Check if this is an "empty block" - a paragraph/heading that is visually empty
+        // Cases: 1) content is undefined/empty array  2) content is only a hardBreak
+        const isEmptyBlock =
+          ['paragraph', 'heading'].includes(node.type) &&
+          (!node.content ||
+            node.content.length === 0 ||
+            (node.content.length === 1 && node.content[0].type === 'hardBreak'));
 
-      const lines = plainText.split('\n').map((p: string) => p.trim());
-      while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+        if (isEmptyBlock) {
+          // Add only block separator, don't process content to avoid extra \n
+          plainText += '\n\n';
+          return;
+        }
 
-      // Force first line to be H1?
-      let newContent = '';
-      if (lines.length > 0) {
-        newContent += `<h1>${lines[0]}</h1>`;
-        newContent += lines.slice(1).map((p: string) => p === '' ? '<p><br></p>' : `<p>${p}</p>`).join('');
+        // Normal processing
+        if (node.type === 'text') {
+          plainText += node.text;
+        } else if (node.type === 'hardBreak') {
+          plainText += '\n';
+        } else if (node.content) {
+          node.content.forEach((child: any) => traverse(child));
+        }
+
+        // Block separator: Use \n\n to distinguish blocks from inline breaks
+        if (['paragraph', 'heading', 'bulletList', 'orderedList', 'listItem', 'taskItem'].includes(node.type)) {
+          plainText += '\n\n';
+        }
+      };
+
+      if (json.content) {
+        json.content.forEach((node: any) => traverse(node));
       }
 
+      // Strip color markdown
+      plainText = plainText.replace(/\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi, '$2');
+
+      // Split by block separator (\n\n)
+      const blocks = plainText.split('\n\n');
+
+      // Clean up trailing empty blocks
+      while (blocks.length > 0 && blocks[blocks.length - 1].trim() === '') blocks.pop();
+
+      // Rebuild: H1 + Ps
+      let newContent = '';
+      if (blocks.length > 0) {
+        // First block is Title (replace any internal \n with space)
+        newContent += `<h1>${blocks[0].replace(/\n/g, ' ')}</h1>`;
+
+        const bodyBlocks = blocks.slice(1);
+
+        if (bodyBlocks.length === 0) {
+          newContent += '<p></p>';
+        } else {
+          newContent += bodyBlocks.map(block => {
+            // Empty block = empty paragraph (check exact empty string, not trimmed)
+            if (block === '') return '<p></p>';
+            // Internal \n = <br> (preserve line breaks within paragraph)
+            return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+          }).join('');
+        }
+      } else {
+        newContent = '<h1></h1><p></p>';
+      }
+
+      const currentContent = editor.getHTML();
       if (newContent !== currentContent) {
         editor.commands.setContent(newContent, true);
         editor.commands.focus();
@@ -339,8 +471,30 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
   };
 
+  const handleCopyNote = async () => {
+    if (!editor) return;
+    // Get full text including title
+    const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 800);
+    } catch {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 800);
+    }
+  };
+
   return (
     <TooltipProvider>
+      {/* ADDED: plain-mode class for CSS targeting */}
       <div className="flex flex-col h-full">
         <div className="px-4 border-b flex items-center gap-1 shrink-0 h-[57px]">
           <Popover>
@@ -369,6 +523,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Popover>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
+            {/* Logic unchanged */}
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || note.isProtected}>
                 <Undo />
@@ -441,6 +596,14 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             </TooltipTrigger>
             <TooltipContent><p>Remove Formatting</p></TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={handleCopyNote}>
+                {isCopied ? <Check className="text-green-500" /> : <Copy />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Copy Note</p></TooltipContent>
+          </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">
             {colors.map(color => (
@@ -449,9 +612,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn("w-6 h-6 rounded-full p-0", editor.isActive('textStyle', { color: color.value }) && "ring-2 ring-primary ring-offset-2")}
+                    className={cn(
+                      "w-6 h-6 rounded-full p-0 transition-opacity",
+                      editor.isActive('textStyle', { color: color.value }) && "ring-2 ring-primary ring-offset-2"
+                    )}
                     style={{ backgroundColor: color.value }}
-                    disabled={note.isProtected}
+                    disabled={note.isProtected || isPlainTextMode}
                     onMouseDown={(e) => { e.preventDefault(); handleSetColor(color.value); }}
                   >
                     <span className="sr-only">{color.name}</span>
@@ -491,7 +657,20 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4"
+          className="flex-1 overflow-y-auto px-4 cursor-text"
+          onMouseDown={(e) => {
+            // Handle click-to-focus for the container background and editor empty area
+            // For clicks on actual content nodes (p, h1, etc.), let ProseMirror handle natively
+            if (editor && !note.isProtected) {
+              const target = e.target as HTMLElement;
+              // Intercept clicks on ScrollContainer (padding) or ProseMirror div (empty area below content)
+              // Actual content nodes (p, h1, li, etc.) won't match — ProseMirror handles those
+              if (target === e.currentTarget || target.classList.contains('ProseMirror')) {
+                e.preventDefault();
+                editor.commands.focus('end');
+              }
+            }
+          }}
         >
           <EditorContent editor={editor} />
         </div>
