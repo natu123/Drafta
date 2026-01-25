@@ -111,7 +111,7 @@
 }
 
 /* Title placeholder specific style */
-.ProseMirror h1.is-editor-empty::before {
+.ProseMirror h1.is-empty::before {
     opacity: 0.5;
 }
 
@@ -119,6 +119,8 @@
 .ProseMirror p {
     margin-top: 0;
     margin-bottom: 0.25em;
+    min-height: 1.5em;
+    /* Ensure empty paragraphs are clickable */
 }
 
 .ProseMirror h1,
@@ -127,20 +129,29 @@
     @apply my-0 font-bold;
 }
 
-.ProseMirror h1 {
+/* Title H1 (first child) — largest, with distinct border */
+.ProseMirror > h1:first-child {
     @apply text-3xl font-bold;
     padding-top: 1rem;
     padding-bottom: 0.5rem;
     margin-bottom: 1rem;
-    border-bottom: 2px solid hsl(var(--foreground) / 0.1);
+    border-bottom: 3px solid hsl(var(--foreground) / 0.7);
+}
+
+/* Body H1s — smaller than title, no border */
+.ProseMirror > h1:not(:first-child) {
+    @apply text-2xl font-bold;
+    padding-top: 0.5rem;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .ProseMirror h2 {
-    @apply text-3xl;
+    @apply text-xl;
 }
 
 .ProseMirror h3 {
-    @apply text-2xl;
+    @apply text-lg;
 }
 
 /* TABLE STYLES */
@@ -477,8 +488,4 @@ code {
 
 .hljs-emphasis {
     font-style: italic;
-}
-
-.hljs-strong {
-    font-weight: bold;
 }
