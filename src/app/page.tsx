@@ -497,7 +497,7 @@ export default function Home() {
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
 
-  // Column Layout - 2:5:5 Ratio with mobile breakpoint
+  // Column Layout - 1.8:3.5:6.7 Ratio with mobile breakpoint
   const BREAKPOINT_MOBILE = 768; // Below this, show only center column
   const MIN_LEFT_WIDTH = 140;
   const MIN_CENTER_WIDTH = 280;
@@ -512,10 +512,10 @@ export default function Home() {
   React.useEffect(() => {
     const totalWidth = window.innerWidth;
 
-    // 2:4:6 = 12 parts total (right column +20%)
-    const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (2 / 12)));
-    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (4 / 12)));
-    const rightWidth = Math.floor(totalWidth * (6 / 12));
+    // 1.8:3.5:6.7 = 12 parts total (left/center slightly narrower for wider editor)
+    const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (1.8 / 12)));
+    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (3.5 / 12)));
+    const rightWidth = Math.floor(totalWidth * (6.7 / 12));
 
     setListsWidth(leftWidth);
     setNotesWidth(centerWidth);
@@ -799,7 +799,7 @@ export default function Home() {
   const handleNewNote = () => {
     const newNote: Note = {
       id: `note-${Date.now()}`,
-      title: 'Untitled Note',
+      title: '',
       icon: '📝',
       content: '',
       plainTextContent: '',
