@@ -33,52 +33,61 @@ export function removeFormatting(html: string): string {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // Note: We do NOT convert <br> to \n here because block separation (step 4) handles it.
-  // Converting br causes double newlines in empty paragraphs like <p><br></p>.
+  // Strategy:
+  // 1. Traverse nodes and accumulate text.
+  // 2. Insert '\n' for block elements (P, DIV, H1-H6, LI, BLOCKQUOTE) only if not already ending in \n.
+  // 3. Strip color markdown from the result.
 
-  // 2. Handle list items
-  tempDiv.querySelectorAll('li').forEach(li => {
-    // Unwrap paragraphs inside list items to prevent double newlines (li + p both getting \n)
-    const paragraphs = li.querySelectorAll('p');
-    paragraphs.forEach(p => {
-      // Move all children of p to its parent, before p
-      if (p.parentNode) {
-        while (p.firstChild) {
-          p.parentNode.insertBefore(p.firstChild, p);
+  let text = '';
+
+  const isBlock = (node: Node) => {
+    return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'UL', 'OL', 'TR'].includes(node.nodeName);
+  };
+
+  // Skip visual-only lists that wrapper UL/OL might introduce if we process LIs
+  // But actually, just extracting text with \n for blocks is usually enough.
+
+  // Actually, innerText is close to what we want but handling newlines is browser-dependent.
+  // Let's use a manual traversal for predictable newlines.
+
+  const traverse = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+
+      // Handle BR
+      if (el.tagName === 'BR') {
+        text += '\n';
+      } else {
+        // Recursively process children
+        el.childNodes.forEach(traverse);
+
+        // Append newline after block elements if not present
+        if (isBlock(el)) {
+          if (!text.endsWith('\n')) {
+            text += '\n';
+          }
         }
-        p.remove();
       }
-    });
-
-    const parent = li.parentElement;
-    const isOrdered = parent?.tagName === 'OL';
-    const index = isOrdered ? Array.from(parent!.children).indexOf(li) : -1;
-    const prefix = isOrdered ? `${index + 1}. ` : '• ';
-
-    // Prepend the prefix directly to the item
-    li.prepend(document.createTextNode(prefix));
-  });
-
-  // 3. Handle horizontal rules (no leading \n to prevent extra blank line)
-  tempDiv.querySelectorAll('hr').forEach(hr => {
-    hr.replaceWith('……………………………………………………………\n');
-  });
-
-  // 4. Ensure block separation
-  // We add a newline after every block element to ensure textContent splits them correctly
-  // Note: ul and ol are excluded because li already handles newlines
-  tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li').forEach(block => {
-    if (!block.textContent?.endsWith('\n')) {
-      block.appendChild(document.createTextNode('\n'));
     }
-  });
+  };
 
-  const text = tempDiv.textContent || '';
+  tempDiv.childNodes.forEach(traverse);
 
-  // 5. Preserve exact blank line count without modification
-  return text.split('\n')
-    .map(line => line.trim())
-    .join('\n');
+  // Strip Color Markdown tags: {color:#...}text{/color} -> text
+  // The regex needs to be robust for nested or adjacent tags?
+  // Existing stripColorMarkdown utility logic:
+  text = text.replace(/\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi, '$2');
+
+  // Cleanup multiple newlines if any weirdness occurred (optional, but requested "don't increase newlines")
+  // The user complained about "double newlines", so let's normalize >2 newlines to 2, or just leave as is if our block logic is tight.
+  // Our block logic ensures at least one \n after block.
+
+  // Handle specific case: <p>Text</p><p>Text</p> -> Text\nText\n
+  // If we want blank lines between paragraphs: <p>T</p><p><br></p><p>T</p> -> T\n\nT\n
+
+  return text;
 }
 
 export function htmlToSimpleText(html: string): string {
