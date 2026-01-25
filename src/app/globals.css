@@ -249,6 +249,11 @@
     counter-increment: ol-counter;
 }
 
+/* Support for li[value] attribute - use CSS variable set via inline style */
+.ProseMirror ol li[style*="--li-value"] {
+    counter-set: ol-counter var(--li-value);
+}
+
 .ProseMirror ol li::before {
     content: counter(ol-counter) ".";
     color: hsl(var(--foreground));

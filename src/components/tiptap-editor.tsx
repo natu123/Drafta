@@ -26,6 +26,7 @@ import Paragraph from '@tiptap/extension-paragraph';
 import { Separator } from './ui/separator';
 import type { Note } from '@/lib/types';
 import { TitleDocument } from './tiptap-extensions/title-document';
+import { CustomListItem } from './tiptap-extensions/custom-list-item';
 
 // Create lowlight instance with all languages to ensure markdown support
 const lowlight = createLowlight(all);
@@ -55,7 +56,9 @@ const extensions = [
       levels: [1, 2, 3],
     },
     codeBlock: false, // Disable default codeBlock to use lowlight
+    listItem: false, // Disable default listItem to use CustomListItem with value attribute
   }),
+  CustomListItem,
   CodeBlockLowlight.configure({
     lowlight,
     defaultLanguage: 'plaintext',
@@ -208,7 +211,55 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     editable: !note.isProtected,
     enableInputRules: false,
     enablePasteRules: false,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
+      // Auto-renumber ordered list items after any change
+      if (editor.isActive('orderedList')) {
+        // Use setTimeout to avoid dispatch during update and create fresh transaction
+        setTimeout(() => {
+          const { state, view } = editor;
+          const { selection } = state;
+          const { $from } = selection;
+
+          // Find the ordered list containing the cursor
+          let orderedListDepth = -1;
+          for (let d = $from.depth; d > 0; d--) {
+            if ($from.node(d).type.name === 'orderedList') {
+              orderedListDepth = d;
+              break;
+            }
+          }
+
+          if (orderedListDepth > 0) {
+            const orderedListPos = $from.before(orderedListDepth);
+            const orderedListNode = $from.node(orderedListDepth);
+
+            // Create a fresh transaction
+            const tr = state.tr;
+            let runningValue = 1;
+            let needsUpdate = false;
+
+            orderedListNode.forEach((child, offset, index) => {
+              const childPos = orderedListPos + 1 + offset;
+              if (index === 0) {
+                runningValue = child.attrs.value !== null ? child.attrs.value : 1;
+              } else {
+                runningValue++;
+                if (child.attrs.value !== runningValue) {
+                  tr.setNodeMarkup(childPos, undefined, {
+                    ...child.attrs,
+                    value: runningValue
+                  });
+                  needsUpdate = true;
+                }
+              }
+            });
+
+            if (needsUpdate && tr.docChanged) {
+              view.dispatch(tr);
+            }
+          }
+        }, 0);
+      }
       handleSave(editor);
     },
     editorProps: {
@@ -231,6 +282,16 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       handlePaste: (view, event) => {
         const text = event.clipboardData?.getData('text/plain');
         const html = event.clipboardData?.getData('text/html');
+
+        // In Plain mode: always paste as plain text only (ignore HTML formatting)
+        if (isPlainTextModeRef.current) {
+          if (!text) return false;
+          // Insert plain text directly
+          view.dispatch(view.state.tr.insertText(text));
+          return true;
+        }
+
+        // Rich mode: if HTML exists, let TipTap handle it
         if (html) return false;
         if (!text) return false;
 
@@ -240,7 +301,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
         const hasMarkdown = markdownPatterns.some(pattern => pattern.test(text));
 
-        if (hasMarkdown && !isPlainTextMode) {
+        if (hasMarkdown) {
           const parsedHtml = plainMarkdownToRich(text.trim());
           const parser = DOMParser.fromSchema(view.state.schema);
           const tempDiv = document.createElement('div');
@@ -284,12 +345,166 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
   }, [note.id, note.title, note.content, editor, getInitialContent]);
 
+  // Check if document has any ordered list items
+  const hasOrderedList = React.useCallback(() => {
+    if (!editor) return false;
+    let found = false;
+    editor.state.doc.descendants(node => {
+      if (node.type.name === 'orderedList') {
+        found = true;
+        return false; // Stop traversing
+      }
+    });
+    return found;
+  }, [editor]);
+
+  // Get the last ordered list item's value BEFORE the cursor position
+  const getLastOrderedListValue = React.useCallback(() => {
+    if (!editor) return 0;
+
+    const { selection } = editor.state;
+    const cursorPos = selection.$from.pos;
+    let lastValue = 0;
+
+    // Find the last listItem with a value that ends before cursor position
+    editor.state.doc.descendants((node, pos) => {
+      // Only consider listItems that end before the cursor
+      const nodeEnd = pos + node.nodeSize;
+      if (nodeEnd <= cursorPos && node.type.name === 'listItem' && node.attrs.value) {
+        lastValue = node.attrs.value;
+      }
+    });
+
+    return lastValue;
+  }, [editor]);
+
+  // Insert ordered list with specific starting value
+  const insertOrderedListWithValue = React.useCallback((startValue: number) => {
+    if (!editor) return;
+
+    const isCurrentlyOL = editor.isActive('orderedList');
+    const isCurrentlyUL = editor.isActive('bulletList');
+
+    // If currently a bullet list, first convert to ordered list
+    if (isCurrentlyUL) {
+      editor.chain().focus().toggleBulletList().toggleOrderedList().run();
+    } else if (!isCurrentlyOL) {
+      // If not in any list, create an ordered list
+      editor.chain().focus().toggleOrderedList().run();
+    }
+    // If already OL, just update the values (don't toggle off)
+
+    // Update list items with sequential values starting from startValue
+    // Only update items in the list that contains the cursor
+    setTimeout(() => {
+      const { state, view } = editor;
+      const { tr, selection } = state;
+      const { $from } = selection;
+
+      // Find the ordered list containing the cursor
+      let orderedListPos = -1;
+      let orderedListNode = null;
+
+      for (let d = $from.depth; d > 0; d--) {
+        const node = $from.node(d);
+        if (node.type.name === 'orderedList') {
+          orderedListPos = $from.before(d);
+          orderedListNode = node;
+          break;
+        }
+      }
+
+      if (orderedListNode && orderedListPos >= 0) {
+        let itemIndex = 0;
+        orderedListNode.forEach((child, offset) => {
+          const childPos = orderedListPos + 1 + offset;
+          const newValue = startValue + itemIndex;
+          if (child.attrs.value !== newValue) {
+            tr.setNodeMarkup(childPos, undefined, {
+              ...child.attrs,
+              value: newValue
+            });
+          }
+          itemIndex++;
+        });
+
+        if (tr.docChanged) {
+          view.dispatch(tr);
+        }
+      }
+    }, 0);
+  }, [editor]);
+
+  // Remove ordered list and decrement subsequent list items
+  const removeOrderedListAndRenumber = React.useCallback(() => {
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+
+    // Find the current ordered list and get the value of items being removed
+    let currentListStartValue = 1;
+    let currentListItemCount = 0;
+
+    for (let d = $from.depth; d > 0; d--) {
+      const node = $from.node(d);
+      if (node.type.name === 'orderedList') {
+        node.forEach((child) => {
+          if (currentListItemCount === 0 && child.attrs.value) {
+            currentListStartValue = child.attrs.value;
+          }
+          currentListItemCount++;
+        });
+        break;
+      }
+    }
+
+    // Calculate the end value of the list being removed
+    const currentListEndValue = currentListStartValue + currentListItemCount - 1;
+
+    // Toggle off the ordered list (convert to paragraphs)
+    editor.chain().focus().toggleOrderedList().run();
+
+    // After toggling, decrement all subsequent list items by the count of removed items
+    setTimeout(() => {
+      const { state: newState, view } = editor;
+      const { doc } = newState;
+      const tr = newState.tr;
+      let needsUpdate = false;
+
+      // Find all listItems with values GREATER than the removed list's end value
+      doc.descendants((node, pos) => {
+        if (node.type.name === 'listItem' && node.attrs.value) {
+          // Only decrement items that had values > currentListEndValue (truly subsequent)
+          if (node.attrs.value > currentListEndValue) {
+            const newValue = node.attrs.value - currentListItemCount;
+            tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              value: newValue
+            });
+            needsUpdate = true;
+          }
+        }
+      });
+
+      if (needsUpdate && tr.docChanged) {
+        view.dispatch(tr);
+      }
+    }, 0);
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
 
   const handleSetColor = (color: string) => {
-    editor.chain().focus().setColor(color).run();
+    // Black (#000000) is the default color - remove color formatting instead of setting it
+    if (color.toLowerCase() === '#000000') {
+      editor.chain().focus().unsetColor().run();
+    } else {
+      editor.chain().focus().setColor(color).run();
+    }
   };
 
   const handleTogglePlainTextMode = () => {
@@ -370,8 +585,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
 
       // Wrap Markdown lines in P tags
+      // OL syntax is now {ol:N}text{/ol} format (no HTML tags), so no escaping needed
       const wrappedBody = lines.map(line => {
-        return line === '' ? '<p></p>' : `<p>${line}</p>`;
+        if (line === '') return '<p></p>';
+        return `<p>${line}</p>`;
       }).join('');
 
       const finalContent = titleHtml + (wrappedBody || '<p></p>');
@@ -393,14 +610,23 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const handleRemoveFormatting = () => {
     if (editor) {
       const json = editor.getJSON();
-      let plainText = '';
+      const blocks: string[] = [];
 
-      // Traverse JSON to extract text with correct newlines
-      // Use \n\n for block separators, \n for hardBreaks
-      // IMPORTANT: Handle "empty blocks" (paragraph with only hardBreak) specially
-      const traverse = (node: any) => {
-        // Check if this is an "empty block" - a paragraph/heading that is visually empty
-        // Cases: 1) content is undefined/empty array  2) content is only a hardBreak
+      // Extract text blocks from JSON
+      // Each top-level block becomes one entry in blocks array
+      const extractText = (node: any): string => {
+        if (node.type === 'text') {
+          return node.text || '';
+        } else if (node.type === 'hardBreak') {
+          return '\n';
+        } else if (node.content) {
+          return node.content.map((child: any) => extractText(child)).join('');
+        }
+        return '';
+      };
+
+      const processTopLevel = (node: any) => {
+        // Check if this is an "empty block"
         const isEmptyBlock =
           ['paragraph', 'heading'].includes(node.type) &&
           (!node.content ||
@@ -408,52 +634,53 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             (node.content.length === 1 && node.content[0].type === 'hardBreak'));
 
         if (isEmptyBlock) {
-          // Add only block separator, don't process content to avoid extra \n
-          plainText += '\n\n';
+          blocks.push('');
           return;
         }
 
-        // Normal processing
-        if (node.type === 'text') {
-          plainText += node.text;
-        } else if (node.type === 'hardBreak') {
-          plainText += '\n';
-        } else if (node.content) {
-          node.content.forEach((child: any) => traverse(child));
+        // Handle lists: extract each listItem's text as separate block
+        if (node.type === 'bulletList' || node.type === 'orderedList' || node.type === 'taskList') {
+          if (node.content) {
+            node.content.forEach((listItem: any) => {
+              const text = extractText(listItem).trim();
+              if (text) blocks.push(text);
+            });
+          }
+          return;
         }
 
-        // Block separator: Use \n\n to distinguish blocks from inline breaks
-        if (['paragraph', 'heading', 'bulletList', 'orderedList', 'listItem', 'taskItem'].includes(node.type)) {
-          plainText += '\n\n';
-        }
+        // Regular block (paragraph, heading, etc.)
+        const text = extractText(node);
+        blocks.push(text);
       };
 
       if (json.content) {
-        json.content.forEach((node: any) => traverse(node));
+        json.content.forEach((node: any) => processTopLevel(node));
       }
 
-      // Strip color markdown
-      plainText = plainText.replace(/\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi, '$2');
-
-      // Split by block separator (\n\n)
-      const blocks = plainText.split('\n\n');
+      // Strip color markdown from all blocks
+      const cleanBlocks = blocks.map(block =>
+        block.replace(/\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi, '$2')
+      );
 
       // Clean up trailing empty blocks
-      while (blocks.length > 0 && blocks[blocks.length - 1].trim() === '') blocks.pop();
+      while (cleanBlocks.length > 0 && cleanBlocks[cleanBlocks.length - 1].trim() === '') {
+        cleanBlocks.pop();
+      }
 
       // Rebuild: H1 + Ps
       let newContent = '';
-      if (blocks.length > 0) {
+      if (cleanBlocks.length > 0) {
         // First block is Title (replace any internal \n with space)
-        newContent += `<h1>${blocks[0].replace(/\n/g, ' ')}</h1>`;
+        newContent += `<h1>${cleanBlocks[0].replace(/\n/g, ' ')}</h1>`;
 
-        const bodyBlocks = blocks.slice(1);
+        const bodyBlocks = cleanBlocks.slice(1);
 
         if (bodyBlocks.length === 0) {
           newContent += '<p></p>';
         } else {
           newContent += bodyBlocks.map(block => {
-            // Empty block = empty paragraph (check exact empty string, not trimmed)
+            // Empty block = empty paragraph
             if (block === '') return '<p></p>';
             // Internal \n = <br> (preserve line breaks within paragraph)
             return `<p>${block.replace(/\n/g, '<br>')}</p>`;
@@ -543,7 +770,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           {/* List buttons ... */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={note.isProtected}>
+              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={note.isProtected || isPlainTextMode}>
                 <Minus />
               </Button>
             </TooltipTrigger>
@@ -552,7 +779,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={note.isProtected}>
+              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={note.isProtected || isPlainTextMode}>
                 <List />
               </Button>
             </TooltipTrigger>
@@ -560,20 +787,75 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={note.isProtected}>
+              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={note.isProtected || isPlainTextMode}>
                 <ListChecks />
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>Checkbox List</p></TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleOrderedList().run()} disabled={note.isProtected}>
-                <ListOrdered />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Numbered List</p></TooltipContent>
-          </Tooltip>
+          {/* Ordered List:
+              - On OL: toggle off immediately (like Bullet/Checkbox)
+              - Not on OL but OL exists: show popover
+              - No OL exists: create new OL starting at 1
+          */}
+          {editor.isActive('orderedList') ? (
+            // Currently in OL: click to toggle off
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="icon" onClick={removeOrderedListAndRenumber} disabled={note.isProtected || isPlainTextMode}>
+                  <ListOrdered />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Numbered List</p></TooltipContent>
+            </Tooltip>
+          ) : hasOrderedList() ? (
+            // Not in OL but OL exists: show popover
+            <Popover>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" disabled={note.isProtected || isPlainTextMode}>
+                      <ListOrdered />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent><p>Numbered List</p></TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-auto p-2" align="start">
+                <div className="flex flex-col gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => {
+                      const nextValue = getLastOrderedListValue() + 1;
+                      insertOrderedListWithValue(nextValue);
+                    }}
+                  >
+                    Continue numbering
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => insertOrderedListWithValue(1)}
+                  >
+                    Start new list
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            // No OL exists: create new OL starting at 1
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={() => insertOrderedListWithValue(1)} disabled={note.isProtected || isPlainTextMode}>
+                  <ListOrdered />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Numbered List</p></TooltipContent>
+            </Tooltip>
+          )}
 
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>

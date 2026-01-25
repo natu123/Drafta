@@ -243,10 +243,14 @@ export function richToPlainMarkdown(html: string): string {
       return;
     }
 
-    // Ordered list
+    // Ordered list - output as custom tag syntax (like color syntax)
+    // Format: {ol:N}text{/ol} where N is the item number
     if (tagName === 'OL') {
       child.querySelectorAll('li').forEach((li, idx) => {
-        output.push(`${idx + 1}. ` + getCleanText(li));
+        const valueAttr = li.getAttribute('value');
+        const num = valueAttr ? parseInt(valueAttr, 10) : idx + 1;
+        const text = getCleanText(li);
+        output.push(`{ol:${num}}${text}{/ol}`);
       });
       return;
     }
@@ -425,7 +429,23 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Ordered list
+    // Ordered list - Custom tag format: {ol:N}text{/ol}
+    const olTagMatch = trimmed.match(/^\{ol:(\d+)\}(.+?)\{\/ol\}$/);
+    if (olTagMatch) {
+      if (inTaskList) closeList();
+      if (!inList || listType !== 'ol') {
+        if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
+        result.push('<ol>');
+        inList = true;
+        listType = 'ol';
+      }
+      const num = parseInt(olTagMatch[1], 10);
+      const content = processInline(olTagMatch[2]);
+      result.push(`<li value="${num}" style="--li-value: ${num}"><p>${content}</p></li>`);
+      continue;
+    }
+
+    // Ordered list - Markdown format: N. text (fallback)
     const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (orderedMatch) {
       if (inTaskList) closeList();
@@ -435,8 +455,9 @@ export function plainMarkdownToRich(text: string): string {
         inList = true;
         listType = 'ol';
       }
+      const num = parseInt(orderedMatch[1], 10);
       const content = processInline(orderedMatch[2]);
-      result.push(`<li><p>${content}</p></li>`);
+      result.push(`<li value="${num}" style="--li-value: ${num}"><p>${content}</p></li>`);
       continue;
     }
 
