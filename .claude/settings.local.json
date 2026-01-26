@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Task(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFeat: Plainモード対応強化、Copy Noteボタン追加、空bodyフォーカス修正\n\n- handleSaveをPlain/Richモード別に分離し、Hybrid Plain Mode対応\n- handleTogglePlainTextModeを書き直し、タイトルH1をRich HTMLで保持\n- 空bodyでPlainモード切替時に<p></p>を保証しフォーカス不能バグを修正\n- handleRemoveFormattingをJSON走査ベースに改善（空行・hardBreak対応）\n- Copy NoteボタンをRemove Formattingの右に追加（タイトル含む全文コピー）\n- scrollContainerにonMouseDown追加（空白領域クリックでfocus\\(''end''\\)）\n- PlainモードでカラーボタンをDisabledに設定\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nStyle: カラム比率を調整し新規ノートのタイトルを空文字に変更\n\n- カラム比率を2:4:6から1.8:3.5:6.7に変更（エディタ領域を拡大）\n- 新規ノートのデフォルトタイトルを空文字に変更（プレースホルダー表示）\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(npm run dev:*)",
+      "Bash(git rev-list:*)",
+      "Bash(Get-ChildItem -Path src -Recurse -Include *.ts,*.tsx,*.css)",
+      "Bash(Get-Content)",
+      "Bash(Measure-Object -Line)",
+      "Bash(find:*)",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "Bash(Remove-Item -Path \"C:\\\\Users\\\\kenji\\\\OneDrive\\\\デスクトップ\\\\Folder 1\\\\projects\\\\Drafta\\\\.claude\\\\agents\" -Recurse -Force)",
+      "Bash(git reset:*)"
+    ]
+  }
+}
