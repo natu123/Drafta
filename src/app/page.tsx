@@ -31,7 +31,7 @@ export default function LandingPage() {
 
           {/* Main Tagline */}
           <p className="text-xl md:text-2xl text-center text-foreground mb-4 max-w-2xl mx-auto">
-            「ノートと ToDoを統合した <span className="font-bold">新しいメモアプリ</span>」
+            「ToDoと ノートを統合した <span className="font-bold">新しいメモアプリ</span>」
           </p>
 
           <p className="text-lg md:text-xl text-center text-primary/80 italic mb-10 max-w-xl mx-auto">
