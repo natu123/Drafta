@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Cloud } from 'lucide-react';
+import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -106,17 +106,17 @@ export default function LandingPage() {
           <FeatureCard
             icon={<CheckSquare className="w-8 h-8" />}
             title="ToDo + Notes"
-            description="タスクとメモを1つのノートで管理"
+            description="タスクとノートを1つのアプリに統合！"
           />
           <FeatureCard
             icon={<FileText className="w-8 h-8" />}
             title="Rich & Plain Mode"
-            description="リッチテキストとMarkdownを自由に切り替え"
+            description="リッチ ⇄ Markdownをワンクリックで切り替え！"
           />
           <FeatureCard
-            icon={<Cloud className="w-8 h-8" />}
-            title="Cloud Sync"
-            description="クラウド同期でどこからでもアクセス（準備中）"
+            icon={<Sparkles className="w-8 h-8" />}
+            title="Improved Markdown"
+            description="Drafta-MD：色付きテキスト＆スマートな番号リストを搭載！"
           />
         </div>
       </div>
@@ -135,7 +135,8 @@ export default function LandingPage() {
           <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" status="coming" />
           <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" status="coming" />
           <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" status="coming" />
-          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Mac" status="coming" />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" status="coming" />
+          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" status="coming" />
         </div>
       </div>
 
