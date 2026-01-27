@@ -15,9 +15,10 @@
 
 実行手順:
 1. `git status` と `git diff` で変更を確認
-2. 変更を論理的なグループに分類（Feat / Fix / Refactor / Style / Docs / Chore）
-3. グループごとに `git add <files>` → `git commit -m "<Type>: <説明>"` を繰り返す（日本語メッセージ）
-4. 全コミット後に `git push`
+2. 1コミット = 1つの論理的変更（1機能追加、1バグ修正、1リファクタ等）に分ける
+3. 各コミットに適切なプレフィックスを付ける（Feat / Fix / Refactor / Style / Docs / Chore）
+4. `git add <files>` → `git commit -m "<Type>: <説明>"` を繰り返す（日本語メッセージ）
+5. 全コミット後に `git push`
 5. **Project Milestone 報告**: コミット実行時に以下のフォーマットで報告する
    ```
    🏆 **Project Milestone**: 総コミット数 **X** (+n) / LOC **Y行** (+m)
