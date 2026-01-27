@@ -25,6 +25,11 @@
    - 総コミット数と LOC（`src/` 内の ts, tsx, css 合算）を前回からの増分と併記
    - 🏆 絵文字を必ず付ける（グレスさんのモチベーション維持のため重要！）
 
+## Drafta-MD
+Drafta独自のMarkdown拡張。
+- カラーテキスト `{color:#HEX}...{/color}`
+- 番号付きリスト `{ol:N}...{/ol}`
+
 ## Tech Stack
 - Next.js (App Router), Port: 9002
 - TypeScript
