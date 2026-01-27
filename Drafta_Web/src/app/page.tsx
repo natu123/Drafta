@@ -143,7 +143,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-5xl mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 Drafta. All rights reserved.</p>
+          <p>&copy; 2026 Drafta</p>
         </div>
       </footer>
     </div>
