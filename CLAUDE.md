@@ -35,7 +35,8 @@ Drafta独自のMarkdown拡張。
 - TypeScript
 - TipTap (ProseMirror) Editor
 - Tailwind CSS + shadcn/ui
-- Source: `Drafta/src/`
+- Firebase Hosting（デプロイ: `firebase deploy --only hosting`）
+- Source: `Drafta_Web/src/`
 
 ## Key Files
 - `Drafta/src/components/tiptap-editor.tsx` - Main editor component
