@@ -1,46 +1,54 @@
 # Drafta 開発計画
 
-## Phase 1: 基盤構築
+## ✅ Phase 1: UI構築
 
 | No. | タスク | 詳細 |
 |-----|--------|------|
-| 1-1 | Firestoreスキーマ設計 | ユーザー、メモ、画像のデータ構造 |
-| 1-2 | Firebase Authentication実装 | Google + Apple Sign-In |
-| 1-3 | Firebase Storage実装 | 画像アップロード、逐次ロード |
+| 1-1 | アプリUI構築 | TipTapエディタ、3カラムレイアウト、Rich/Plain切り替え |
+| 1-2 | Drafta-MD実装 | カラーテキスト、スマート番号リスト |
+| 1-3 | ランディングページ公開 | |
 
-## Phase 2: Web版完成
-
-| No. | タスク | 詳細 |
-|-----|--------|------|
-| 2-1 | Firestore統合 | リアルタイム同期、デバウンス保存 |
-| 2-2 | AdSense実装 | バナー広告配置 |
-| 2-3 | Stripe実装 | プラン管理、ストレージ追加購入 |
-
-## Phase 3: モバイル版
+## Phase 2: 基盤構築 ← 現在
 
 | No. | タスク | 詳細 |
 |-----|--------|------|
-| 3-1 | Expo + TenTap環境構築 | プロジェクト作成、基本設定 |
-| 3-2 | TipTap extensions移植検証 | Advanced Setupで既存extensionsテスト |
-| 3-3 | Firestore + AdMob統合 | 認証、同期、広告の統合 |
-| 3-4 | 法務ドキュメント作成 | 利用規約、プライバシーポリシー |
-| 3-5 | ストア申請 | iOS App Store、Google Play Store |
+| 2-1 | Firestoreスキーマ設計 | ユーザー、メモ、画像のデータ構造 |
+| 2-2 | Firebase Authentication実装 | Google + Apple Sign-In |
+| 2-3 | Firebase Storage実装 | 画像アップロード、逐次ロード |
 
-## Phase 4: 最適化
+## Phase 3: Web版完成
 
 | No. | タスク | 詳細 |
 |-----|--------|------|
-| 4-1 | Web版モバイル最適化 | レスポンシブ対応、タッチ操作改善 |
+| 3-1 | Firestore統合 | リアルタイム同期、デバウンス保存 |
+| 3-2 | AdSense実装 | バナー広告配置 |
+| 3-3 | Stripe実装 | プラン管理、ストレージ追加購入 |
 
-## Phase 5: デスクトップ版
+## Phase 4: モバイル版
 
 | No. | タスク | 詳細 |
 |-----|--------|------|
-| 5-1 | Tauri + TipTap実装 | Webコード流用、ネイティブ機能追加 |
-| 5-2 | Proプラン限定アクセス制御 | サブスク認証との連携 |
+| 4-1 | Expo + TenTap環境構築 | プロジェクト作成、基本設定 |
+| 4-2 | TipTap extensions移植検証 | Advanced Setupで既存extensionsテスト |
+| 4-3 | Firestore + AdMob統合 | 認証、同期、広告の統合 |
+| 4-4 | 法務ドキュメント作成 | 利用規約、プライバシーポリシー |
+| 4-5 | ストア申請 | iOS App Store、Google Play Store |
+
+## Phase 5: 最適化
+
+| No. | タスク | 詳細 |
+|-----|--------|------|
+| 5-1 | Web版モバイル最適化 | レスポンシブ対応、タッチ操作改善 |
+
+## Phase 6: デスクトップ版
+
+| No. | タスク | 詳細 |
+|-----|--------|------|
+| 6-1 | Tauri + TipTap実装 | Webコード流用、ネイティブ機能追加 |
+| 6-2 | Proプラン限定アクセス制御 | サブスク認証との連携 |
 
 ## 備考
 
 - 各Phaseの詳細な期間は実装開始時に見積もり
-- Phase 3-4は並行作業可能
+- Phase 4-5は並行作業可能
 - 将来的な検討事項: オフライン対応、アダプティブデバウンス
