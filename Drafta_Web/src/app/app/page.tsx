@@ -332,82 +332,74 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 translate-x-[-4px]">
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={cn(
-                                      "h-7 w-7 text-base hover:bg-accent/20 transition-colors rounded-md shrink-0",
-                                      (isSelectionMode || item.isProtected) && "pointer-events-none"
-                                    )}
-                                    disabled={item.isProtected}
-                                  >
-                                    {item.icon || '📝'}
-                                  </Button>
-                                </PopoverTrigger>
-                                {!item.isProtected && (
-                                  <PopoverContent className="w-auto p-2" align="start">
-                                    <div className="grid grid-cols-5 gap-2">
-                                      {emojis.map((emoji) => (
-                                        <Button
-                                          key={emoji}
-                                          variant="ghost"
-                                          size="icon"
-                                          className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
-                                          onClick={() => onIconChange?.(item.id, emoji)}
-                                        >
-                                          {emoji}
-                                        </Button>
-                                      ))}
-                                    </div>
-                                  </PopoverContent>
-                                )}
-                              </Popover>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={cn(
+                                        "h-7 w-7 text-base hover:bg-accent/20 transition-colors rounded-md shrink-0",
+                                        (isSelectionMode || item.isProtected) && "pointer-events-none"
+                                      )}
+                                      disabled={item.isProtected}
+                                    >
+                                      {item.icon || '📝'}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  {!item.isProtected && (
+                                    <PopoverContent className="w-auto p-2" align="start">
+                                      <div className="grid grid-cols-5 gap-2">
+                                        {emojis.map((emoji) => (
+                                          <Button
+                                            key={emoji}
+                                            variant="ghost"
+                                            size="icon"
+                                            className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
+                                            onClick={() => onIconChange?.(item.id, emoji)}
+                                          >
+                                            {emoji}
+                                          </Button>
+                                        ))}
+                                      </div>
+                                    </PopoverContent>
+                                  )}
+                                </Popover>
+                              </div>
+                              <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
+                                {stripColorMarkdown(item.title) || 'Untitled'}
+                              </p>
                             </div>
-                            <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
-                              {stripColorMarkdown(item.title) || 'Untitled'}
-                            </p>
                           </div>
-                          <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
-                            <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent || 'No content'}</p>
-                            <span className="text-[10px] text-muted-foreground/70 shrink-0">
-                              {new Date(item.updatedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Always visible on desktop now, to fix "can't see" issue. Optional: restore opacity logic if requested. */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {/* Actions depending on view */}
-                          {!isSelectionMode && (
-                            isTrash ? (
-                              <>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
-                                  <RotateCcw className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </>
-                            ) : (
-                              // Normal view: Show Delete button if not protected
-                              !item.isProtected && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => { e.stopPropagation(); onDeleteItem?.(item.id); }}
-                                  title="Move to Trash"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              )
-                            )
+                          {item.plainTextContent ? (
+                            <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
+                              <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
+                              <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                                {new Date(item.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end mt-0.5">
+                              <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                                {new Date(item.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
                           )}
                         </div>
+
+                        {/* Restore view actions only - normal delete uses selection mode */}
+                        {!isSelectionMode && isTrash && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -910,48 +902,61 @@ export default function Home() {
 
   const handleGroupDragOver = (e: React.DragEvent, targetGroupId: string) => {
     e.preventDefault();
+    if (!draggedGroupId || draggedGroupId === targetGroupId) return;
 
-    // Case 1: Dragging a Note onto a Group - REMOVED for Selection Mode
-    // if (draggedNote) { ... }
-
-    // Case 2: Reordering Groups
-    if (!draggedGroupId || draggedGroupId === targetGroupId || targetGroupId === 'inbox') return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    if ((e.clientY - rect.top) < rect.height / 2) {
-      setDropGroupPosition('before');
-    } else {
+    // Special handling for Inbox: always show 'after' indicator
+    if (targetGroupId === 'inbox') {
       setDropGroupPosition('after');
+      setDropTargetGroupId(targetGroupId);
+      return;
     }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position: 'before' | 'after' = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
+
+    setDropGroupPosition(position);
     setDropTargetGroupId(targetGroupId);
   };
 
-  const handleGroupDragLeave = (e: React.DragEvent) => {
-    // if (draggedNote) { setNoteDropTargetGroupId(null); }
+  const handleGroupDragLeave = () => {
     // Don't clear dropTargetGroupId immediately to avoid flickering with child elements
   };
 
-  const handleGroupDrop = (e: React.DragEvent, targetGroupId: string) => {
-    e.preventDefault();
-
-    // Case 1: Dropping a Note - REMOVED
-    // if (draggedNote) { ... }
-
-    // Case 2: Dropping a Group (Reorder)
+  const handleGroupDragEnd = () => {
+    // Execute reorder if we have valid drop target (since onDrop may not fire for some elements)
     if (draggedGroupId && dropTargetGroupId && dropGroupPosition) {
-      handleReorderGroups(draggedGroupId, targetGroupId, dropGroupPosition);
+      handleReorderGroups(draggedGroupId, dropTargetGroupId, dropGroupPosition);
     }
+    // Clean up all drag state
+    setDraggedGroupId(null);
+    setDropTargetGroupId(null);
+    setDropGroupPosition(null);
+  };
+
+  const handleGroupDrop = (e: React.DragEvent, _targetGroupId: string) => {
+    e.preventDefault();
+    // Reorder is handled in handleGroupDragEnd to ensure it fires even when onDrop doesn't
     setDraggedGroupId(null);
     setDropTargetGroupId(null);
     setDropGroupPosition(null);
   };
 
   const handleReorderGroups = (draggedId: string, targetId: string, position: 'before' | 'after') => {
+    if (draggedId === 'inbox') return;
+
     setGroups(prev => {
       const dIndex = prev.findIndex(g => g.id === draggedId);
       const items = [...prev];
       const [item] = items.splice(dIndex, 1);
       let newTIndex = items.findIndex(g => g.id === targetId);
       if (position === 'after') newTIndex++;
+
+      // Ensure nothing goes before Inbox (Inbox should always be first)
+      const newInboxIndex = items.findIndex(g => g.id === 'inbox');
+      if (newTIndex <= newInboxIndex) {
+        newTIndex = newInboxIndex + 1;
+      }
+
       items.splice(newTIndex, 0, item);
       return items;
     });
@@ -1177,6 +1182,9 @@ export default function Home() {
                           <div
                             draggable
                             onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                            onDragEnd={handleGroupDragEnd}
+                            onDragOver={(e) => handleGroupDragOver(e, group.id)}
+                            onDrop={(e) => handleGroupDrop(e, group.id)}
                             className={cn(
                               "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
                               draggedGroupId === group.id ? "opacity-30" : "opacity-100",
@@ -1199,8 +1207,11 @@ export default function Home() {
                           </div>
                         ) : (
                           <div
-                            draggable={group.id !== 'inbox'}
+                            draggable
                             onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                            onDragEnd={handleGroupDragEnd}
+                            onDragOver={(e) => handleGroupDragOver(e, group.id)}
+                            onDrop={(e) => handleGroupDrop(e, group.id)}
                           >
                             <Button
                               variant="ghost"
@@ -1251,7 +1262,19 @@ export default function Home() {
                   })}
                   <div ref={listScrollRef} />
 
-                  <li className="pt-2 mt-2 border-t">
+                  <li
+                    className="pt-2 mt-2 border-t"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (!draggedGroupId) return;
+                      // Treat as dropping at the end of the list
+                      const lastGroup = filteredGroups[filteredGroups.length - 1];
+                      if (lastGroup && lastGroup.id !== draggedGroupId) {
+                        setDropTargetGroupId(lastGroup.id);
+                        setDropGroupPosition('after');
+                      }
+                    }}
+                  >
                     <Button
                       variant="ghost"
                       className={cn(
