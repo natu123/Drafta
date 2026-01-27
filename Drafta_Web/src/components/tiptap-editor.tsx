@@ -27,6 +27,7 @@ import { Separator } from './ui/separator';
 import type { Note } from '@/lib/types';
 import { TitleDocument } from './tiptap-extensions/title-document';
 import { CustomListItem } from './tiptap-extensions/custom-list-item';
+import { PreserveBody } from './tiptap-extensions/preserve-body';
 
 // Create lowlight instance with all languages to ensure markdown support
 const lowlight = createLowlight(all);
@@ -50,6 +51,7 @@ const colors = [
 
 const extensions = [
   TitleDocument, // Custom Document Extension enforcing H1 at start
+  PreserveBody, // Prevent deletion of last paragraph in body
   StarterKit.configure({
     document: false, // Disable default document
     heading: {
