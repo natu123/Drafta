@@ -19,6 +19,9 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { CreateListDialog } from '@/components/create-list-dialog';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
@@ -49,7 +52,7 @@ interface HomeSectionProps {
   items: Note[];
   onItemSelect: (id: string, type: 'note') => void;
   activeId?: string | null;
-  onReorder: (draggedId: string, targetId: string, position: 'before' | 'after') => void;
+  onReorderNotes: (newOrder: Note[]) => void;
   itemType: 'note';
   sortOption: SortOption;
   onSortChange: (sortOption: SortOption) => void;
@@ -81,10 +84,310 @@ interface HomeSectionProps {
   onIconChange?: (id: string, icon: string) => void;
 }
 
+// Sortable Note Item Component
+interface SortableNoteItemProps {
+  item: Note;
+  activeId: string | null | undefined;
+  isSelectionMode: boolean;
+  selectedIds: Set<string>;
+  isTrash?: boolean;
+  canDrag: boolean;
+  onToggleSelect: (id: string) => void;
+  onItemSelect: (id: string) => void;
+  onToggleComplete?: (id: string, isCompleted: boolean) => void;
+  onDeleteItem: (id: string) => void;
+  onRestoreItem?: (id: string) => void;
+  onPermanentDeleteItem?: (id: string) => void;
+  onIconChange?: (id: string, icon: string) => void;
+}
+
+const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
+  item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
+  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: item.id,
+    disabled: !canDrag || item.isProtected,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? 'transform 200ms ease',
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto',
+  };
+
+  // Separator rendering
+  if (item.type === 'separator') {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...(canDrag ? { ...attributes, ...listeners } : {})}
+        className={cn(
+          "group relative w-full flex items-center px-0 py-2 mx-[-8px] width-[calc(100%+16px)]",
+          isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : "",
+          isDragging && "opacity-30"
+        )}
+        onClick={() => isSelectionMode && onToggleSelect(item.id)}
+      >
+        <div className="w-8 flex justify-center shrink-0">
+          {isSelectionMode && (
+            <Checkbox
+              checked={selectedIds.has(item.id)}
+              onCheckedChange={() => onToggleSelect(item.id)}
+            />
+          )}
+        </div>
+        <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
+        <div className="w-8 flex justify-center shrink-0">
+          {!isSelectionMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Regular note card
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative mb-2 w-full",
+        isDragging && "opacity-30"
+      )}
+    >
+      <div
+        {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
+        className={cn(
+          "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
+          activeId === item.id && !isSelectionMode
+            ? "bg-[#E7A1B0]/10 border-[#E7A1B0]/50 shadow-sm"
+            : item.isProtected
+              ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
+              : "bg-card border-border/60 hover:border-primary/30",
+          isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : "",
+          isDragging && "shadow-lg ring-2 ring-primary"
+        )}
+        onClick={() => {
+          if (isSelectionMode) {
+            onToggleSelect(item.id);
+          } else {
+            onItemSelect(item.id);
+          }
+        }}
+      >
+        {!isTrash && onToggleComplete && (
+          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={item.isCompleted || false}
+              onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
+              className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
+              disabled={isSelectionMode}
+            />
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
+              <div onClick={(e) => e.stopPropagation()}>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-7 w-7 text-base hover:bg-accent/20 transition-colors rounded-md shrink-0",
+                        (isSelectionMode || item.isProtected) && "pointer-events-none"
+                      )}
+                      disabled={item.isProtected}
+                    >
+                      {item.icon || '📝'}
+                    </Button>
+                  </PopoverTrigger>
+                  {!item.isProtected && (
+                    <PopoverContent className="w-auto p-2" align="start">
+                      <div className="grid grid-cols-5 gap-2">
+                        {emojis.map((emoji) => (
+                          <Button
+                            key={emoji}
+                            variant="ghost"
+                            size="icon"
+                            className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
+                            onClick={() => onIconChange?.(item.id, emoji)}
+                          >
+                            {emoji}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  )}
+                </Popover>
+              </div>
+              <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
+                {stripColorMarkdown(item.title) || 'Untitled'}
+              </p>
+            </div>
+          </div>
+          {item.plainTextContent ? (
+            <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
+              <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
+              <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                {new Date(item.updatedAt).toLocaleDateString()}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-end mt-0.5">
+              <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                {new Date(item.updatedAt).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Restore view actions only - normal delete uses selection mode */}
+        {!isSelectionMode && isTrash && (
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒', '💬', '🌐'];
 
+// Sortable Group Item Component for Left Sidebar
+interface SortableGroupItemProps {
+  group: Group;
+  activeGroupId: string;
+  hasNotes: boolean;
+  notes: Note[];
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
+  group, activeGroupId, hasNotes, notes, onSelect, onDelete
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: group.id,
+    disabled: group.id === 'inbox', // Inbox cannot be dragged
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? 'transform 200ms ease',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  // Separator rendering
+  if (group.type === 'separator') {
+    return (
+      <div
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        className={cn(
+          "relative flex items-center px-0 py-2 transition-all group/separator",
+          isDragging && "opacity-30"
+        )}
+        style={{ ...style, width: 'calc(100% + 32px)', marginLeft: '-16px' }}
+      >
+        <div className="w-8 flex justify-center shrink-0" />
+        <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
+        <div className="w-8 flex justify-center shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular group item
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn("relative group/list w-full", isDragging && "opacity-30")}
+    >
+      <div {...(group.id !== 'inbox' ? { ...attributes, ...listeners } : {})}>
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-2 h-9 pr-8",
+            group.id === 'inbox' ?
+              cn(
+                activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
+              ) :
+              activeGroupId === group.id
+                ? cn(
+                  "bg-[#E7A1B0]/15 hover:bg-[#E7A1B0]/20",
+                  hasNotes ? "text-foreground font-medium" : "text-muted-foreground font-normal opacity-70"
+                )
+                : (!hasNotes && "text-muted-foreground font-normal opacity-70 hover:text-muted-foreground hover:opacity-70"),
+            isDragging && "shadow-lg ring-2 ring-primary"
+          )}
+          onClick={() => onSelect(group.id)}
+        >
+          <Inbox className="w-4 h-4" />
+          <span className="truncate">{group.name}</span>
+        </Button>
+      </div>
+
+      {/* Delete button on hover (except inbox) */}
+      {group.id !== 'inbox' && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/list:opacity-100 transition-opacity"
+          onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
+        >
+          <Trash2 className="w-3 h-3 text-destructive" />
+        </Button>
+      )}
+    </div>
+  );
+};
+
 const HomeSection: React.FC<HomeSectionProps> = ({
-  title, icon: Icon, items, onItemSelect, activeId, onReorder, itemType,
+  title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
   sortOption, onSortChange, viewMode, onViewModeChange,
   searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection,
@@ -94,6 +397,42 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 }) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const topScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // dnd-kit setup
+  const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
+  const canDragNotes = !isSelectionMode && !isTrash && sortOption === 'manual';
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Start drag after 8px of movement
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex(item => item.id === active.id);
+    const newIndex = items.findIndex(item => item.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(items, oldIndex, newIndex);
+    onReorderNotes(newOrder);
+  };
+
+  const activeDragItem = activeDragId ? items.find(item => item.id === activeDragId) : null;
 
   React.useEffect(() => {
     setTimeout(() => {
@@ -227,182 +566,171 @@ const HomeSection: React.FC<HomeSectionProps> = ({
             <div ref={topScrollRef} />
 
             {/* Combined List for Trash View (Groups + Notes) or Just Notes */}
-            <div className={cn("grid gap-2 pb-10 p-2", viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1")}>
-              {/* Render Deleted Groups as Items if isTrash */}
-              {isTrash && deletedGroups.map(group => (
-                <Card key={group.id} className={cn(
-                  "group relative overflow-hidden border border-border/60 transition-colors hover:bg-accent/40",
-                  "bg-accent/30" // Distinct background as requested
-                )}>
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-8 h-8 rounded-md bg-background/50 flex items-center justify-center shrink-0">
-                        <Inbox className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex flex-col overflow-hidden">
-                        <span className="truncate font-semibold text-sm">{group.name}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">Tray</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title="Restore Tray">
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title="Delete Forever">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            {viewMode === 'list' ? (
+              // List view with dnd-kit - DndContext wraps the entire list container
+              <DndContext
+                id="notes-dnd"
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="flex flex-col gap-0 pb-10 p-2">
+                  {/* Render Deleted Groups as Items if isTrash */}
+                  {isTrash && deletedGroups.map(group => (
+                    <Card key={group.id} className={cn(
+                      "group relative overflow-hidden border border-border/60 transition-colors hover:bg-accent/40 mb-2",
+                      "bg-accent/30"
+                    )}>
+                      <CardContent className="p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="w-8 h-8 rounded-md bg-background/50 flex items-center justify-center shrink-0">
+                            <Inbox className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="truncate font-semibold text-sm">{group.name}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase">Tray</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title="Restore Tray">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title="Delete Forever">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
 
-              {items.length === 0 && deletedGroups.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center text-muted-foreground py-10 opacity-50">
-                  <p>No items found</p>
-                </div>
-              )}
+                  {items.length === 0 && deletedGroups.length === 0 && (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground py-10 opacity-50">
+                      <p>No items found</p>
+                    </div>
+                  )}
 
-              {/* Render Notes */}
-              {items.map((item) => (
-                item.type === 'separator' ? (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "group relative w-full flex items-center px-0 py-2 transition-all mx-[-8px] width-[calc(100%+16px)]",
-                      isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : ""
-                    )}
-                    onClick={() => isSelectionMode && onToggleSelect(item.id)}
-                  >
-                    <div className="w-8 flex justify-center shrink-0">
-                      {isSelectionMode && (
-                        <Checkbox
-                          checked={selectedIds.has(item.id)}
-                          onCheckedChange={() => onToggleSelect(item.id)}
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
-                    <div className="w-8 flex justify-center shrink-0">
-                      {!isSelectionMode && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  viewMode === 'list' ? (
+                  {/* Protected notes - fixed at top, not sortable (no useSortable) */}
+                  {items.filter(item => item.isProtected).map((item) => (
                     <div key={item.id} className="relative mb-2 w-full">
                       <div
                         className={cn(
                           "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
                           activeId === item.id && !isSelectionMode
                             ? "bg-[#E7A1B0]/10 border-[#E7A1B0]/50 shadow-sm"
-                            : item.isProtected
-                              ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
-                              : "bg-card border-border/60 hover:border-primary/30",
-                          isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
+                            : "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
                         )}
-                        onClick={() => {
-                          if (isSelectionMode) {
-                            onToggleSelect(item.id);
-                          } else {
-                            onItemSelect(item.id, itemType);
-                          }
-                        }}
+                        onClick={() => onItemSelect(item.id, itemType)}
                       >
-                        {/* Selection Checkbox (Only if needed or relying on whole row) - User said: Button to toggle selection mode, then clicking item selects it. */}
-                        {/* Let's keep the isCompleted checkbox VISIBLE even in selection mode, or maybe specific per requirements? */}
-                        {/* User: "Button toggles mode", "Select item -> color changes" */}
-
                         {!isTrash && onToggleComplete && (
                           <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={item.isCompleted || false}
                               onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
                               className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
-                              disabled={isSelectionMode}
                             />
                           </div>
                         )}
-
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-7 w-7 text-base hover:bg-accent/20 transition-colors rounded-md shrink-0",
-                                        (isSelectionMode || item.isProtected) && "pointer-events-none"
-                                      )}
-                                      disabled={item.isProtected}
-                                    >
-                                      {item.icon || '📝'}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  {!item.isProtected && (
-                                    <PopoverContent className="w-auto p-2" align="start">
-                                      <div className="grid grid-cols-5 gap-2">
-                                        {emojis.map((emoji) => (
-                                          <Button
-                                            key={emoji}
-                                            variant="ghost"
-                                            size="icon"
-                                            className={cn("text-lg h-8 w-8 rounded-md", item.icon === emoji && "bg-primary/20")}
-                                            onClick={() => onIconChange?.(item.id, emoji)}
-                                          >
-                                            {emoji}
-                                          </Button>
-                                        ))}
-                                      </div>
-                                    </PopoverContent>
-                                  )}
-                                </Popover>
-                              </div>
-                              <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
-                                {stripColorMarkdown(item.title) || 'Untitled'}
-                              </p>
-                            </div>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-base pointer-events-none shrink-0">
+                              {item.icon || '📝'}
+                            </Button>
+                            <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground")}>
+                              {stripColorMarkdown(item.title) || 'Untitled'}
+                            </p>
                           </div>
                           {item.plainTextContent ? (
                             <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
                               <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-                              <span className="text-[10px] text-muted-foreground/70 shrink-0">
-                                {new Date(item.updatedAt).toLocaleDateString()}
-                              </span>
+                              <span className="text-[10px] text-muted-foreground/70 shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
                             </div>
                           ) : (
                             <div className="flex justify-end mt-0.5">
-                              <span className="text-[10px] text-muted-foreground/70 shrink-0">
-                                {new Date(item.updatedAt).toLocaleDateString()}
-                              </span>
+                              <span className="text-[10px] text-muted-foreground/70 shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
                             </div>
                           )}
                         </div>
-
-                        {/* Restore view actions only - normal delete uses selection mode */}
-                        {!isSelectionMode && isTrash && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
-                              <RotateCcw className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </div>
-                  ) : (
+                  ))}
+
+                  {/* Non-protected notes - sortable */}
+                  <SortableContext
+                    items={items.filter(item => !item.isProtected).map(item => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {items.filter(item => !item.isProtected).map((item) => (
+                      <SortableNoteItem
+                        key={item.id}
+                        item={item}
+                        activeId={activeId}
+                        isSelectionMode={isSelectionMode}
+                        selectedIds={selectedIds}
+                        isTrash={isTrash}
+                        canDrag={canDragNotes}
+                        onToggleSelect={onToggleSelect}
+                        onItemSelect={(id) => onItemSelect(id, itemType)}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteItem={onDeleteItem}
+                        onRestoreItem={onRestoreItem}
+                        onPermanentDeleteItem={onPermanentDeleteItem}
+                        onIconChange={onIconChange}
+                      />
+                    ))}
+                  </SortableContext>
+                </div>
+                <DragOverlay>
+                  {activeDragItem && (
+                    <div className="opacity-90 shadow-2xl rounded-lg border-2 border-primary bg-card p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{activeDragItem.icon || '📝'}</span>
+                        <p className="font-medium truncate">{stripColorMarkdown(activeDragItem.title) || 'Untitled'}</p>
+                      </div>
+                    </div>
+                  )}
+                </DragOverlay>
+              </DndContext>
+            ) : (
+              // Grid view
+              <div className={cn("grid gap-2 pb-10 p-2", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")}>
+                {/* Render Deleted Groups as Items if isTrash */}
+                {isTrash && deletedGroups.map(group => (
+                  <Card key={group.id} className={cn(
+                    "group relative overflow-hidden border border-border/60 transition-colors hover:bg-accent/40",
+                    "bg-accent/30"
+                  )}>
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 rounded-md bg-background/50 flex items-center justify-center shrink-0">
+                          <Inbox className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="truncate font-semibold text-sm">{group.name}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">Tray</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title="Restore Tray">
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title="Delete Forever">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {items.length === 0 && deletedGroups.length === 0 && (
+                  <div className="col-span-full flex flex-col items-center justify-center text-muted-foreground py-10 opacity-50">
+                    <p>No items found</p>
+                  </div>
+                )}
+
+                {/* Grid view notes - no drag support */}
+                {items.map((item) => (
+                  item.type === 'separator' ? null : (
                     <Card key={item.id} className={cn(
                       "group cursor-pointer hover:bg-secondary transition-colors relative overflow-hidden border",
                       activeId === item.id ? "ring-2 ring-primary border-transparent" : "border-border/60"
@@ -432,10 +760,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                       </CardFooter>
                     </Card>
                   )
-                )
-              ))}
-              <div ref={scrollRef} />
-            </div>
+                ))}
+                <div ref={scrollRef} />
+              </div>
+            )}
           </div>
         </ScrollArea >
 
@@ -676,14 +1004,44 @@ export default function Home() {
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
 
-  // List DnD State
-  const [draggedGroupId, setDraggedGroupId] = React.useState<string | null>(null);
-  const [dropTargetGroupId, setDropTargetGroupId] = React.useState<string | null>(null);
-  const [dropGroupPosition, setDropGroupPosition] = React.useState<'before' | 'after' | null>(null);
+  // Group DnD State (dnd-kit)
+  const [activeDragGroupId, setActiveDragGroupId] = React.useState<string | null>(null);
 
-  // Note DnD removed for Selection Mode, but we need to keep `onMoveNote` for single moves if needed, 
-  // or `handleMoveNoteToGroup` is used for single move in menu.
-  // We removed `draggedNote` state usage in HomeSection.
+  const groupSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleGroupDragStart = (event: DragStartEvent) => {
+    const id = event.active.id as string;
+    if (id === 'inbox') return; // Inbox cannot be dragged
+    setActiveDragGroupId(id);
+  };
+
+  const handleGroupDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragGroupId(null);
+
+    if (!over || active.id === over.id) return;
+    if (active.id === 'inbox') return; // Inbox cannot be moved
+
+    setGroups(prev => {
+      const oldIndex = prev.findIndex(g => g.id === active.id);
+      const newIndex = prev.findIndex(g => g.id === over.id);
+
+      if (oldIndex === -1 || newIndex === -1) return prev;
+
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  };
+
+  const activeDragGroup = activeDragGroupId ? groups.find(g => g.id === activeDragGroupId) : null;
 
 
   const listScrollRef = React.useRef<HTMLDivElement>(null);
@@ -880,86 +1238,36 @@ export default function Home() {
   };
 
 
-  // Note DnD Removed
-  // const handleNoteDragStart = (e: React.DragEvent<HTMLDivElement>, item: Note) => { ... }
-  // const handleReorderNotes = ...
+  // Note Reorder Handler - receives the new order from dnd-kit
+  const handleReorderNotes = React.useCallback((newOrder: Note[]) => {
+    // newOrder contains only the items from current group (filtered by sortedNotes)
+    // We need to update the main notes array while preserving notes from other groups
+    setNotes(prev => {
+      // Get IDs in the new order
+      const reorderedIds = new Set(newOrder.map(n => n.id));
+
+      // Separate notes: ones that were reordered vs ones from other groups
+      const otherNotes = prev.filter(n => !reorderedIds.has(n.id));
+
+      // Combine: other notes + reordered notes (preserving the new order)
+      // Since notes in the same group should stay together, we need to insert at the right position
+      // Find the index of the first note from this group in original array
+      const firstGroupNoteIndex = prev.findIndex(n => reorderedIds.has(n.id));
+
+      const result = [...otherNotes];
+      result.splice(
+        Math.min(firstGroupNoteIndex, result.length),
+        0,
+        ...newOrder
+      );
+      return result;
+    });
+  }, []);
 
   const handleMoveNoteToGroup = (noteId: string, targetGroupId: string) => {
     setNotes(prev => prev.map(note => note.id === noteId ? { ...note, group: targetGroupId } : note));
     // If we moved the active note out of view (and we are viewing that group), maybe we should switch group? 
     // Or just let it disappear. Let's let it disappear from current view.
-  };
-
-  // Group Drag Handlers (Sidebar)
-  const handleGroupDragStart = (e: React.DragEvent, groupId: string) => {
-    if (groupId === 'inbox') {
-      e.preventDefault();
-      return;
-    }
-    setDraggedGroupId(groupId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleGroupDragOver = (e: React.DragEvent, targetGroupId: string) => {
-    e.preventDefault();
-    if (!draggedGroupId || draggedGroupId === targetGroupId) return;
-
-    // Special handling for Inbox: always show 'after' indicator
-    if (targetGroupId === 'inbox') {
-      setDropGroupPosition('after');
-      setDropTargetGroupId(targetGroupId);
-      return;
-    }
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const position: 'before' | 'after' = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
-
-    setDropGroupPosition(position);
-    setDropTargetGroupId(targetGroupId);
-  };
-
-  const handleGroupDragLeave = () => {
-    // Don't clear dropTargetGroupId immediately to avoid flickering with child elements
-  };
-
-  const handleGroupDragEnd = () => {
-    // Execute reorder if we have valid drop target (since onDrop may not fire for some elements)
-    if (draggedGroupId && dropTargetGroupId && dropGroupPosition) {
-      handleReorderGroups(draggedGroupId, dropTargetGroupId, dropGroupPosition);
-    }
-    // Clean up all drag state
-    setDraggedGroupId(null);
-    setDropTargetGroupId(null);
-    setDropGroupPosition(null);
-  };
-
-  const handleGroupDrop = (e: React.DragEvent, _targetGroupId: string) => {
-    e.preventDefault();
-    // Reorder is handled in handleGroupDragEnd to ensure it fires even when onDrop doesn't
-    setDraggedGroupId(null);
-    setDropTargetGroupId(null);
-    setDropGroupPosition(null);
-  };
-
-  const handleReorderGroups = (draggedId: string, targetId: string, position: 'before' | 'after') => {
-    if (draggedId === 'inbox') return;
-
-    setGroups(prev => {
-      const dIndex = prev.findIndex(g => g.id === draggedId);
-      const items = [...prev];
-      const [item] = items.splice(dIndex, 1);
-      let newTIndex = items.findIndex(g => g.id === targetId);
-      if (position === 'after') newTIndex++;
-
-      // Ensure nothing goes before Inbox (Inbox should always be first)
-      const newInboxIndex = items.findIndex(g => g.id === 'inbox');
-      if (newTIndex <= newInboxIndex) {
-        newTIndex = newInboxIndex + 1;
-      }
-
-      items.splice(newTIndex, 0, item);
-      return items;
-    });
   };
 
   // Delete helpers
@@ -1162,78 +1470,26 @@ export default function Home() {
               </div>
 
               <ScrollArea className="flex-1 px-4">
-                <div ref={listTopScrollRef} />
-                <ul className="space-y-1 py-2">
-                  {filteredGroups.map(group => {
-                    const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
-                    return (
-                      <li
-                        key={group.id}
-                        className="relative group/list"
-                        onDragOver={(e) => handleGroupDragOver(e, group.id)}
-                        onDrop={(e) => handleGroupDrop(e, group.id)}
-                        onDragLeave={handleGroupDragLeave}
-                      >
-                        {dropTargetGroupId === group.id && dropGroupPosition === 'before' && (
-                          <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
-                        )}
-
-                        {group.type === 'separator' ? (
-                          <div
-                            draggable
-                            onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                            onDragEnd={handleGroupDragEnd}
-                            onDragOver={(e) => handleGroupDragOver(e, group.id)}
-                            onDrop={(e) => handleGroupDrop(e, group.id)}
-                            className={cn(
-                              "relative w-full flex items-center px-0 py-2 transition-all group/separator mx-[-16px] width-[calc(100%+32px)]",
-                              draggedGroupId === group.id ? "opacity-30" : "opacity-100",
-                              dropTargetGroupId === group.id && "bg-secondary/50"
-                            )}
-                          >
-                            <div className="w-8 flex justify-center shrink-0">
-                            </div>
-                            <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
-                            <div className="w-8 flex justify-center shrink-0">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
-                                onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div
-                            draggable
-                            onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                            onDragEnd={handleGroupDragEnd}
-                            onDragOver={(e) => handleGroupDragOver(e, group.id)}
-                            onDrop={(e) => handleGroupDrop(e, group.id)}
-                          >
+                <div className="w-full max-w-full overflow-hidden">
+                  <div ref={listTopScrollRef} />
+                  <DndContext
+                    id="groups-dnd"
+                    sensors={groupSensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleGroupDragStart}
+                    onDragEnd={handleGroupDragEnd}
+                  >
+                    <div className="flex flex-col gap-0 py-2">
+                      {/* Inbox - fixed at top, not sortable */}
+                      {filteredGroups.filter(g => g.id === 'inbox').map(group => {
+                        const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
+                        return (
+                          <div key={group.id} className="relative group/list w-full">
                             <Button
                               variant="ghost"
                               className={cn(
                                 "w-full justify-start gap-2 h-9 pr-8",
-                                group.id === 'inbox' ?
-                                  cn(
-                                    activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
-                                  ) :
-                                  activeGroupId === group.id
-                                    ? cn(
-                                      "bg-[#E7A1B0]/15 hover:bg-[#E7A1B0]/20",
-                                      hasNotes ? "text-foreground font-medium" : "text-muted-foreground font-normal opacity-70"
-                                    )
-                                    : (!hasNotes && "text-muted-foreground font-normal opacity-70 hover:text-muted-foreground hover:opacity-70"),
-
-                                // Dragged styling
-                                draggedGroupId === group.id && "opacity-50",
-
-                                // Drop Target Styling:
-                                // If dropping a GROUP (Reorder), default logic handled by lines, but maybe highlight?
-                                dropTargetGroupId === group.id && "bg-secondary"
+                                activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
                               )}
                               onClick={() => setActiveGroupId(group.id)}
                             >
@@ -1241,53 +1497,58 @@ export default function Home() {
                               <span className="truncate">{group.name}</span>
                             </Button>
                           </div>
-                        )}
+                        );
+                      })}
 
-                        {dropTargetGroupId === group.id && dropGroupPosition === 'after' && (
-                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-20 pointer-events-none" />
-                        )}
+                      {/* Other groups - sortable */}
+                      <SortableContext
+                        items={filteredGroups.filter(g => g.id !== 'inbox').map(g => g.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {filteredGroups.filter(g => g.id !== 'inbox').map(group => {
+                          const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
+                          return (
+                            <SortableGroupItem
+                              key={group.id}
+                              group={group}
+                              activeGroupId={activeGroupId}
+                              hasNotes={hasNotes}
+                              notes={notes}
+                              onSelect={setActiveGroupId}
+                              onDelete={handleDeleteGroup}
+                            />
+                          );
+                        })}
+                      </SortableContext>
 
-                        {group.id !== 'inbox' && group.type !== 'separator' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/list:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </li>
-                    )
-                  })}
-                  <div ref={listScrollRef} />
+                      <div ref={listScrollRef} />
 
-                  <li
-                    className="pt-2 mt-2 border-t"
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      if (!draggedGroupId) return;
-                      // Treat as dropping at the end of the list
-                      const lastGroup = filteredGroups[filteredGroups.length - 1];
-                      if (lastGroup && lastGroup.id !== draggedGroupId) {
-                        setDropTargetGroupId(lastGroup.id);
-                        setDropGroupPosition('after');
-                      }
-                    }}
-                  >
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start gap-2 h-9",
-                        activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
+                      <div className="pt-2 mt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            "w-full justify-start gap-2 h-9",
+                            activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
+                          )}
+                          onClick={() => setActiveGroupId('restore')}
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          <span>Restore</span>
+                        </Button>
+                      </div>
+                    </div>
+                    <DragOverlay>
+                      {activeDragGroup && (
+                        <div className="opacity-90 shadow-2xl rounded-lg border-2 border-primary bg-card p-2 px-3">
+                          <div className="flex items-center gap-2">
+                            <Inbox className="w-4 h-4" />
+                            <span className="font-medium truncate">{activeDragGroup.name}</span>
+                          </div>
+                        </div>
                       )}
-                      onClick={() => setActiveGroupId('restore')}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>Restore</span>
-                    </Button>
-                  </li>
-                </ul>
+                    </DragOverlay>
+                  </DndContext>
+                </div>
               </ScrollArea>
               {/* Resizer Handle for Lists */}
               <div
@@ -1313,7 +1574,7 @@ export default function Home() {
               items={sortedNotes}
               onItemSelect={handleNoteSelect}
               activeId={activeTabId}
-              onReorder={() => { }} // DnD removed, so onReorder is a no-op here
+              onReorderNotes={handleReorderNotes}
               itemType="note"
               sortOption={noteSort}
               onSortChange={setNoteSort}
