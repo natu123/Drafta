@@ -9,6 +9,10 @@
 - 「終了の提案」や「時刻の通知」は厳禁。グレスさんの自発的な切り替えに委ねる
 - 状況に応じてユーモアやウィットを交える遊び心を持つ
 - 機能的限界について嘘やできない約束はせず、事実ベースでフェアに対話する
+- フィードバックメッセージの提案時は、改行をしっかり取った読みやすいスタイルで書く
+  - タイトルには `-- title --` の形式を使い、見出しにも修飾をつけて明確にする
+  - 文ごとに改行を入れる
+  - 詰め込まずに余白を持たせる
 
 ## Smart-Commit Workflow
 コミットを提案する際は「そろそろ Smart-commit の頃合いでしょうか？」と自然な会話形式で提案する。
@@ -36,7 +40,10 @@ Drafta独自のMarkdown拡張。
 - TypeScript
 - TipTap (ProseMirror) Editor
 - Tailwind CSS + shadcn/ui
-- Firebase Hosting（デプロイ: `firebase deploy --only hosting`）
+- Firebase Hosting
+  - デプロイ: `firebase deploy --only hosting`
+  - 本番URL: https://drafta-memo.com
+  - 代替URL: https://drafta-memo.web.app
 - Source: `Drafta_Web/src/`
 
 ## Key Files
@@ -48,7 +55,9 @@ Drafta独自のMarkdown拡張。
 - `Drafta/src/app/page.tsx` - Main layout (3-column: left/center/editor)
 
 ## Engineering Protocol
-- **Root Cause Analysis**: 症状と原因を混同しない。対症療法ではなく真因を突き止める
+- **⚠️ Spec-Driven Fix（最重要・What）**: バグ報告に対して対症療法で応答しない。「ユーザーが望んでいる仕様は何か」を常に意識し、その仕様を満たす形で修正する。症状を消すのではなく、仕様を実現する。**修正の方向性を決める**
+- **Root Cause Analysis（How）**: 症状と原因を混同しない。表面的な症状ではなく根本原因を突き止めて修正する。**修正の深さを決める**
+- **Reference Working Code**: 類似機能を実装する際は、既に動作している実装を参照し、同じ構造・ロジックを適用する。異なる実装で差異を生むと、バグの温床になる
 - **Context Verification**: 修正前に grep 等で実際の使用箇所と影響範囲を確認する
 - **Options First (UI変更時)**: 2〜5プランを提示し、合意を得てから実装。独断でのUI実装は厳禁
 - **Stop & Think**: パッチ修繕の前に「根本解決か？副作用はないか？」を自問する
@@ -59,11 +68,14 @@ Drafta独自のMarkdown拡張。
 - **User-Led Verification**: 動作確認は原則ユーザーに依頼。問題報告時にのみAI側で詳細検証
 - **Framework First**: カスタム実装の前に、フレームワーク標準APIの活用を検討する
 - **UX Consistency**: 原則として、類似機能（リスト種別、入力操作等）間で動作の一貫性を保つ
+- **Event Reliability Check**: ブラウザAPIのイベント（特にDrag & Drop）は、想定通り発火しないケースがある。代替イベント（onDragEnd等）の活用を検討する
+- **Minimum Document State**: エディタの最小構造（例: heading + 1 paragraph）を定義し、それを維持するガードを実装する
 
 ## Conventions
 - Japanese comments are acceptable
 - Use React functional components with hooks
 - Prefer editing existing files over creating new ones
+- **Dev Server優先**: 開発中の動作確認はdevサーバーで行う。`npm run build` はデプロイ前やSSR問題の確認時のみ
 - **Shell環境の違い**:
   - ユーザー操作（PowerShell）: コマンド結合は `;` を使用
   - Claude Code Bashツール: Unix系シェル（bash）で実行されるため `rm`, `ls`, `&&` 等を使用
