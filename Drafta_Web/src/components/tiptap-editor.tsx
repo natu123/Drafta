@@ -68,7 +68,7 @@ const extensions = [
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === 'heading' && node.attrs.level === 1) {
-        return 'Untitled Note';
+        return 'Untitled Memo';
       }
       return 'Type \'/\' for commands...';
     },
@@ -886,7 +886,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 {isCopied ? <Check className="text-green-500" /> : <Copy />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Copy Note</p></TooltipContent>
+            <TooltipContent><p>Copy Memo</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">

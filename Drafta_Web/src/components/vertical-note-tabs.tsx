@@ -124,7 +124,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                     onDragEnd={resetDragState}
                     role="button"
                     tabIndex={0}
-                    aria-label={item.title || 'Untitled Note'}
+                    aria-label={item.title || 'Untitled Memo'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
