@@ -1,6 +1,7 @@
 "use client";
 
 import { DOMSerializer, DOMParser } from '@tiptap/pm/model';
+import { TextSelection } from '@tiptap/pm/state';
 
 import * as React from 'react';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -421,7 +422,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       // カーソルを新しいリストアイテムの末尾に移動
       const newPos = start + 3 + text.length; // orderedList + listItem + paragraph の開始位置 + テキスト長
-      tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+      tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
 
       editor.view.dispatch(tr);
     }
@@ -478,7 +479,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       // カーソルを新しいリストアイテムの末尾に移動
       const newPos = start + 3 + text.length;
-      tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+      tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
 
       editor.view.dispatch(tr);
     }
