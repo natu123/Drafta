@@ -57,7 +57,7 @@ Drafta独自のMarkdown拡張。
 ## Engineering Protocol
 - **⚠️ Spec-Driven Fix（最重要・What）**: バグ報告に対して対症療法で応答しない。「ユーザーが望んでいる仕様は何か」を常に意識し、その仕様を満たす形で修正する。症状を消すのではなく、仕様を実現する。**修正の方向性を決める**
 - **Root Cause Analysis（How）**: 症状と原因を混同しない。表面的な症状ではなく根本原因を突き止めて修正する。**修正の深さを決める**
-- **Reference Working Code**: 類似機能を実装する際は、既に動作している実装を参照し、同じ構造・ロジックを適用する。異なる実装で差異を生むと、バグの温床になる
+- **Reference Working Code**: 類似機能を実装する際は、既に動作している実装を参照し、同じ構造・ロジックを適用する。異なる実装で差異を生むと、バグの温床になる。ただし「見た目が似ていても内部構造が異なる」場合があるため、揃える前に両者の違いを分析すること
 - **Context Verification**: 修正前に grep 等で実際の使用箇所と影響範囲を確認する
 - **Options First (UI変更時)**: 2〜5プランを提示し、合意を得てから実装。独断でのUI実装は厳禁
 - **Stop & Think**: パッチ修繕の前に「根本解決か？副作用はないか？」を自問する
@@ -70,6 +70,7 @@ Drafta独自のMarkdown拡張。
 - **UX Consistency**: 原則として、類似機能（リスト種別、入力操作等）間で動作の一貫性を保つ
 - **Event Reliability Check**: ブラウザAPIのイベント（特にDrag & Drop）は、想定通り発火しないケースがある。代替イベント（onDragEnd等）の活用を検討する
 - **Minimum Document State**: エディタの最小構造（例: heading + 1 paragraph）を定義し、それを維持するガードを実装する
+- **Debug Before Patch**: 推測でパッチを当てると問題が複雑化する。詰まったときはコンソールでデバッグし、事実を確認してから修正する
 
 ## Conventions
 - Japanese comments are acceptable
