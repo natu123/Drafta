@@ -22,9 +22,38 @@ import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import type { Modifier } from '@dnd-kit/core';
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
+
+// カスタムモディファイア: SortableContextの範囲内に制限
+const createRestrictToSortableArea = (sortableAreaRef: React.RefObject<HTMLDivElement | null>): Modifier => {
+  return ({ transform, draggingNodeRect }) => {
+    if (!sortableAreaRef.current || !draggingNodeRect) {
+      return transform;
+    }
+
+    const sortableRect = sortableAreaRef.current.getBoundingClientRect();
+    const { top: dragTop, bottom: dragBottom, height: dragHeight } = draggingNodeRect;
+
+    // ドラッグ中のアイテムがSortableArea外に出ないように制限
+    let newY = transform.y;
+
+    // 上限チェック（SortableAreaの上端より上に行かない）
+    const minY = sortableRect.top - dragTop;
+    // 下限チェック（SortableAreaの下端より下に行かない）
+    const maxY = sortableRect.bottom - dragBottom;
+
+    newY = Math.max(minY, Math.min(maxY, newY));
+
+    return {
+      ...transform,
+      y: newY,
+    };
+  };
+};
 type ViewMode = 'list' | 'grid';
 
 const getSortedItems = (
@@ -117,12 +146,14 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
     disabled: !canDrag || item.isProtected,
   });
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition ?? 'transform 200ms ease',
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : 'auto',
-  };
+  // dnd-kit標準のtransform使用（モディファイアで軸制限）
+  // ドラッグ中は非表示にしてDragOverlayのみ表示
+  const style: React.CSSProperties = isDragging
+    ? { opacity: 0 }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? 'transform 200ms ease',
+      };
 
   // Separator rendering
   if (item.type === 'separator') {
@@ -133,8 +164,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         {...(canDrag ? { ...attributes, ...listeners } : {})}
         className={cn(
           "group relative w-full flex items-center px-0 py-2 mx-[-8px] width-[calc(100%+16px)]",
-          isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : "",
-          isDragging && "opacity-30"
+          isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : ""
         )}
         onClick={() => isSelectionMode && onToggleSelect(item.id)}
       >
@@ -168,10 +198,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn(
-        "relative mb-2 w-full",
-        isDragging && "opacity-30"
-      )}
+      className="relative mb-2 w-full"
     >
       <div
         {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
@@ -182,8 +209,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
             : item.isProtected
               ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
               : "bg-card border-border/60 hover:border-primary/30",
-          isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : "",
-          isDragging && "shadow-lg ring-2 ring-primary"
+          isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
         )}
         onClick={() => {
           if (isSelectionMode) {
@@ -204,7 +230,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           </div>
         )}
 
-        <div className="flex-1 min-w-0">
+        <div className={cn("flex-1 min-w-0 min-h-[44px]", !item.plainTextContent && "flex items-center")}>
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
               <div onClick={(e) => e.stopPropagation()}>
@@ -246,15 +272,9 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
               </p>
             </div>
           </div>
-          {item.plainTextContent ? (
+          {item.plainTextContent && (
             <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
               <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-              <span className="text-[10px] text-muted-foreground/70 shrink-0">
-                {new Date(item.updatedAt).toLocaleDateString()}
-              </span>
-            </div>
-          ) : (
-            <div className="flex justify-end mt-0.5">
               <span className="text-[10px] text-muted-foreground/70 shrink-0">
                 {new Date(item.updatedAt).toLocaleDateString()}
               </span>
@@ -305,11 +325,14 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
     disabled: group.id === 'inbox', // Inbox cannot be dragged
   });
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition ?? 'transform 200ms ease',
-    opacity: isDragging ? 0.5 : 1,
-  };
+  // dnd-kit標準のtransform使用（モディファイアで軸制限）
+  // ドラッグ中は非表示にしてDragOverlayのみ表示
+  const style: React.CSSProperties = isDragging
+    ? { opacity: 0 }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? 'transform 200ms ease',
+      };
 
   // Separator rendering
   if (group.type === 'separator') {
@@ -318,10 +341,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={cn(
-          "relative flex items-center px-0 py-2 transition-all group/separator",
-          isDragging && "opacity-30"
-        )}
+        className="relative flex items-center px-0 py-2 transition-all group/separator"
         style={{ ...style, width: 'calc(100% + 32px)', marginLeft: '-16px' }}
       >
         <div className="w-8 flex justify-center shrink-0" />
@@ -345,7 +365,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn("relative group/list w-full", isDragging && "opacity-30")}
+      className="relative group/list w-full"
     >
       <div {...(group.id !== 'inbox' ? { ...attributes, ...listeners } : {})}>
         <Button
@@ -361,8 +381,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
                   "bg-[#E7A1B0]/15 hover:bg-[#E7A1B0]/20",
                   hasNotes ? "text-foreground font-medium" : "text-muted-foreground font-normal opacity-70"
                 )
-                : (!hasNotes && "text-muted-foreground font-normal opacity-70 hover:text-muted-foreground hover:opacity-70"),
-            isDragging && "shadow-lg ring-2 ring-primary"
+                : (!hasNotes && "text-muted-foreground font-normal opacity-70 hover:text-muted-foreground hover:opacity-70")
           )}
           onClick={() => onSelect(group.id)}
         >
@@ -397,10 +416,17 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 }) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const topScrollRef = React.useRef<HTMLDivElement>(null);
+  const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // dnd-kit setup
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const canDragNotes = !isSelectionMode && !isTrash && sortOption === 'manual';
+
+  // SortableContext範囲内に制限するカスタムモディファイア
+  const restrictToSortableArea = React.useMemo(
+    () => createRestrictToSortableArea(sortableAreaRef),
+    []
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -507,7 +533,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort notes">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort memos">
                     <ArrowDownUp className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -530,7 +556,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
             <div className="relative">
               <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Add note"
+                placeholder="Add memo"
                 className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -572,6 +598,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 id="notes-dnd"
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis, restrictToSortableArea]}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
               >
@@ -631,7 +658,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                             />
                           </div>
                         )}
-                        <div className="flex-1 min-w-0">
+                        <div className={cn("flex-1 min-w-0 min-h-[44px]", !item.plainTextContent && "flex items-center")}>
                           <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-base pointer-events-none shrink-0">
                               {item.icon || '📝'}
@@ -640,13 +667,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                               {stripColorMarkdown(item.title) || 'Untitled'}
                             </p>
                           </div>
-                          {item.plainTextContent ? (
+                          {item.plainTextContent && (
                             <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
                               <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-                              <span className="text-[10px] text-muted-foreground/70 shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end mt-0.5">
                               <span className="text-[10px] text-muted-foreground/70 shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
                             </div>
                           )}
@@ -656,35 +679,41 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   ))}
 
                   {/* Non-protected notes - sortable */}
-                  <SortableContext
-                    items={items.filter(item => !item.isProtected).map(item => item.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {items.filter(item => !item.isProtected).map((item) => (
-                      <SortableNoteItem
-                        key={item.id}
-                        item={item}
-                        activeId={activeId}
-                        isSelectionMode={isSelectionMode}
-                        selectedIds={selectedIds}
-                        isTrash={isTrash}
-                        canDrag={canDragNotes}
-                        onToggleSelect={onToggleSelect}
-                        onItemSelect={(id) => onItemSelect(id, itemType)}
-                        onToggleComplete={onToggleComplete}
-                        onDeleteItem={onDeleteItem}
-                        onRestoreItem={onRestoreItem}
-                        onPermanentDeleteItem={onPermanentDeleteItem}
-                        onIconChange={onIconChange}
-                      />
-                    ))}
-                  </SortableContext>
+                  <div ref={sortableAreaRef}>
+                    <SortableContext
+                      items={items.filter(item => !item.isProtected).map(item => item.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {items.filter(item => !item.isProtected).map((item) => (
+                        <SortableNoteItem
+                          key={item.id}
+                          item={item}
+                          activeId={activeId}
+                          isSelectionMode={isSelectionMode}
+                          selectedIds={selectedIds}
+                          isTrash={isTrash}
+                          canDrag={canDragNotes}
+                          onToggleSelect={onToggleSelect}
+                          onItemSelect={(id) => onItemSelect(id, itemType)}
+                          onToggleComplete={onToggleComplete}
+                          onDeleteItem={onDeleteItem}
+                          onRestoreItem={onRestoreItem}
+                          onPermanentDeleteItem={onPermanentDeleteItem}
+                          onIconChange={onIconChange}
+                        />
+                      ))}
+                    </SortableContext>
+                  </div>
                 </div>
-                <DragOverlay>
+                {/* Note: min-h-[44px]はSortableNoteItemの元カードと高さを揃えるため必要
+                    左カラム(SortableGroupItem)は単純な1行構造のため高さ指定不要 */}
+                <DragOverlay modifiers={[restrictToVerticalAxis]}>
                   {activeDragItem && (
                     <div className="opacity-90 shadow-2xl rounded-lg border-2 border-primary bg-card p-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{activeDragItem.icon || '📝'}</span>
+                      <div className="flex items-center gap-2 min-h-[44px]">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-base pointer-events-none shrink-0">
+                          {activeDragItem.icon || '📝'}
+                        </Button>
                         <p className="font-medium truncate">{stripColorMarkdown(activeDragItem.title) || 'Untitled'}</p>
                       </div>
                     </div>
@@ -1006,6 +1035,13 @@ export default function Home() {
 
   // Group DnD State (dnd-kit)
   const [activeDragGroupId, setActiveDragGroupId] = React.useState<string | null>(null);
+  const groupSortableAreaRef = React.useRef<HTMLDivElement>(null);
+
+  // SortableContext範囲内に制限するカスタムモディファイア（グループ用）
+  const restrictToGroupSortableArea = React.useMemo(
+    () => createRestrictToSortableArea(groupSortableAreaRef),
+    []
+  );
 
   const groupSensors = useSensors(
     useSensor(PointerSensor, {
@@ -1476,6 +1512,7 @@ export default function Home() {
                     id="groups-dnd"
                     sensors={groupSensors}
                     collisionDetection={closestCenter}
+                    modifiers={[restrictToVerticalAxis, restrictToGroupSortableArea]}
                     onDragStart={handleGroupDragStart}
                     onDragEnd={handleGroupDragEnd}
                   >
@@ -1501,25 +1538,27 @@ export default function Home() {
                       })}
 
                       {/* Other groups - sortable */}
-                      <SortableContext
-                        items={filteredGroups.filter(g => g.id !== 'inbox').map(g => g.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {filteredGroups.filter(g => g.id !== 'inbox').map(group => {
-                          const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
-                          return (
-                            <SortableGroupItem
-                              key={group.id}
-                              group={group}
-                              activeGroupId={activeGroupId}
-                              hasNotes={hasNotes}
-                              notes={notes}
-                              onSelect={setActiveGroupId}
-                              onDelete={handleDeleteGroup}
-                            />
-                          );
-                        })}
-                      </SortableContext>
+                      <div ref={groupSortableAreaRef}>
+                        <SortableContext
+                          items={filteredGroups.filter(g => g.id !== 'inbox').map(g => g.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {filteredGroups.filter(g => g.id !== 'inbox').map(group => {
+                            const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
+                            return (
+                              <SortableGroupItem
+                                key={group.id}
+                                group={group}
+                                activeGroupId={activeGroupId}
+                                hasNotes={hasNotes}
+                                notes={notes}
+                                onSelect={setActiveGroupId}
+                                onDelete={handleDeleteGroup}
+                              />
+                            );
+                          })}
+                        </SortableContext>
+                      </div>
 
                       <div ref={listScrollRef} />
 
@@ -1633,11 +1672,11 @@ export default function Home() {
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                     <Inbox className="w-8 h-8 opacity-20" />
                   </div>
-                  <h3 className="text-xl font-medium text-foreground mb-2">No active note</h3>
-                  <p className="max-w-xs">Select a note from the list or create a new one to start writing.</p>
+                  <h3 className="text-xl font-medium text-foreground mb-2">No active memo</h3>
+                  <p className="max-w-xs">Select a memo from the list or create a new one to start writing.</p>
                   <Button variant="outline" className="mt-6" onClick={handleNewNote}>
                     <Plus className="w-4 h-4 mr-2" />
-                    Create New Note
+                    Create New Memo
                   </Button>
                 </div>
               )}
@@ -1662,10 +1701,10 @@ export default function Home() {
           open={deleteConfirmOpen}
           onOpenChange={setDeleteConfirmOpen}
           onConfirm={handleExecutePermanentDelete}
-          title={itemToDelete?.type === 'group' ? "Delete Tray Forever?" : "Delete Note Forever?"}
+          title={itemToDelete?.type === 'group' ? "Delete Tray Forever?" : "Delete Memo Forever?"}
           description={itemToDelete?.type === 'group'
-            ? "This will permanently delete this Tray and ALL notes inside it. This action cannot be undone."
-            : "This will permanently delete this note. This action cannot be undone."}
+            ? "This will permanently delete this Tray and ALL memos inside it. This action cannot be undone."
+            : "This will permanently delete this memo. This action cannot be undone."}
         />
       </div >
     </>
