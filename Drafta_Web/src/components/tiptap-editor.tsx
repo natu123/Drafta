@@ -5,17 +5,15 @@ import { DOMSerializer, DOMParser } from '@tiptap/pm/model';
 import * as React from 'react';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { all, createLowlight } from 'lowlight';
-import { useEditor, EditorContent, BubbleMenu, Editor } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
-import TextStyle from '@tiptap/extension-text-style';
+import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Copy, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -26,7 +24,9 @@ import Paragraph from '@tiptap/extension-paragraph';
 import { Separator } from './ui/separator';
 import type { Note } from '@/lib/types';
 import { TitleDocument } from './tiptap-extensions/title-document';
+import { Title } from './tiptap-extensions/title-node';
 import { CustomListItem } from './tiptap-extensions/custom-list-item';
+import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
 import { PreserveBody } from './tiptap-extensions/preserve-body';
 
 // Create lowlight instance with all languages to ensure markdown support
@@ -50,29 +50,35 @@ const colors = [
 ];
 
 const extensions = [
-  TitleDocument, // Custom Document Extension enforcing H1 at start
+  TitleDocument, // Custom Document schema: title block+
+  Title, // Dedicated title node (separate from heading)
   PreserveBody, // Prevent deletion of last paragraph in body
   StarterKit.configure({
-    document: false, // Disable default document
+    document: false, // Disable default document (using TitleDocument)
     heading: {
-      levels: [1, 2, 3],
+      levels: [1, 2, 3], // Body headings (H1-H3)
     },
     codeBlock: false, // Disable default codeBlock to use lowlight
     listItem: false, // Disable default listItem to use CustomListItem with value attribute
+    orderedList: false, // Disable default orderedList to use CustomOrderedList with newList attribute
   }),
   CustomListItem,
+  CustomOrderedList,
   CodeBlockLowlight.configure({
     lowlight,
     defaultLanguage: 'plaintext',
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
-      if (node.type.name === 'heading' && node.attrs.level === 1) {
+      // Title node のみプレースホルダーを表示
+      if (node.type.name === 'title') {
         return 'Untitled Memo';
       }
-      return 'Type \'/\' for commands...';
+      // 本文（paragraph, heading等）にはプレースホルダーなし
+      return '';
     },
-    showOnlyCurrent: false, // Show placeholders in empty nodes even if not focused (optional)
+    showOnlyCurrent: false, // 常に表示（フォーカス関係なし）
+    includeChildren: false, // 子ノードには適用しない
   }),
   TextStyle,
   Color.configure({
@@ -177,10 +183,14 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       }
 
     } else {
-      // RICH TEXT MODE: Look for H1 Node
+      // RICH TEXT MODE: Look for Title Node
 
-      // Check if first node is H1
-      if (json.content && json.content.length > 0 && json.content[0].type === 'heading' && json.content[0].attrs?.level === 1) {
+      // Check if first node is 'title' (custom node) or 'heading' with level 1 (fallback)
+      const firstNode = json.content?.[0];
+      const isTitle = firstNode?.type === 'title' ||
+        (firstNode?.type === 'heading' && firstNode?.attrs?.level === 1);
+
+      if (isTitle) {
         // It's the title. Use DOM parser to get inner HTML of the first node for accurate color extraction
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = content;
@@ -196,7 +206,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           newContent = content;
         }
       } else {
-        // No H1 found (safe fallback)
+        // No title found (safe fallback)
         newContent = content;
       }
     }
@@ -206,6 +216,73 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   }, [htmlToTitle, onNoteUpdate]);
 
 
+  // Renumber ordered list items with smart grouping
+  // 選択肢2: 全リストを毎回再計算
+  // - startFrom=1 のリストは「新しいリストグループ」（1から開始）
+  // - startFrom!=1 のリストは「続きのリスト」（前のリストから連番）
+  // - 毎回全てのリストを走査して、続きのリストの startFrom を再計算
+  const renumberAllOrderedLists = React.useCallback((editorInstance: Editor) => {
+    const { state, view } = editorInstance;
+    const { doc } = state;
+    const tr = state.tr;
+    let needsUpdate = false;
+    let runningNumber = 0; // 前のリストグループからの連番
+
+    // まず全ての orderedList の位置と情報を収集
+    const lists: { pos: number; node: any }[] = [];
+    doc.descendants((node, pos) => {
+      if (node.type.name === 'orderedList') {
+        lists.push({ pos, node });
+      }
+    });
+
+    // 各リストの startFrom を計算・更新
+    for (const { pos, node } of lists) {
+      const currentStartFrom = node.attrs.startFrom ?? 1;
+      let effectiveStartFrom: number;
+
+      if (currentStartFrom === 1) {
+        // 新しいリストグループ: 1から開始
+        effectiveStartFrom = 1;
+        runningNumber = 1 + node.childCount;
+      } else {
+        // 続きのリスト: 前のリストからの連番
+        effectiveStartFrom = runningNumber;
+        // startFrom が期待値と違えば更新
+        if (currentStartFrom !== effectiveStartFrom) {
+          tr.setNodeMarkup(pos, undefined, {
+            ...node.attrs,
+            startFrom: effectiveStartFrom
+          });
+          needsUpdate = true;
+        }
+        runningNumber = effectiveStartFrom + node.childCount;
+      }
+
+      // リスト内のアイテムに番号を振る
+      let itemIndex = 0;
+      node.forEach((itemNode: any, offset: number) => {
+        if (itemNode.type.name === 'listItem') {
+          const newValue = effectiveStartFrom + itemIndex;
+          const itemPos = pos + 1 + offset;
+
+          if (itemNode.attrs.value !== newValue) {
+            tr.setNodeMarkup(itemPos, undefined, {
+              ...itemNode.attrs,
+              value: newValue
+            });
+            needsUpdate = true;
+          }
+          itemIndex++;
+        }
+      });
+    }
+
+    if (needsUpdate && tr.docChanged) {
+      view.dispatch(tr);
+    }
+  }, []);
+
   const editor = useEditor({
     extensions,
     content: getInitialContent(note.title, note.content),
@@ -214,54 +291,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     enableInputRules: false,
     enablePasteRules: false,
     onUpdate: ({ editor, transaction }) => {
-      // Auto-renumber ordered list items after any change
-      if (editor.isActive('orderedList')) {
-        // Use setTimeout to avoid dispatch during update and create fresh transaction
-        setTimeout(() => {
-          const { state, view } = editor;
-          const { selection } = state;
-          const { $from } = selection;
-
-          // Find the ordered list containing the cursor
-          let orderedListDepth = -1;
-          for (let d = $from.depth; d > 0; d--) {
-            if ($from.node(d).type.name === 'orderedList') {
-              orderedListDepth = d;
-              break;
-            }
-          }
-
-          if (orderedListDepth > 0) {
-            const orderedListPos = $from.before(orderedListDepth);
-            const orderedListNode = $from.node(orderedListDepth);
-
-            // Create a fresh transaction
-            const tr = state.tr;
-            let runningValue = 1;
-            let needsUpdate = false;
-
-            orderedListNode.forEach((child, offset, index) => {
-              const childPos = orderedListPos + 1 + offset;
-              if (index === 0) {
-                runningValue = child.attrs.value !== null ? child.attrs.value : 1;
-              } else {
-                runningValue++;
-                if (child.attrs.value !== runningValue) {
-                  tr.setNodeMarkup(childPos, undefined, {
-                    ...child.attrs,
-                    value: runningValue
-                  });
-                  needsUpdate = true;
-                }
-              }
-            });
-
-            if (needsUpdate && tr.docChanged) {
-              view.dispatch(tr);
-            }
-          }
-        }, 0);
-      }
+      // Auto-renumber all ordered list items after any change
+      // Use setTimeout to avoid dispatch during update
+      setTimeout(() => {
+        renumberAllOrderedLists(editor);
+      }, 0);
       handleSave(editor);
     },
     editorProps: {
@@ -340,160 +374,141 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   React.useEffect(() => {
     if (editor && note.id !== prevNoteIdRef.current) {
       const newContent = getInitialContent(note.title, note.content);
-      editor.commands.setContent(newContent, false);
+      editor.commands.setContent(newContent, { emitUpdate: false });
       contentRef.current = note.content;
       setIsPlainTextMode(false);
       prevNoteIdRef.current = note.id;
     }
   }, [note.id, note.title, note.content, editor, getInitialContent]);
 
-  // Check if document has any ordered list items
-  const hasOrderedList = React.useCallback(() => {
-    if (!editor) return false;
-    let found = false;
-    editor.state.doc.descendants(node => {
-      if (node.type.name === 'orderedList') {
-        found = true;
-        return false; // Stop traversing
-      }
-    });
-    return found;
-  }, [editor]);
-
-  // Get the last ordered list item's value BEFORE the cursor position
-  const getLastOrderedListValue = React.useCallback(() => {
-    if (!editor) return 0;
-
-    const { selection } = editor.state;
-    const cursorPos = selection.$from.pos;
-    let lastValue = 0;
-
-    // Find the last listItem with a value that ends before cursor position
-    editor.state.doc.descendants((node, pos) => {
-      // Only consider listItems that end before the cursor
-      const nodeEnd = pos + node.nodeSize;
-      if (nodeEnd <= cursorPos && node.type.name === 'listItem' && node.attrs.value) {
-        lastValue = node.attrs.value;
-      }
-    });
-
-    return lastValue;
-  }, [editor]);
-
-  // Insert ordered list with specific starting value
-  const insertOrderedListWithValue = React.useCallback((startValue: number) => {
+  // Insert NEW ordered list (startFrom=1 で新規リスト)
+  // toggleOrderedList は隣接リストをマージするので、直接ノードを操作
+  const insertOrderedList = React.useCallback(() => {
     if (!editor) return;
 
     const isCurrentlyOL = editor.isActive('orderedList');
     const isCurrentlyUL = editor.isActive('bulletList');
 
-    // If currently a bullet list, first convert to ordered list
     if (isCurrentlyUL) {
-      editor.chain().focus().toggleBulletList().toggleOrderedList().run();
-    } else if (!isCurrentlyOL) {
-      // If not in any list, create an ordered list
-      editor.chain().focus().toggleOrderedList().run();
+      editor.chain().focus().toggleBulletList().run();
     }
-    // If already OL, just update the values (don't toggle off)
 
-    // Update list items with sequential values starting from startValue
-    // Only update items in the list that contains the cursor
-    setTimeout(() => {
-      const { state, view } = editor;
-      const { tr, selection } = state;
+    if (!isCurrentlyOL) {
+      // 現在の段落の内容を取得
+      const { state } = editor;
+      const { selection, schema } = state;
       const { $from } = selection;
 
-      // Find the ordered list containing the cursor
-      let orderedListPos = -1;
-      let orderedListNode = null;
+      // 現在のノード（段落）のテキストを取得
+      const currentNode = $from.parent;
+      const text = currentNode.textContent;
 
-      for (let d = $from.depth; d > 0; d--) {
-        const node = $from.node(d);
-        if (node.type.name === 'orderedList') {
-          orderedListPos = $from.before(d);
-          orderedListNode = node;
-          break;
-        }
-      }
+      // 新しい orderedList を作成（startFrom=1）
+      const listItem = schema.nodes.listItem.create(
+        { value: 1 },
+        schema.nodes.paragraph.create(null, text ? schema.text(text) : null)
+      );
+      const orderedList = schema.nodes.orderedList.create(
+        { startFrom: 1 },
+        listItem
+      );
 
-      if (orderedListNode && orderedListPos >= 0) {
-        let itemIndex = 0;
-        orderedListNode.forEach((child, offset) => {
-          const childPos = orderedListPos + 1 + offset;
-          const newValue = startValue + itemIndex;
-          if (child.attrs.value !== newValue) {
-            tr.setNodeMarkup(childPos, undefined, {
-              ...child.attrs,
-              value: newValue
-            });
-          }
-          itemIndex++;
-        });
+      // 現在の段落を orderedList で置き換え
+      const tr = state.tr;
+      const start = $from.before($from.depth);
+      const end = $from.after($from.depth);
+      tr.replaceWith(start, end, orderedList);
 
-        if (tr.docChanged) {
-          view.dispatch(tr);
-        }
-      }
-    }, 0);
+      // カーソルを新しいリストアイテムの末尾に移動
+      const newPos = start + 3 + text.length; // orderedList + listItem + paragraph の開始位置 + テキスト長
+      tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+
+      editor.view.dispatch(tr);
+    }
   }, [editor]);
 
-  // Remove ordered list and decrement subsequent list items
-  const removeOrderedListAndRenumber = React.useCallback(() => {
+  // Continue ordered list - 前のリストの続きの番号で開始
+  // 作成時に前のリストを検索し、startFrom を計算して固定
+  const continueOrderedList = React.useCallback(() => {
     if (!editor) return;
 
-    const { state } = editor;
-    const { selection } = state;
-    const { $from } = selection;
+    const isCurrentlyOL = editor.isActive('orderedList');
+    const isCurrentlyUL = editor.isActive('bulletList');
 
-    // Find the current ordered list and get the value of items being removed
-    let currentListStartValue = 1;
-    let currentListItemCount = 0;
-
-    for (let d = $from.depth; d > 0; d--) {
-      const node = $from.node(d);
-      if (node.type.name === 'orderedList') {
-        node.forEach((child) => {
-          if (currentListItemCount === 0 && child.attrs.value) {
-            currentListStartValue = child.attrs.value;
-          }
-          currentListItemCount++;
-        });
-        break;
-      }
+    if (isCurrentlyUL) {
+      editor.chain().focus().toggleBulletList().run();
     }
 
-    // Calculate the end value of the list being removed
-    const currentListEndValue = currentListStartValue + currentListItemCount - 1;
+    if (!isCurrentlyOL) {
+      const { state } = editor;
+      const { selection, schema, doc } = state;
+      const { $from } = selection;
+      const cursorPos = selection.from;
 
-    // Toggle off the ordered list (convert to paragraphs)
-    editor.chain().focus().toggleOrderedList().run();
-
-    // After toggling, decrement all subsequent list items by the count of removed items
-    setTimeout(() => {
-      const { state: newState, view } = editor;
-      const { doc } = newState;
-      const tr = newState.tr;
-      let needsUpdate = false;
-
-      // Find all listItems with values GREATER than the removed list's end value
+      // 前のリストを検索して、続きの番号を計算
+      let calculatedStartFrom = 1;
       doc.descendants((node, pos) => {
-        if (node.type.name === 'listItem' && node.attrs.value) {
-          // Only decrement items that had values > currentListEndValue (truly subsequent)
-          if (node.attrs.value > currentListEndValue) {
-            const newValue = node.attrs.value - currentListItemCount;
-            tr.setNodeMarkup(pos, undefined, {
-              ...node.attrs,
-              value: newValue
-            });
-            needsUpdate = true;
-          }
+        if (node.type.name === 'orderedList' && pos < cursorPos) {
+          const listStartFrom = node.attrs.startFrom ?? 1;
+          const itemCount = node.childCount;
+          // このリストの最後の番号 + 1 が次の開始番号
+          calculatedStartFrom = listStartFrom + itemCount;
         }
       });
 
-      if (needsUpdate && tr.docChanged) {
-        view.dispatch(tr);
+      // 現在のノード（段落）のテキストを取得
+      const currentNode = $from.parent;
+      const text = currentNode.textContent;
+
+      // 新しい orderedList を作成（計算した startFrom で）
+      const listItem = schema.nodes.listItem.create(
+        { value: calculatedStartFrom },
+        schema.nodes.paragraph.create(null, text ? schema.text(text) : null)
+      );
+      const orderedList = schema.nodes.orderedList.create(
+        { startFrom: calculatedStartFrom },
+        listItem
+      );
+
+      // 現在の段落を orderedList で置き換え
+      const tr = state.tr;
+      const start = $from.before($from.depth);
+      const end = $from.after($from.depth);
+      tr.replaceWith(start, end, orderedList);
+
+      // カーソルを新しいリストアイテムの末尾に移動
+      const newPos = start + 3 + text.length;
+      tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+
+      editor.view.dispatch(tr);
+    }
+  }, [editor]);
+
+  // Check if there's any orderedList before the current cursor position
+  const hasOrderedListBefore = React.useCallback((): boolean => {
+    if (!editor) return false;
+
+    const { state } = editor;
+    const { doc, selection } = state;
+    const cursorPos = selection.from;
+    let found = false;
+
+    doc.descendants((node, pos) => {
+      if (found) return false; // Stop traversing
+      if (node.type.name === 'orderedList' && pos < cursorPos) {
+        found = true;
+        return false;
       }
-    }, 0);
+    });
+
+    return found;
+  }, [editor]);
+
+  // Remove ordered list (convert to paragraphs)
+  // Renumbering is automatically handled by onUpdate -> renumberAllOrderedLists
+  const removeOrderedList = React.useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().toggleOrderedList().run();
   }, [editor]);
 
   if (!editor) {
@@ -531,33 +546,30 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       // Extract Rich Title
       if (firstChild && firstChild.tagName === 'H1') {
-        titleHtml = firstChild.outerHTML; // Keep H1 tag and innerHTML
+        titleHtml = firstChild.outerHTML;
         firstChild.remove();
       }
 
       const { from } = editor.state.selection;
 
-      // Extract Body (Markdown Text)
-      Array.from(tempDiv.children).forEach(child => {
-        const isEmptyP = child.tagName === 'P' && (
-          (child.children.length === 1 && child.children[0].tagName === 'BR') ||
-          (child.textContent?.trim() === '' && child.children.length === 0)
-        );
+      // Extract Body (Markdown Text) - Plain mode body is P tags only
+      Array.from(tempDiv.children).forEach((child) => {
+        if (child.tagName !== 'P') return;
+
+        const isEmptyP = (child.children.length === 1 && child.children[0].tagName === 'BR') ||
+          (child.textContent?.trim() === '' && child.children.length === 0);
         if (isEmptyP) {
           bodyMarkdownLines.push('');
         } else {
-          bodyMarkdownLines.push(child.textContent || ''); // Raw markdown text
+          bodyMarkdownLines.push(child.textContent || '');
         }
       });
 
-      const markdownText = bodyMarkdownLines.join('\n'); // No trim to preserve intentional structure
+      const markdownText = bodyMarkdownLines.join('\n');
       const richBody = plainMarkdownToRich(markdownText);
-
-      // Combine: Rich Title + Rich Body
-      // richBody might contain wrapper div or just HTML string. plainMarkdownToRich returns HTML string.
       const finalContent = titleHtml + richBody;
 
-      editor.chain().setContent(finalContent, false, { preserveWhitespace: 'full' }).setTextSelection(from).run();
+      editor.chain().setContent(finalContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } }).setTextSelection(from).run();
     } else {
       // Switching: Rich -> Plain
       // Strategy: Keep Title Rich (H1 HTML), Convert Body to Plain (MD in P)
@@ -573,7 +585,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         titleHtml = firstChild.outerHTML;
         firstChild.remove();
       } else {
-        // Force H1 if missing (shouldn't happen with Schema)
         titleHtml = '<h1></h1>';
       }
 
@@ -587,7 +598,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
 
       // Wrap Markdown lines in P tags
-      // OL syntax is now {ol:N}text{/ol} format (no HTML tags), so no escaping needed
       const wrappedBody = lines.map(line => {
         if (line === '') return '<p></p>';
         return `<p>${line}</p>`;
@@ -595,7 +605,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       const finalContent = titleHtml + (wrappedBody || '<p></p>');
 
-      editor.chain().setContent(finalContent, false, { preserveWhitespace: 'full' }).setTextSelection(from).run();
+      editor.chain().setContent(finalContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } }).setTextSelection(from).run();
     }
 
     setIsPlainTextMode(nextMode);
@@ -694,7 +704,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       const currentContent = editor.getHTML();
       if (newContent !== currentContent) {
-        editor.commands.setContent(newContent, true);
+        editor.commands.setContent(newContent);
         editor.commands.focus();
       }
     }
@@ -795,28 +805,31 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             </TooltipTrigger>
             <TooltipContent><p>Checkbox List</p></TooltipContent>
           </Tooltip>
-          {/* Ordered List:
-              - On OL: toggle off immediately (like Bullet/Checkbox)
-              - Not on OL but OL exists: show popover
-              - No OL exists: create new OL starting at 1
-          */}
+          {/* Ordered List: 前にリストがあればPopover、なければ直接作成 */}
           {editor.isActive('orderedList') ? (
-            // Currently in OL: click to toggle off
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="secondary" size="icon" onClick={removeOrderedListAndRenumber} disabled={note.isProtected || isPlainTextMode}>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={removeOrderedList}
+                  disabled={note.isProtected || isPlainTextMode}
+                >
                   <ListOrdered />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Numbered List</p></TooltipContent>
+              <TooltipContent><p>Remove Numbered List</p></TooltipContent>
             </Tooltip>
-          ) : hasOrderedList() ? (
-            // Not in OL but OL exists: show popover
+          ) : hasOrderedListBefore() ? (
             <Popover>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={note.isProtected || isPlainTextMode}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={note.isProtected || isPlainTextMode}
+                    >
                       <ListOrdered />
                     </Button>
                   </PopoverTrigger>
@@ -828,30 +841,35 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="justify-start"
+                    className="justify-start text-sm"
                     onClick={() => {
-                      const nextValue = getLastOrderedListValue() + 1;
-                      insertOrderedListWithValue(nextValue);
+                      insertOrderedList();
                     }}
                   >
-                    Continue numbering
+                    1. 新しいリスト
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="justify-start"
-                    onClick={() => insertOrderedListWithValue(1)}
+                    className="justify-start text-sm"
+                    onClick={() => {
+                      continueOrderedList();
+                    }}
                   >
-                    Start new list
+                    N. 続きの番号
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
           ) : (
-            // No OL exists: create new OL starting at 1
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={() => insertOrderedListWithValue(1)} disabled={note.isProtected || isPlainTextMode}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={insertOrderedList}
+                  disabled={note.isProtected || isPlainTextMode}
+                >
                   <ListOrdered />
                 </Button>
               </TooltipTrigger>
@@ -914,7 +932,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         </div>
 
         {!note.isProtected && (
-          <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="bg-background border rounded-md shadow-lg p-1 flex gap-1">
+          <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }} className="bg-background border rounded-md shadow-lg p-1 flex gap-1">
             <Button
               onClick={() => editor.chain().focus().toggleBold().run()}
               variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
