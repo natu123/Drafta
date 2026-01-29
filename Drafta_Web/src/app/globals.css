@@ -101,17 +101,13 @@
     @apply outline-none;
 }
 
-.ProseMirror p.is-editor-empty:first-child::before,
-.ProseMirror h1.is-empty::before {
+/* Placeholder style - Title H1 (first-child) only */
+.ProseMirror > h1:first-child.is-empty::before {
     content: attr(data-placeholder);
     float: left;
     color: hsl(var(--muted-foreground));
     pointer-events: none;
     height: 0;
-}
-
-/* Title placeholder specific style */
-.ProseMirror h1.is-empty::before {
     opacity: 0.5;
 }
 
