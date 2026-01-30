@@ -90,7 +90,7 @@ Drafta独自のMarkdown拡張。
 
 ### Color System
 エディタのテキストカラーパレット（`tiptap-editor.tsx`）:
-- Black #000000, Green #64A364, Blue #51A2FF, Purple #AD46FF, Rose #E7A1B0, Orange #C49547
+- Black #000000, Green #64A364, Blue #51A2FF, Purple #AD46FF, Rose #E7A1B0, Gold #C49547, Grey #9CA3AF
 
 UI 状態カラー:
 - **Rose #E7A1B0** — アクティブノート・アクティブグループの背景（opacity付きで使用）
