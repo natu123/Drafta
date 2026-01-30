@@ -3,6 +3,7 @@ import type { Note, Group } from './types';
 
 export const groups: Group[] = [
   { id: 'inbox', name: 'Inbox' },
+  { id: 'todo', name: 'ToDo' },
   { id: 'work', name: 'Work' },
   { id: 'personal', name: 'Personal' },
   { id: 'ai', name: 'AI Generated' },
@@ -49,7 +50,7 @@ export const notes: Note[] = [
     id: 'note-2',
     title: 'Quick Reference',
     icon: '🌱',
-    content: `<p>Drafta supports standard Markdown syntax and powerful rich text features.</p><p></p><hr /><h3>Text Styling</h3><ul><li><p><strong>Bold</strong>: <code>**Bold**</code> or <code>{{Mod}}+B</code></p></li><li><p><em>Italic</em>: <code>*Italic*</code> or <code>{{Mod}}+I</code></p></li><li><p><s>Strikethrough</s>: <code>~~Strike~~</code> or <code>{{Mod}}+Shift+X</code></p></li><li><p><code>Inline Code</code>: \`Code\` or <code>{{Mod}}+E</code></p></li></ul><p></p><h3>Lists & Structure</h3><h4>Bullet Lab</h4><ul><li><p>Item A</p></li><li><p>Item B</p></li></ul><p></p><h4>Ordered Lab</h4><ol><li><p>Step 1</p></li><li><p>Step 2</p></li></ol><p></p><h4>Task List</h4><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Todo item</p></div></li><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Done item</p></div></li></ul><p></p><blockquote><p><strong>Quote</strong>: Use <code>></code> at the start of a line to create a blockquote.</p></blockquote><p></p><hr /><h3>Advanced</h3><h4>Code Blocks</h4><pre><code class="language-typescript">const drafta = "Awesome";
+    content: `<p>Drafta supports standard Markdown syntax and powerful rich text features.</p><p></p><hr /><h3>Text Styling</h3><ul><li><p><strong>Bold</strong>: <code>**Bold**</code> or <code>{{Mod}}+B</code></p></li><li><p><em>Italic</em>: <code>*Italic*</code> or <code>{{Mod}}+I</code></p></li><li><p><s>Strikethrough</s>: <code>~~Strike~~</code> or <code>{{Mod}}+Shift+X</code></p></li><li><p><code>Inline Code</code>: \`Code\` or <code>{{Mod}}+E</code></p></li></ul><p></p><h4>Color Tags</h4><ul><li><p><span style="color: #64A364">Green</span> - Success, Growth</p></li><li><p><span style="color: #51A2FF">Blue</span> - Info, Links</p></li><li><p><span style="color: #AD46FF">Purple</span> - Creative, Special</p></li><li><p><span style="color: #E7A1B0">Rose</span> - Important, Highlight</p></li><li><p><span style="color: #C49547">Gold</span> - Warning, Priority</p></li><li><p><span style="color: #9CA3AF">Grey</span> - Muted, Secondary</p></li></ul><p></p><h3>Lists & Structure</h3><h4>Bullet List</h4><ul><li><p>Item A</p></li><li><p>Item B</p></li></ul><p></p><h4>Numbered List (Smart!)</h4><ol start="1"><li><p><strong>Define your goal</strong><br>What do you want to achieve?</p></li><li><p><strong>Break it into steps</strong><br>Small tasks are easier to tackle</p></li></ol><p><span style="color: #9CA3AF"><em>Numbers continue after a break...</em></span></p><ol start="3"><li><p><strong>Execute daily</strong><br>Consistency beats intensity</p></li><li><p><strong>Review & iterate</strong><br>Adjust based on results</p></li></ol><p></p><h4>Task List</h4><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Todo item</p></div></li><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Done item</p></div></li></ul><p></p><blockquote><p><strong>Quote</strong>: Use <code>></code> at the start of a line to create a blockquote.</p></blockquote><p></p><hr /><h3>Advanced</h3><h4>Code Blocks</h4><pre><code class="language-typescript">const drafta = "Awesome";
 console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th colspan="1" rowspan="1"><p>Feature</p></th><th colspan="1" rowspan="1"><p>Status</p></th></tr><tr><td colspan="1" rowspan="1"><p>Markdown</p></td><td colspan="1" rowspan="1"><p>✅</p></td></tr><tr><td colspan="1" rowspan="1"><p>Rich Text</p></td><td colspan="1" rowspan="1"><p>✅</p></td></tr></tbody></table><p></p><hr /><h3>Drafta Power Tips</h3><ul><li><p><strong>List/Grid View</strong>: Toggle layouts from the header.</p></li><li><p><strong>Organization</strong>: Drag notes to reorder.</p></li><li><p><strong>Focus Mode</strong>: Collapse the sidebar for distraction-free writing.</p></li><li><p><strong>Shortcuts</strong>: <code>/</code> for commands (coming soon!).</p></li></ul>`,
     plainTextContent: `Drafta supports standard Markdown syntax and powerful rich text features.
 
@@ -61,14 +62,31 @@ console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th col
 - ~~Strikethrough~~: \`~~Strike~~\` or \`{{Mod}}+Shift+X\`
 - \`Inline Code\`: \`Code\` or \`{{Mod}}+E\`
 
+#### Color Tags
+- {color:#64A364}Green{/color} - Success, Growth
+- {color:#51A2FF}Blue{/color} - Info, Links
+- {color:#AD46FF}Purple{/color} - Creative, Special
+- {color:#E7A1B0}Rose{/color} - Important, Highlight
+- {color:#C49547}Gold{/color} - Warning, Priority
+- {color:#9CA3AF}Grey{/color} - Muted, Secondary
+
 ### Lists & Structure
-#### Bullet Lab
+#### Bullet List
 - Item A
 - Item B
 
-#### Ordered Lab
-1. Step 1
-2. Step 2
+#### Numbered List (Smart!)
+1. **Define your goal**
+   What do you want to achieve?
+2. **Break it into steps**
+   Small tasks are easier to tackle
+
+{color:#9CA3AF}*Numbers continue after a break...*{/color}
+
+{ol:3}**Execute daily**
+   Consistency beats intensity{/ol}
+{ol:4}**Review & iterate**
+   Adjust based on results{/ol}
 
 #### Task List
 - [ ] Todo item
@@ -240,5 +258,54 @@ vercel deploy --prebuilt
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
     parentId: 'note-3',
+  },
+  {
+    id: 'note-6',
+    title: 'Submit project proposal',
+    icon: '🔥',
+    content: `<p></p>`,
+    plainTextContent: ``,
+    group: 'todo',
+    stars: 2,
+    isPinned: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: 'note-7',
+    title: 'Review team feedback',
+    icon: '💼',
+    content: `<p></p>`,
+    plainTextContent: ``,
+    group: 'todo',
+    stars: 0,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  },
+  {
+    id: 'note-8',
+    title: 'Schedule client meeting',
+    icon: '📝',
+    content: `<p></p>`,
+    plainTextContent: ``,
+    group: 'todo',
+    stars: 1,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+  },
+  {
+    id: 'note-9',
+    title: 'Buy groceries',
+    icon: '🛒',
+    content: `<p></p>`,
+    plainTextContent: ``,
+    group: 'todo',
+    stars: 0,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    lastAccessedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
   },
 ];
