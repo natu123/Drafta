@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import Editor from '@/components/editor';
+import { emojis } from '@/components/tiptap-editor';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
@@ -298,7 +299,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
   );
 };
 
-const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒', '💬', '🌐'];
+// emojis is imported from tiptap-editor.tsx
 
 // Sortable Group Item Component for Left Sidebar
 interface SortableGroupItemProps {
@@ -861,10 +862,10 @@ export default function Home() {
   React.useEffect(() => {
     const totalWidth = window.innerWidth;
 
-    // 1.8:3.5:6.7 = 12 parts total (left/center slightly narrower for wider editor)
-    const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (1.8 / 12)));
-    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (3.5 / 12)));
-    const rightWidth = Math.floor(totalWidth * (6.7 / 12));
+    // 1.7:3.4:6.9 = 12 parts total (right column slightly wider for 7 color buttons)
+    const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (1.7 / 12)));
+    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (3.4 / 12)));
+    const rightWidth = Math.floor(totalWidth * (6.9 / 12));
 
     setListsWidth(leftWidth);
     setNotesWidth(centerWidth);
@@ -1578,11 +1579,12 @@ export default function Home() {
                     </div>
                     <DragOverlay>
                       {activeDragGroup && (
-                        <div className="opacity-90 shadow-2xl rounded-lg border-2 border-primary bg-card p-2 px-3">
-                          <div className="flex items-center gap-2">
-                            <Inbox className="w-4 h-4" />
-                            <span className="font-medium truncate">{activeDragGroup.name}</span>
-                          </div>
+                        <div
+                          className="opacity-90 shadow-2xl border-2 border-primary bg-card rounded-md flex items-center justify-start gap-2 h-9 px-4"
+                          style={{ width: listsWidth - 32 }}
+                        >
+                          <Inbox className="w-4 h-4" />
+                          <span className="font-medium truncate">{activeDragGroup.name}</span>
                         </div>
                       )}
                     </DragOverlay>

@@ -40,7 +40,7 @@ interface TiptapEditorProps {
   scrollDirection?: 'top' | 'bottom';
 }
 
-export const emojis = ['📝', '💡', '🍎', '🌱', '💼', '🛒', '🎉', '✈️', '❤️', '✅', '❌', '💎', '⭐️', '🌈', '🪒', '💬', '🌐'];
+export const emojis = ['📝', '⚡', '🔥', '💎', '⭐️', '🛒', '💼', '💡', '🎯', '📌', '❤️', '🎉', '✈️', '🌱', '🌈'];
 const colors = [
   { name: 'Black', value: '#000000' },
   { name: 'Green', value: '#64A364' },
@@ -48,6 +48,7 @@ const colors = [
   { name: 'Purple', value: '#AD46FF' },
   { name: 'Rose', value: '#E7A1B0' },
   { name: 'Gold', value: '#C49547' },
+  { name: 'Grey', value: '#9CA3AF' },
 ];
 
 const extensions = [
