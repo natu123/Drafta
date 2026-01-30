@@ -429,8 +429,8 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Ordered list - Custom tag format: {ol:N}text{/ol}
-    const olTagMatch = trimmed.match(/^\{ol:(\d+)\}(.+?)\{\/ol\}$/);
+    // Ordered list - Custom tag format: {ol:N}text{/ol} (空の内容も許可)
+    const olTagMatch = trimmed.match(/^\{ol:(\d+)\}(.*?)\{\/ol\}$/);
     if (olTagMatch) {
       if (inTaskList) closeList();
       if (!inList || listType !== 'ol') {
@@ -440,7 +440,7 @@ export function plainMarkdownToRich(text: string): string {
         listType = 'ol';
       }
       const num = parseInt(olTagMatch[1], 10);
-      const content = processInline(olTagMatch[2]);
+      const content = olTagMatch[2] ? processInline(olTagMatch[2]) : '';
       result.push(`<li value="${num}" style="--li-value: ${num}"><p>${content}</p></li>`);
       continue;
     }
