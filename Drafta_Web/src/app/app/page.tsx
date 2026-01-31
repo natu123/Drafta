@@ -853,7 +853,7 @@ export default function Home() {
   // Calculate initial widths based on screen size minus browser UI
   // Using fixed pixel offset to account for browser chrome (tabs, address bar, etc.)
   const BROWSER_UI_WIDTH = 0;    // No offset needed for width
-  const BROWSER_UI_HEIGHT = 150; // Tabs, address bar, bookmarks bar, etc.
+  const BROWSER_UI_HEIGHT = 90;  // Tabs, address bar (reduced to minimize double scrollbar)
 
   React.useEffect(() => {
     const totalWidth = window.screen.availWidth - BROWSER_UI_WIDTH;
@@ -1093,9 +1093,6 @@ export default function Home() {
       setOpenTabs(prev => [...prev, { id, type }]);
     }
     setActiveTabId(id);
-    if (window.innerWidth < 768) {
-      setActiveView('editor');
-    }
   };
 
   const closeTab = (id: string) => {
@@ -1154,11 +1151,6 @@ export default function Home() {
     });
     openTab(newNote.id, 'note'); // Ensure it opens a tab
     addToHistory(newNote, 'note');
-
-    // On desktop, we stay on 'home' (3-pane) UNLESS we were already in 'editor' (Writing Mode). 
-    if (window.innerWidth < 768) {
-      setActiveView('editor');
-    }
   };
 
   const handleAddSeparator = () => {
@@ -1225,9 +1217,6 @@ export default function Home() {
     if (note) {
       openTab(id, 'note'); // Ensure tab opens
       addToHistory(note, 'note');
-    }
-    if (window.innerWidth < 768) {
-      setActiveView('editor');
     }
   }, [notes]);
 

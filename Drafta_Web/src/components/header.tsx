@@ -199,7 +199,6 @@ const Header: React.FC<HeaderProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={onToggleView}
-                className="hidden md:flex"
               >
                 {activeView === 'home' ? <PanelLeft className="h-5 w-5" /> : <AppWindow className="h-5 w-5" />}
               </Button>
