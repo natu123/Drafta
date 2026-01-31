@@ -840,8 +840,7 @@ export default function Home() {
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
 
-  // Column Layout - 1.8:3.5:6.7 Ratio with mobile breakpoint
-  const BREAKPOINT_MOBILE = 768; // Below this, show only center column
+  // Column Layout - 1.8:3.5:6.7 Ratio (horizontal scroll when window is narrow)
   const MIN_LEFT_WIDTH = 140;
   const MIN_CENTER_WIDTH = 280;
 
@@ -849,106 +848,54 @@ export default function Home() {
   const [notesWidth, setNotesWidth] = React.useState(400);
   const [editorWidth, setEditorWidth] = React.useState(400);
   const [minEditorWidth, setMinEditorWidth] = React.useState(400); // Locked to initial fullscreen width
-  const [isMobileLayout, setIsMobileLayout] = React.useState(false);
+  const [minColumnHeight, setMinColumnHeight] = React.useState(500); // Locked to initial content height
 
-  // Calculate initial widths based on 2:5:5 ratio (only on mount)
+  // Calculate initial widths based on screen size minus browser UI
+  // Using fixed pixel offset to account for browser chrome (tabs, address bar, etc.)
+  const BROWSER_UI_WIDTH = 0;    // No offset needed for width
+  const BROWSER_UI_HEIGHT = 150; // Tabs, address bar, bookmarks bar, etc.
+
   React.useEffect(() => {
-    const totalWidth = window.innerWidth;
+    const totalWidth = window.screen.availWidth - BROWSER_UI_WIDTH;
+    const totalHeight = window.screen.availHeight - BROWSER_UI_HEIGHT;
 
     // 1.7:3.4:6.9 = 12 parts total (right column slightly wider for 7 color buttons)
     const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (1.7 / 12)));
     const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (3.4 / 12)));
     const rightWidth = Math.floor(totalWidth * (6.9 / 12));
+    const contentHeight = totalHeight - 57; // Subtract header height
 
     setListsWidth(leftWidth);
     setNotesWidth(centerWidth);
     setEditorWidth(rightWidth);
-    setMinEditorWidth(rightWidth); // Lock minimum to initial fullscreen value
+    setMinEditorWidth(rightWidth); // Lock minimum to calculated value
+    setMinColumnHeight(contentHeight); // Lock minimum to calculated content height
   }, []); // Only runs once on mount
 
-  // Handle window resize - keep editor at minimum, shrink center/left
-  React.useEffect(() => {
-    const handleResize = () => {
-      const totalWidth = window.innerWidth;
-
-      if (totalWidth < BREAKPOINT_MOBILE) {
-        setIsMobileLayout(true);
-        setNotesWidth(totalWidth);
-        return;
-      }
-
-      setIsMobileLayout(false);
-
-      const currentTotalUsed = listsWidth + notesWidth + editorWidth;
-
-      // If window got larger, restore proportional layout (2:4:6 ratio)
-      if (totalWidth > currentTotalUsed) {
-        const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (2 / 12)));
-        const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (4 / 12)));
-        const rightWidth = totalWidth - leftWidth - centerWidth;
-        setListsWidth(leftWidth);
-        setNotesWidth(centerWidth);
-        setEditorWidth(rightWidth);
-      }
-      // If window got smaller, shrink left and center first, editor stays at minimum
-      else if (totalWidth < currentTotalUsed) {
-        // Always keep editor at minimum
-        const newEditorWidth = minEditorWidth;
-        const availableForLeftCenter = totalWidth - newEditorWidth;
-
-        if (availableForLeftCenter >= MIN_LEFT_WIDTH + MIN_CENTER_WIDTH) {
-          // There's enough space, shrink proportionally
-          const ratio = listsWidth / (listsWidth + notesWidth);
-          const newLeftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(availableForLeftCenter * ratio));
-          const newCenterWidth = Math.max(MIN_CENTER_WIDTH, availableForLeftCenter - newLeftWidth);
-          setListsWidth(newLeftWidth);
-          setNotesWidth(newCenterWidth);
-        } else {
-          // Not enough space even at minimums, clamp to minimums
-          setListsWidth(MIN_LEFT_WIDTH);
-          setNotesWidth(MIN_CENTER_WIDTH);
-        }
-        setEditorWidth(newEditorWidth);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [minEditorWidth, listsWidth, notesWidth, editorWidth]);
-
-  // Manual resize state
+  // Manual resize state (only left-center boundary is resizable)
   const [isResizingLists, setIsResizingLists] = React.useState(false);
-  const [isResizingNotes, setIsResizingNotes] = React.useState(false);
 
-  // Manual resize handlers
+  // Manual resize handler for left-center boundary
   React.useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      const screenWidth = window.innerWidth;
-
       if (isResizingLists) {
         const newWidth = e.clientX;
-        if (newWidth >= MIN_LEFT_WIDTH && newWidth <= screenWidth * 0.3) {
+        // Left column: min width to (left+center total - center min)
+        const maxLeftWidth = listsWidth + notesWidth - MIN_CENTER_WIDTH;
+        if (newWidth >= MIN_LEFT_WIDTH && newWidth <= maxLeftWidth) {
+          const delta = newWidth - listsWidth;
           setListsWidth(newWidth);
-        }
-      }
-      if (isResizingNotes) {
-        const newWidth = e.clientX - listsWidth;
-        // Use minEditorWidth instead of MIN_RIGHT_WIDTH
-        const maxWidth = screenWidth - listsWidth - minEditorWidth;
-        if (newWidth >= MIN_CENTER_WIDTH && newWidth <= maxWidth) {
-          setNotesWidth(newWidth);
-          setEditorWidth(screenWidth - listsWidth - newWidth);
+          setNotesWidth(notesWidth - delta); // Adjust center column accordingly
         }
       }
     };
 
     const handleMouseUp = () => {
       setIsResizingLists(false);
-      setIsResizingNotes(false);
       document.body.classList.remove('resizing-columns');
     };
 
-    if (isResizingLists || isResizingNotes) {
+    if (isResizingLists) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       document.body.classList.add('resizing-columns');
@@ -959,7 +906,7 @@ export default function Home() {
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.classList.remove('resizing-columns');
     };
-  }, [isResizingLists, isResizingNotes, listsWidth, minEditorWidth]);
+  }, [isResizingLists, listsWidth, notesWidth]);
 
   // Selection Mode State
   const [isSelectionMode, setIsSelectionMode] = React.useState(false);
@@ -1450,7 +1397,7 @@ export default function Home() {
           onHistorySelect={handleHistorySelect}
         />
 
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className="flex flex-1 overflow-auto relative">
 
           {/* PANE 0: VERTICAL TABS (Only in Writing Mode) */}
           {activeView === 'editor' && openTabDetails.length > 0 && (
@@ -1467,14 +1414,13 @@ export default function Home() {
           )}
 
           {/* PANE 1: LISTS SIDEBAR */}
-          {!isMobileLayout && (
-            <div
-              className={cn(
-                "flex-col border-r bg-secondary/30 relative shrink-0",
-                activeView === 'home' ? "flex" : "hidden"
-              )}
-              style={{ width: listsWidth }}
-            >
+          <div
+            className={cn(
+              "flex-col border-r bg-secondary/30 relative shrink-0",
+              activeView === 'home' ? "flex" : "hidden"
+            )}
+            style={{ width: listsWidth, minHeight: minColumnHeight }}
+          >
               {/* Header for Lists */}
               <div className="flex items-center justify-between px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
                 <h2 className="text-lg font-semibold">Box</h2>
@@ -1603,9 +1549,7 @@ export default function Home() {
                 className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
                 onMouseDown={(e) => { e.preventDefault(); setIsResizingLists(true); }}
               />
-            </div>
-          )}
-
+          </div>
 
           {/* PANE 2: NOTES LIST */}
           <div
@@ -1613,7 +1557,7 @@ export default function Home() {
               "flex-col border-r relative shrink-0",
               activeView === 'home' ? "flex" : "hidden"
             )}
-            style={{ width: activeView === 'home' ? notesWidth : '100%' }}
+            style={{ width: activeView === 'home' ? notesWidth : '100%', minHeight: minColumnHeight }}
           >
 
             <HomeSection
@@ -1651,45 +1595,41 @@ export default function Home() {
               onQuickAdd={handleQuickCreateNote}
               onIconChange={handleIconChange}
             />
-            {/* Resizer Handle for Notes */}
-            <div
-              className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
-              onMouseDown={(e) => { e.preventDefault(); setIsResizingNotes(true); }}
-            />
           </div>
 
           {/* PANE 3: EDITOR */}
-          {!isMobileLayout && (
-            <div
-              className={cn(
-                "bg-background relative overflow-hidden",
-                activeView === 'editor' ? "flex flex-1 min-w-0" : "hidden md:flex shrink-0"
-              )}
-              style={activeView === 'editor' ? undefined : { width: editorWidth }}
-            >
-              {activeNote ? (
-                <Editor
-                  note={activeNote}
-                  onNoteUpdate={handleNoteUpdate}
-                  onIconChange={(id, icon) => handleIconChange(id, icon)}
-                  scrollDirection={scrollDirection}
-                />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center relative">
-                  <div className="absolute top-0 left-0 right-0 h-[57px] border-b bg-background/50" />
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                    <Inbox className="w-8 h-8 opacity-20" />
-                  </div>
-                  <h3 className="text-xl font-medium text-foreground mb-2">No active memo</h3>
-                  <p className="max-w-xs">Select a memo from the list or create a new one to start writing.</p>
-                  <Button variant="outline" className="mt-6" onClick={handleNewNote}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Memo
-                  </Button>
+          <div
+            className={cn(
+              "bg-background relative overflow-hidden flex",
+              activeView === 'editor' ? "flex-1" : "shrink-0"
+            )}
+            style={activeView === 'editor'
+              ? { minWidth: editorWidth, minHeight: minColumnHeight }
+              : { width: editorWidth, minHeight: minColumnHeight }
+            }
+          >
+            {activeNote ? (
+              <Editor
+                note={activeNote}
+                onNoteUpdate={handleNoteUpdate}
+                onIconChange={(id, icon) => handleIconChange(id, icon)}
+                scrollDirection={scrollDirection}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center relative">
+                <div className="absolute top-0 left-0 right-0 h-[57px] border-b bg-background/50" />
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Inbox className="w-8 h-8 opacity-20" />
                 </div>
-              )}
-            </div>
-          )}
+                <h3 className="text-xl font-medium text-foreground mb-2">No active memo</h3>
+                <p className="max-w-xs">Select a memo from the list or create a new one to start writing.</p>
+                <Button variant="outline" className="mt-6" onClick={handleNewNote}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Memo
+                </Button>
+              </div>
+            )}
+          </div>
         </div >
 
         <SettingsDialog
