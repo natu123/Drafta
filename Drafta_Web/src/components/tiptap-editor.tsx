@@ -29,6 +29,7 @@ import { Title } from './tiptap-extensions/title-node';
 import { CustomListItem } from './tiptap-extensions/custom-list-item';
 import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
 import { PreserveBody } from './tiptap-extensions/preserve-body';
+import { useTheme } from 'next-themes';
 
 // Create lowlight instance with all languages to ensure markdown support
 const lowlight = createLowlight(all);
@@ -41,8 +42,7 @@ interface TiptapEditorProps {
 }
 
 export const emojis = ['📝', '⚡', '🔥', '💎', '⭐️', '🛒', '💼', '💡', '🎯', '📌', '❤️', '🎉', '✈️', '🌱', '🌈'];
-const colors = [
-  { name: 'Black', value: '#000000' },
+const baseColors = [
   { name: 'Green', value: '#64A364' },
   { name: 'Blue', value: '#51A2FF' },
   { name: 'Purple', value: '#AD46FF' },
@@ -50,6 +50,9 @@ const colors = [
   { name: 'Gold', value: '#C49547' },
   { name: 'Grey', value: '#9CA3AF' },
 ];
+// Black for light mode, White for dark mode (both unset color when clicked)
+const lightModeDefaultColor = { name: 'Black', value: '#000000' };
+const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
 const extensions = [
   TitleDocument, // Custom Document schema: title block+
@@ -99,6 +102,14 @@ const extensions = [
 ];
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom' }) => {
+  const { resolvedTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark';
+
+  // Build colors array with theme-appropriate default color
+  const colors = React.useMemo(() => {
+    const defaultColor = isDarkMode ? darkModeDefaultColor : lightModeDefaultColor;
+    return [defaultColor, ...baseColors];
+  }, [isDarkMode]);
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
@@ -521,8 +532,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   }
 
   const handleSetColor = (color: string) => {
-    // Black (#000000) is the default color - remove color formatting instead of setting it
-    if (color.toLowerCase() === '#000000') {
+    // Black (#000000) and White (#FFFFFF) are default colors - remove color formatting instead of setting it
+    // This allows the text to use the theme's default foreground color
+    const lowerColor = color.toLowerCase();
+    if (lowerColor === '#000000' || lowerColor === '#ffffff') {
       editor.chain().focus().unsetColor().run();
     } else {
       editor.chain().focus().setColor(color).run();
@@ -913,26 +926,33 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">
-            {colors.map(color => (
-              <Tooltip key={color.name}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "w-6 h-6 rounded-full p-0 transition-opacity",
-                      editor.isActive('textStyle', { color: color.value }) && "ring-2 ring-primary ring-offset-2"
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    disabled={note.isProtected || isPlainTextMode}
-                    onMouseDown={(e) => { e.preventDefault(); handleSetColor(color.value); }}
-                  >
-                    <span className="sr-only">{color.name}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{color.name}</p></TooltipContent>
-              </Tooltip>
-            ))}
+            {colors.map(color => {
+              // Black/White are default colors - show as active when no color is set
+              const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
+              const isActive = isDefaultColor
+                ? !editor.isActive('textStyle', { color: /./ }) // Active when no color is set
+                : editor.isActive('textStyle', { color: color.value });
+              return (
+                <Tooltip key={color.name}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "w-6 h-6 rounded-full p-0 transition-opacity",
+                        isActive && "ring-2 ring-primary ring-offset-2"
+                      )}
+                      style={{ backgroundColor: color.value }}
+                      disabled={note.isProtected || isPlainTextMode}
+                      onMouseDown={(e) => { e.preventDefault(); handleSetColor(color.value); }}
+                    >
+                      <span className="sr-only">{color.name}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{color.name}</p></TooltipContent>
+                </Tooltip>
+              );
+            })}
           </div>
         </div>
 
