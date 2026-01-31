@@ -59,20 +59,20 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
               )}
             </div>
 
-            <h3 className="text-lg font-medium pt-4">Navigation</h3>
+            <h3 className="text-lg font-medium pt-4">List Style</h3>
             <div className="space-y-2">
-              <Label>Default View Position</Label>
+              <Label>New Item Position</Label>
               <RadioGroup value={scrollDirection} onValueChange={(v) => onScrollDirectionChange(v as 'top' | 'bottom')}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="top" id="scroll-top" />
-                  <Label htmlFor="scroll-top">Top (First Item)</Label>
+                  <Label htmlFor="scroll-top">Add to Top (ToDo style)</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="bottom" id="scroll-bottom" />
-                  <Label htmlFor="scroll-bottom">Bottom (Last/Newest)</Label>
+                  <Label htmlFor="scroll-bottom">Add to Bottom (Chat style)</Label>
                 </div>
               </RadioGroup>
-              <p className="text-sm text-muted-foreground">Sets where lists and notes open by default.</p>
+              <p className="text-sm text-muted-foreground">Sets where new memos and trays are added, and the initial scroll position.</p>
             </div>
           </div>
         </div>
