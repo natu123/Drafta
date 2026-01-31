@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather } from 'lucide-react';
+import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -146,6 +146,7 @@ interface HeaderProps {
   activeView: 'home' | 'editor';
   onNewNote: () => void;
   onOpenSettings: () => void;
+  onOpenSearch: () => void;
   history: HistoryItem[];
   onHistorySelect: (id: string, type: 'note') => void;
 }
@@ -155,6 +156,7 @@ const Header: React.FC<HeaderProps> = ({
   activeView,
   onNewNote,
   onOpenSettings,
+  onOpenSearch,
   history,
   onHistorySelect,
 }) => {
@@ -177,6 +179,17 @@ const Header: React.FC<HeaderProps> = ({
             </TooltipTrigger>
             <TooltipContent>
               <p>New note</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onOpenSearch}>
+                <Search className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Search</p>
             </TooltipContent>
           </Tooltip>
 
