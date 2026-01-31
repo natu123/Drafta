@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from 'react';
+import Link from 'next/link';
 import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -163,9 +164,11 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="flex items-center h-[57px] px-4 border-b bg-background z-50">
       {/* Left: Logo Section */}
-      <div className="flex-1 flex items-center gap-2">
-        <Feather className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
+      <div className="flex-1 flex items-center">
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Feather className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
+        </Link>
       </div>
 
       {/* Center: Main Actions Section */}
