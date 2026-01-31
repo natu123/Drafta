@@ -19,21 +19,35 @@ interface VerticalTabsProps {
   onReorderTabs: (draggedId: string, targetId: string) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
+  scrollDirection?: 'top' | 'bottom';
 }
 
-const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs, searchTerm, onSearchChange }) => {
+const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs, searchTerm, onSearchChange, scrollDirection = 'top' }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const activeTabRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   const [draggedItem, setDraggedItem] = React.useState<OpenTab | null>(null);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
 
+  // Scroll to active tab
   React.useEffect(() => {
     if (activeTabRef.current) {
       activeTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [activeId]);
+
+  // Initial scroll based on scrollDirection
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      if (scrollDirection === 'bottom') {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      } else {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+    }
+  }, [scrollDirection]);
 
   if (items.length === 0) {
     return null;
@@ -86,7 +100,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
           isExpanded ? 'w-64' : 'w-12'
         )}
       >
-        <div className="flex flex-col pt-2 overflow-y-auto flex-1">
+        <div ref={scrollContainerRef} className="flex flex-col pt-2 overflow-y-auto flex-1">
           {isExpanded && (
             <div className="px-3 pb-2 transition-all duration-200">
               <div className="relative">

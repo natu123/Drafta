@@ -14,6 +14,7 @@ import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
+import SearchDialog from '@/components/search-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -96,6 +97,7 @@ interface HomeSectionProps {
   onToggleComplete?: (id: string, isCompleted: boolean) => void;
   isTrash?: boolean;
   scrollDirection: 'top' | 'bottom';
+  isVisible?: boolean;
 
   // Selection Mode Props
   isSelectionMode: boolean;
@@ -410,13 +412,12 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
   sortOption, onSortChange, viewMode, onViewModeChange,
   searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
-  scrollDirection,
+  scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange
 }) => {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  const topScrollRef = React.useRef<HTMLDivElement>(null);
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // dnd-kit setup
@@ -461,15 +462,22 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   const activeDragItem = activeDragId ? items.find(item => item.id === activeDragId) : null;
 
+  // Center column scroll based on scrollDirection
   React.useEffect(() => {
+    if (!isVisible) return; // Only scroll when visible
     setTimeout(() => {
-      if (scrollDirection === 'bottom' && scrollRef.current) {
-        scrollRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
-      } else if (scrollDirection === 'top' && topScrollRef.current) {
-        topScrollRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+      if (scrollAreaRef.current) {
+        const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          if (scrollDirection === 'bottom') {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          } else {
+            scrollContainer.scrollTop = 0;
+          }
+        }
       }
     }, 50);
-  }, [scrollDirection, items.length]);
+  }, [scrollDirection, items.length, isVisible]);
 
   const deletedGroups = React.useMemo(() => {
     if (!isTrash) return [];
@@ -588,9 +596,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
       </div>
 
       <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full flex flex-col">
-        <ScrollArea className="flex-1 w-full">
+        <ScrollArea className="flex-1 w-full" ref={scrollAreaRef}>
           <div className="w-full max-w-full overflow-hidden">
-            <div ref={topScrollRef} />
 
             {/* Combined List for Trash View (Groups + Notes) or Just Notes */}
             {viewMode === 'list' ? (
@@ -638,7 +645,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                     </div>
                   )}
 
-                  {/* Protected notes - fixed at top, not sortable (no useSortable) */}
+                  {/* Protected notes - always at top, not sortable */}
                   {items.filter(item => item.isProtected).map((item) => (
                     <div key={item.id} className="relative mb-2 w-full">
                       <div
@@ -791,7 +798,6 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                     </Card>
                   )
                 ))}
-                <div ref={scrollRef} />
               </div>
             )}
           </div>
@@ -840,6 +846,7 @@ export default function Home() {
   const [lastActiveTab, setLastActiveTab] = React.useState<OpenTab | null>(null);
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isCreateListOpen, setIsCreateListOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
@@ -952,19 +959,19 @@ export default function Home() {
     const handleMouseUp = () => {
       setIsResizingLists(false);
       setIsResizingNotes(false);
-      document.body.style.cursor = 'default';
+      document.body.classList.remove('resizing-columns');
     };
 
     if (isResizingLists || isResizingNotes) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
+      document.body.classList.add('resizing-columns');
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
+      document.body.classList.remove('resizing-columns');
     };
   }, [isResizingLists, isResizingNotes, listsWidth, minEditorWidth]);
 
@@ -1081,18 +1088,24 @@ export default function Home() {
   const activeDragGroup = activeDragGroupId ? groups.find(g => g.id === activeDragGroupId) : null;
 
 
-  const listScrollRef = React.useRef<HTMLDivElement>(null);
-  const listTopScrollRef = React.useRef<HTMLDivElement>(null);
+  const listScrollAreaRef = React.useRef<HTMLDivElement>(null);
 
+  // Left column (Lists Sidebar) scroll based on scrollDirection
   React.useEffect(() => {
+    if (activeView !== 'home') return; // Only scroll when home view is active
     setTimeout(() => {
-      if (scrollDirection === 'bottom' && listScrollRef.current) {
-        listScrollRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
-      } else if (scrollDirection === 'top' && listTopScrollRef.current) {
-        listTopScrollRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+      if (listScrollAreaRef.current) {
+        const scrollContainer = listScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          if (scrollDirection === 'bottom') {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          } else {
+            scrollContainer.scrollTop = 0;
+          }
+        }
       }
     }, 50);
-  }, [scrollDirection]);
+  }, [scrollDirection, groups.length, activeView]);
 
   const activeNote = activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
 
@@ -1196,7 +1209,18 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setNotes(prev => [...prev, newNote]);
+    // Add to top or bottom based on scrollDirection
+    setNotes(prev => {
+      if (scrollDirection === 'top') {
+        // Find first note in current group and insert before it
+        const firstGroupIndex = prev.findIndex(n => n.group === activeGroupId);
+        if (firstGroupIndex === -1) return [...prev, newNote];
+        const result = [...prev];
+        result.splice(firstGroupIndex, 0, newNote);
+        return result;
+      }
+      return [...prev, newNote];
+    });
     openTab(newNote.id, 'note'); // Ensure it opens a tab
     addToHistory(newNote, 'note');
 
@@ -1247,9 +1271,19 @@ export default function Home() {
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
     };
-    setNotes(prev => [...prev, newNote]);
+    // Add to top or bottom based on scrollDirection
+    setNotes(prev => {
+      if (scrollDirection === 'top') {
+        // Find first note in current group and insert before it
+        const firstGroupIndex = prev.findIndex(n => n.group === activeGroupId);
+        if (firstGroupIndex === -1) return [...prev, newNote];
+        const result = [...prev];
+        result.splice(firstGroupIndex, 0, newNote);
+        return result;
+      }
+      return [...prev, newNote];
+    });
     handleNoteSelect(newNote.id); // Auto-open/select the new note
-    setScrollDirection('bottom');
   };
 
   const handleNoteSelect = React.useCallback((id: string) => {
@@ -1345,7 +1379,16 @@ export default function Home() {
   };
   const handleCreateGroup = (name: string) => {
     const newGroup: Group = { id: `group-${Date.now()}`, name: name, type: 'group' };
-    setGroups(prev => [...prev, newGroup]);
+    // Add to top or bottom based on scrollDirection
+    setGroups(prev => {
+      if (scrollDirection === 'top') {
+        // Insert after inbox (index 0)
+        const result = [...prev];
+        result.splice(1, 0, newGroup);
+        return result;
+      }
+      return [...prev, newGroup];
+    });
     setActiveGroupId(newGroup.id); // Auto-switch to new group
   };
 
@@ -1364,19 +1407,24 @@ export default function Home() {
       return true;
     });
 
-    // Sort items
+    // Separate Inbox from other groups
+    const inbox = items.find(g => g.id === 'inbox');
+    const others = items.filter(g => g.id !== 'inbox');
+
+    // Sort only non-inbox items
     if (groupSort === 'name') {
-      items.sort((a, b) => a.name.localeCompare(b.name));
+      others.sort((a, b) => a.name.localeCompare(b.name));
     } else if (groupSort === 'newest') {
       // Assuming ID has timestamp
-      items.sort((a, b) => {
+      others.sort((a, b) => {
         const timeA = parseInt(a.id.split('-')[1] || '0') || 0;
         const timeB = parseInt(b.id.split('-')[1] || '0') || 0;
         return timeB - timeA;
       });
     }
 
-    return items;
+    // Always keep Inbox at top
+    return inbox ? [inbox, ...others] : others;
   }, [groups, listsSearchTerm, groupSort]);
 
   const handleDeleteGroup = (id: string) => {
@@ -1424,6 +1472,7 @@ export default function Home() {
           activeView={activeView}
           onNewNote={handleNewNote}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
           history={history}
           onHistorySelect={handleHistorySelect}
         />
@@ -1440,6 +1489,7 @@ export default function Home() {
               onReorderTabs={handleReorderTabs}
               searchTerm={tabSearchTerm}
               onSearchChange={setTabSearchTerm}
+              scrollDirection={scrollDirection}
             />
           )}
 
@@ -1506,9 +1556,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 px-4">
+              <ScrollArea className="flex-1 px-4" ref={listScrollAreaRef}>
                 <div className="w-full max-w-full overflow-hidden">
-                  <div ref={listTopScrollRef} />
                   <DndContext
                     id="groups-dnd"
                     sensors={groupSensors}
@@ -1561,8 +1610,6 @@ export default function Home() {
                         </SortableContext>
                       </div>
 
-                      <div ref={listScrollRef} />
-
                       <div className="pt-2 mt-2 border-t">
                         <Button
                           variant="ghost"
@@ -1593,7 +1640,7 @@ export default function Home() {
               </ScrollArea>
               {/* Resizer Handle for Lists */}
               <div
-                className="absolute right-[-6px] top-0 bottom-0 w-3 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
+                className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
                 onMouseDown={(e) => { e.preventDefault(); setIsResizingLists(true); }}
               />
             </div>
@@ -1629,6 +1676,7 @@ export default function Home() {
               onPermanentDeleteItem={(id) => confirmPermanentDelete(id, 'note')}
               isTrash={activeGroupId === 'restore'}
               scrollDirection={scrollDirection}
+              isVisible={activeView === 'home'}
 
               isSelectionMode={isSelectionMode}
               onToggleSelectionMode={handleToggleSelectionMode}
@@ -1647,7 +1695,7 @@ export default function Home() {
             />
             {/* Resizer Handle for Notes */}
             <div
-              className="absolute right-[-6px] top-0 bottom-0 w-3 hover:bg-primary/50 cursor-col-resize z-50 transition-colors opacity-0 hover:opacity-100"
+              className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
               onMouseDown={(e) => { e.preventDefault(); setIsResizingNotes(true); }}
             />
           </div>
@@ -1691,6 +1739,22 @@ export default function Home() {
           onOpenChange={setIsSettingsOpen}
           scrollDirection={scrollDirection}
           onScrollDirectionChange={setScrollDirection}
+        />
+
+        <SearchDialog
+          open={isSearchOpen}
+          onOpenChange={setIsSearchOpen}
+          notes={notes}
+          groups={groups}
+          onNoteSelect={(noteId) => {
+            // メモを選択したとき、そのメモが属するトレイも開く
+            const note = notes.find(n => n.id === noteId);
+            if (note && note.group) {
+              setActiveGroupId(note.group);
+            }
+            handleNoteSelect(noteId);
+          }}
+          onGroupSelect={setActiveGroupId}
         />
 
         <CreateListDialog

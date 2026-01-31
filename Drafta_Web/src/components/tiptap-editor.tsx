@@ -360,16 +360,19 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
   }, [editor, note.isProtected]);
 
-  // Scroll to bottom on mount
+  // Scroll based on scrollDirection (on mount and note switch)
   React.useEffect(() => {
-    if (scrollContainerRef.current) {
-      if (scrollDirection === 'bottom') {
-        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-      } else {
-        scrollContainerRef.current.scrollTop = 0;
+    // Use setTimeout to ensure content is rendered
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        if (scrollDirection === 'bottom') {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        } else {
+          scrollContainerRef.current.scrollTop = 0;
+        }
       }
-    }
-  }, [scrollDirection]);
+    }, 50);
+  }, [scrollDirection, note.id]);
 
   // Sync external note changes (switching notes)
   const prevNoteIdRef = React.useRef(note.id);
