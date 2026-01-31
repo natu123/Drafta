@@ -80,7 +80,7 @@ Drafta独自のMarkdown拡張。
 - Japanese comments are acceptable
 - Use React functional components with hooks
 - Prefer editing existing files over creating new ones
-- **Dev Server優先**: 開発中の動作確認はdevサーバーで行う。`npm run build` はデプロイ前やSSR問題の確認時のみ
+- **Dev Server優先**: 開発中の動作確認はdevサーバーで行う。TypeScript型エラーやビルドエラーもdevサーバーで検出されるため、実装後のエラーチェック目的で `npm run build` を実行しない。buildはデプロイ前やSSR問題の確認時のみ
 - **Shell環境の違い**:
   - ユーザー操作（PowerShell）: コマンド結合は `;` を使用
   - Claude Code Bashツール: Unix系シェル（bash）で実行されるため `rm`, `ls`, `&&` 等を使用
