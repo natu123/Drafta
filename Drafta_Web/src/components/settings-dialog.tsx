@@ -36,9 +36,12 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
             Customize your application experience.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4">
+        <div className="py-4">
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Appearance</h3>
+            <div>
+              <hr className="border-border mb-2" />
+              <h3 className="text-lg font-medium">Appearance</h3>
+            </div>
             <div className="space-y-2">
               <Label>Theme</Label>
               {mounted && (
@@ -59,17 +62,20 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
               )}
             </div>
 
-            <h3 className="text-lg font-medium pt-4">List Style</h3>
+            <div className="pt-2">
+              <hr className="border-border mb-2" />
+              <h3 className="text-lg font-medium">List Style</h3>
+            </div>
             <div className="space-y-2">
               <Label>New Item Position</Label>
               <RadioGroup value={scrollDirection} onValueChange={(v) => onScrollDirectionChange(v as 'top' | 'bottom')}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="top" id="scroll-top" />
-                  <Label htmlFor="scroll-top">Add to Top (ToDo style)</Label>
+                  <Label htmlFor="scroll-top">Add to Top (ToDo Style)</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="bottom" id="scroll-bottom" />
-                  <Label htmlFor="scroll-bottom">Add to Bottom (Chat style)</Label>
+                  <Label htmlFor="scroll-bottom">Add to Bottom (Chat Style)</Label>
                 </div>
               </RadioGroup>
               <p className="text-sm text-muted-foreground">Sets where new memos and trays are added, and the initial scroll position.</p>
