@@ -89,8 +89,6 @@ interface HomeSectionProps {
   onSortChange: (sortOption: SortOption) => void;
   viewMode: ViewMode;
   onViewModeChange: (viewMode: ViewMode) => void;
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
   onDeleteItem: (id: string) => void;
   onRestoreItem?: (id: string) => void;
   onPermanentDeleteItem?: (id: string) => void;
@@ -411,7 +409,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
   sortOption, onSortChange, viewMode, onViewModeChange,
-  searchTerm, onSearchChange, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
+  onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
@@ -581,18 +579,6 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
         )}
 
-        {/* Search Input */}
-        <div className="px-2 py-1.5 bg-muted/40 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={`Search in "${title}"`}
-              className="pl-9 h-8 bg-background border-none shadow-none text-sm"
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
-        </div>
       </div>
 
       <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full flex flex-col">
@@ -1035,8 +1021,6 @@ export default function Home() {
 
 
 
-  const [homeSearchTerm, setHomeSearchTerm] = React.useState('');
-  const [listsSearchTerm, setListsSearchTerm] = React.useState('');
   const [tabSearchTerm, setTabSearchTerm] = React.useState(''); // Added for VerticalTabs
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
@@ -1401,11 +1385,7 @@ export default function Home() {
   const [groupSort, setGroupSort] = React.useState<'manual' | 'name' | 'newest'>('manual');
 
   const filteredGroups = React.useMemo(() => {
-    let items = groups.filter(g => {
-      if (g.isDeleted) return false;
-      if (listsSearchTerm && !g.name.toLowerCase().includes(listsSearchTerm.toLowerCase())) return false;
-      return true;
-    });
+    let items = groups.filter(g => !g.isDeleted);
 
     // Separate Inbox from other groups
     const inbox = items.find(g => g.id === 'inbox');
@@ -1425,7 +1405,7 @@ export default function Home() {
 
     // Always keep Inbox at top
     return inbox ? [inbox, ...others] : others;
-  }, [groups, listsSearchTerm, groupSort]);
+  }, [groups, groupSort]);
 
   const handleDeleteGroup = (id: string) => {
     if (id === 'inbox') return;
@@ -1453,15 +1433,8 @@ export default function Home() {
     } else {
       items = items.filter(note => note.group === activeGroupId && !note.isDeleted);
     }
-    if (homeSearchTerm) {
-      const lowerSearch = homeSearchTerm.toLowerCase();
-      items = items.filter(note =>
-        note.title.toLowerCase().includes(lowerSearch) ||
-        (note.plainTextContent && note.plainTextContent.toLowerCase().includes(lowerSearch))
-      );
-    }
     return items;
-  }, [notes, noteSort, homeSearchTerm, activeGroupId]);
+  }, [notes, noteSort, activeGroupId]);
 
 
   return (
@@ -1544,16 +1517,23 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="px-2 py-1.5 border-b bg-muted/40">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search in trays"
-                    className="pl-9 h-8 text-sm bg-background border-none shadow-none"
-                    value={listsSearchTerm}
-                    onChange={(e) => setListsSearchTerm(e.target.value)}
-                  />
-                </div>
+              {/* Inbox - fixed at top, outside ScrollArea */}
+              <div className="px-4 pt-2 shrink-0">
+                {filteredGroups.filter(g => g.id === 'inbox').map(group => (
+                  <div key={group.id} className="relative group/list w-full">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start gap-2 h-9 pr-8",
+                        activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
+                      )}
+                      onClick={() => setActiveGroupId(group.id)}
+                    >
+                      <Inbox className="w-4 h-4" />
+                      <span className="truncate">{group.name}</span>
+                    </Button>
+                  </div>
+                ))}
               </div>
 
               <ScrollArea className="flex-1 px-4" ref={listScrollAreaRef}>
@@ -1567,26 +1547,6 @@ export default function Home() {
                     onDragEnd={handleGroupDragEnd}
                   >
                     <div className="flex flex-col gap-0 py-2">
-                      {/* Inbox - fixed at top, not sortable */}
-                      {filteredGroups.filter(g => g.id === 'inbox').map(group => {
-                        const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
-                        return (
-                          <div key={group.id} className="relative group/list w-full">
-                            <Button
-                              variant="ghost"
-                              className={cn(
-                                "w-full justify-start gap-2 h-9 pr-8",
-                                activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
-                              )}
-                              onClick={() => setActiveGroupId(group.id)}
-                            >
-                              <Inbox className="w-4 h-4" />
-                              <span className="truncate">{group.name}</span>
-                            </Button>
-                          </div>
-                        );
-                      })}
-
                       {/* Other groups - sortable */}
                       <div ref={groupSortableAreaRef}>
                         <SortableContext
@@ -1668,8 +1628,6 @@ export default function Home() {
               onSortChange={setNoteSort}
               viewMode={noteViewMode}
               onViewModeChange={setNoteViewMode}
-              searchTerm={homeSearchTerm}
-              onSearchChange={setHomeSearchTerm}
               onDeleteItem={handleDeleteNote}
               onToggleComplete={handleToggleComplete}
               onRestoreItem={handleRestoreNote}
