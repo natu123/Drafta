@@ -1412,7 +1412,7 @@ export default function Home() {
           >
               {/* Header for Lists */}
               <div className="flex items-center justify-between px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
-                <h2 className="text-lg font-semibold">Box</h2>
+                <h2 className="text-lg font-semibold">Trays</h2>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
                     <Minus className="w-4 h-4" />
