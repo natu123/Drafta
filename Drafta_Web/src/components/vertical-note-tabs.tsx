@@ -100,7 +100,10 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
           isExpanded ? 'w-64' : 'w-12'
         )}
       >
-        <div ref={scrollContainerRef} className="flex flex-col pt-2 overflow-y-auto flex-1">
+        <div ref={scrollContainerRef} className={cn(
+          "flex flex-col pt-2 flex-1",
+          isExpanded ? "overflow-y-auto" : "overflow-y-hidden"
+        )}>
           {isExpanded && (
             <div className="px-3 pb-2 transition-all duration-200">
               <div className="relative">
