@@ -490,3 +490,11 @@ code {
 .hljs-emphasis {
     font-style: italic;
 }
+
+/* Column Resize Cursor - Custom cursor for visibility in both light and dark modes */
+/* Using SVG data URI for a col-resize cursor with dark stroke and white outline for visibility */
+.resize-handle,
+body.resizing-columns,
+body.resizing-columns * {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 5l-5 7 5 7' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8 5l-5 7 5 7' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M16 5l5 7-5 7' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M16 5l5 7-5 7' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='12' y1='3' x2='12' y2='21' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='12' y1='3' x2='12' y2='21' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, col-resize !important;
+}
