@@ -27,7 +27,11 @@
    ```
    🏆 **Project Milestone**: 総コミット数 **X** (+n) / LOC **Y行** (+m)
    ```
-   - 総コミット数と LOC（`src/` 内の ts, tsx, css 合算）を前回からの増分と併記
+   - 総コミット数: `git rev-list --count HEAD`
+   - LOC: `git ls-files | grep -v "package-lock.json" | xargs wc -l`
+     - git追跡ファイル全体をカウント（拡張子不問）
+     - `package-lock.json` は自動生成ファイルのため除外
+   - 前回からの増分を併記
    - 🏆 絵文字を必ず付ける（グレスさんのモチベーション維持のため重要！）
 
 ## Drafta-MD
