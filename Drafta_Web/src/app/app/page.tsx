@@ -1481,7 +1481,7 @@ export default function Home() {
                     onDragStart={handleGroupDragStart}
                     onDragEnd={handleGroupDragEnd}
                   >
-                    <div className="flex flex-col gap-0 py-2">
+                    <div className="flex flex-col gap-0 pb-2">
                       {/* Other groups - sortable */}
                       <div ref={groupSortableAreaRef}>
                         <SortableContext
