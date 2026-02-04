@@ -46,7 +46,7 @@ Drafta独自のMarkdown拡張。
 - Tailwind CSS + shadcn/ui
 - Firebase Hosting
   - デプロイ: `firebase deploy --only hosting`
-  - 本番URL: https://drafta-memo.com
+  - 本番URL: https://drafta-memo.com （デプロイ後はこちらを提示）
   - 代替URL: https://drafta-memo.web.app
 - Source: `Drafta_Web/src/`
 
@@ -75,6 +75,7 @@ Drafta独自のMarkdown拡張。
 - **Event Reliability Check**: ブラウザAPIのイベント（特にDrag & Drop）は、想定通り発火しないケースがある。代替イベント（onDragEnd等）の活用を検討する
 - **Minimum Document State**: エディタの最小構造（例: heading + 1 paragraph）を定義し、それを維持するガードを実装する
 - **Debug Before Patch**: 推測でパッチを当てると問題が複雑化する。詰まったときはコンソールでデバッグし、事実を確認してから修正する
+- **Feature Removal Cleanup**: 機能を廃止する際は、関連するキーワード（変数名、マジックナンバー、CSSクラス等）を grep で網羅的に検索し、残存コードを一括削除する。部分的な削除は新たなバグの原因となる
 
 ## Conventions
 - Japanese comments are acceptable
