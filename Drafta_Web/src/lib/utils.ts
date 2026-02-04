@@ -100,7 +100,31 @@ export function htmlToSimpleText(html: string): string {
     el.after(' ');
   });
 
-  return tempDiv.textContent?.trim() || '';
+  let text = tempDiv.textContent?.trim() || '';
+
+  // Strip Markdown syntax for clean preview display
+  // Note: Be careful not to strip CSS comments /* */ or other non-Markdown patterns
+  text = text
+    .replace(/^#{1,6}\s+/gm, '')           // Headings: # ## ### etc.
+    .replace(/^[-*+]\s+/gm, '')            // Unordered list: - * +
+    .replace(/^\d+\.\s+/gm, '')            // Ordered list: 1. 2. etc.
+    .replace(/^>\s+/gm, '')                // Blockquote: >
+    .replace(/^-{3,}$/gm, '')              // Horizontal rule: ---
+    .replace(/\*\*([^*]+)\*\*/g, '$1')     // Bold: **text** (no * inside)
+    .replace(/__([^_]+)__/g, '$1')         // Bold: __text__ (no _ inside)
+    .replace(/(?<![/*])\*([^*\s][^*]*)\*(?![/*])/g, '$1')  // Italic: *text* (not /* */ CSS comments)
+    .replace(/(?<!\w)_([^_\s][^_]*)_(?!\w)/g, '$1')        // Italic: _text_ (word boundary)
+    .replace(/~~([^~]+)~~/g, '$1')         // Strikethrough: ~~text~~
+    .replace(/`([^`]+)`/g, '$1')           // Inline code: `code`
+    .replace(/```[\s\S]*?```/g, '')        // Code block: ```...```
+    .replace(/\{color:[^}]+\}(.+?)\{\/color\}/gi, '$1')  // Color tags
+    .replace(/\{ol:\d+\}(.+?)\{\/ol\}/gi, '$1')          // Ordered list tags
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')             // Links: [text](url)
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')            // Images: ![alt](url)
+    .replace(/\s+/g, ' ')                  // Collapse multiple spaces
+    .trim();
+
+  return text;
 }
 
 // Rich Text to Plain Text (Markdown-like)
