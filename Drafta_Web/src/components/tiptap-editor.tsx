@@ -168,6 +168,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     if (isPlainTextModeRef.current) {
       // PLAIN TEXT MODE
       // Strategy: Check if first child is H1 (due to Schema Enforcement in handleTogglePlainTextMode)
+      // Body is Markdown text wrapped in <p> tags - convert to Rich HTML for storage
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
@@ -180,7 +181,23 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         newTitle = htmlToTitle(firstChild.innerHTML);
         // Remove H1 from content
         firstChild.remove();
-        newContent = tempDiv.innerHTML;
+
+        // Extract Markdown text from remaining <p> tags
+        const bodyMarkdownLines: string[] = [];
+        Array.from(tempDiv.children).forEach((child) => {
+          if (child.tagName !== 'P') return;
+          const isEmptyP = (child.children.length === 1 && child.children[0].tagName === 'BR') ||
+            (child.textContent?.trim() === '' && child.children.length === 0);
+          if (isEmptyP) {
+            bodyMarkdownLines.push('');
+          } else {
+            bodyMarkdownLines.push(child.textContent || '');
+          }
+        });
+
+        // Convert Markdown to Rich HTML for storage
+        const markdownText = bodyMarkdownLines.join('\n');
+        newContent = plainMarkdownToRich(markdownText);
       } else {
         // Fallback logic
         const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
@@ -340,25 +357,32 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           return true;
         }
 
-        // Rich mode: if HTML exists, let TipTap handle it
-        if (html) return false;
-        if (!text) return false;
+        // Rich mode: Check for Markdown patterns first (even if HTML exists)
+        // This ensures Drafta-copied content pastes as Markdown for consistency
+        if (text) {
+          const markdownPatterns = [
+            /^#\s/m, /^-\s/m, /^\*\s/m, /^\d+\.\s/m, /^>\s/m, /^-{3,}/m, /\|.*\|.*\|/m,
+          ];
 
-        const markdownPatterns = [
-          /^#\s/m, /^-\s/m, /^\*\s/m, /^\d+\.\s/m, /^>\s/m, /^-{3,}/m, /\|.*\|.*\|/m,
-        ];
+          const hasMarkdown = markdownPatterns.some(pattern => pattern.test(text));
 
-        const hasMarkdown = markdownPatterns.some(pattern => pattern.test(text));
-
-        if (hasMarkdown) {
-          const parsedHtml = plainMarkdownToRich(text.trim());
-          const parser = DOMParser.fromSchema(view.state.schema);
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = parsedHtml;
-          const slice = parser.parseSlice(tempDiv);
-          view.dispatch(view.state.tr.replaceSelection(slice));
-          return true;
+          if (hasMarkdown) {
+            const parsedHtml = plainMarkdownToRich(text.trim());
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = parsedHtml;
+            // Mark all H1s with data-paste to prevent them from being parsed as title node
+            tempDiv.querySelectorAll('h1').forEach(h1 => {
+              h1.setAttribute('data-paste', 'true');
+            });
+            const parser = DOMParser.fromSchema(view.state.schema);
+            const slice = parser.parseSlice(tempDiv);
+            view.dispatch(view.state.tr.replaceSelection(slice));
+            return true;
+          }
         }
+
+        // Rich mode: if HTML exists and no Markdown detected, let TipTap handle it
+        if (html) return false;
         return false;
       },
     },
@@ -730,20 +754,35 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   const handleCopyNote = async () => {
     if (!editor) return;
-    // Get full text including title
-    const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n');
+
+    // Get HTML content
+    const html = editor.getHTML();
+    // Get Markdown (Drafta-MD) for plain text
+    const markdown = richToPlainMarkdown(html);
+
     try {
-      await navigator.clipboard.writeText(text);
+      // Use ClipboardItem API to copy both HTML and Markdown
+      // - Rich mode paste: uses HTML, preserves formatting
+      // - Plain mode paste: uses text/plain (Markdown), can be converted back
+      const clipboardItem = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([markdown], { type: 'text/plain' }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 800);
     } catch {
-      // Fallback
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
+      // Fallback: copy Markdown only
+      try {
+        await navigator.clipboard.writeText(markdown);
+      } catch {
+        const textarea = document.createElement('textarea');
+        textarea.value = markdown;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 800);
     }

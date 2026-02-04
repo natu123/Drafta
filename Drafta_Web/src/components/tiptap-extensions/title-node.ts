@@ -13,10 +13,11 @@ export const Title = Heading.extend({
   name: 'title',
   group: 'title', // Separate from 'heading' group
 
-  // Override parseHTML to only match first-child H1
+  // Override parseHTML to only match first-child H1 without data-paste attribute
+  // data-paste is added during paste operations to prevent H1 from being parsed as title
   parseHTML() {
     return [
-      { tag: 'h1:first-child' },
+      { tag: 'h1:first-child:not([data-paste])' },
     ]
   },
 
