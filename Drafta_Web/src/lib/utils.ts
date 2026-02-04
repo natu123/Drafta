@@ -293,7 +293,9 @@ export function richToPlainMarkdown(html: string): string {
 
 // Plain Text (Markdown-like) to Rich Text HTML
 export function plainMarkdownToRich(text: string): string {
-  const lines = text.split('\n');
+  // Normalize line endings (CRLF → LF)
+  const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalizedText.split('\n');
   const result: string[] = [];
   let inList = false;
   let inTaskList = false;
@@ -331,8 +333,9 @@ export function plainMarkdownToRich(text: string): string {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Code block fence detection
-    const fenceMatch = trimmed.match(/^(`{3,}|~{3,})(.*)$/);
+    // Code block fence detection - use original line to preserve indentation check
+    // Fences must start at the beginning of the line (no leading whitespace)
+    const fenceMatch = line.match(/^(`{3,}|~{3,})(.*)$/);
 
     if (fenceMatch) {
       const fence = fenceMatch[1];
