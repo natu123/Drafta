@@ -23,7 +23,31 @@
       "Bash(find:*)",
       "mcp__Claude_in_Chrome__javascript_tool",
       "Bash(Remove-Item -Path \"C:\\\\Users\\\\kenji\\\\OneDrive\\\\デスクトップ\\\\Folder 1\\\\projects\\\\Drafta\\\\.claude\\\\agents\" -Recurse -Force)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nDocs: Drafta-MD仕様をCLAUDE.mdに追加\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFeat: ランディングページのFeatures刷新とプラットフォーム追加\n\n- Cloud Sync → Improved Markdown \\(Drafta-MD\\) に変更\n- Features説明文をキャッチーに更新\n- macOS, Linux をプラットフォーム一覧に追加\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(vercel --prod:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx next build)",
+      "Bash(cd:*)",
+      "Skill(retro)",
+      "Skill(retro:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(npx next build:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(git push:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:tiptap.dev)",
+      "Bash(npm uninstall @tiptap/core @tiptap/react @tiptap/starter-kit @tiptap/pm @tiptap/extension-bubble-menu @tiptap/extension-code-block-lowlight @tiptap/extension-color @tiptap/extension-placeholder @tiptap/extension-table @tiptap/extension-table-cell @tiptap/extension-table-header @tiptap/extension-table-row @tiptap/extension-task-item @tiptap/extension-task-list @tiptap/extension-text-style)",
+      "Bash(npm uninstall:*)",
+      "Bash(node -e:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:angelika.me)"
     ]
   }
 }
