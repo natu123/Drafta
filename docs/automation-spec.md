@@ -1,0 +1,53 @@
+﻿# Drafta Automation Spec
+
+このファイルを、Claude Commands と Codex Skills の共通仕様（正本）とする。
+
+## Mappings
+- `.claude/commands/devto.md` <-> `.codex/skills/drafta-devto-article/SKILL.md`
+- `.claude/commands/retro.md` <-> `.codex/skills/drafta-retrospective/SKILL.md`
+- `.claude/commands/smart-commit.md` <-> `.codex/skills/drafta-smart-commit/SKILL.md`
+
+## 1) Dev.to Article
+目的: Claude Code で詰まった問題の解決ログを Dev.to 記事化する。
+
+必須構成:
+- The Problem
+- Why Claude Code Got Stuck
+- Root Cause Analysis
+- The Solution
+- Key Takeaways for AI Agents
+- Keywords for search
+
+保存先:
+- `docs/devto-article-XX-[topic].md`
+
+タグルール:
+- `claudecode` を必ず含める
+- 技術タグは 2-3 個
+- 合計 4 タグまで
+
+## 2) Retrospective
+目的: 直前に解決した問題の再発防止を言語化する。
+
+出力:
+- 問題の本質（症状 / 根本原因）
+- 再発防止策（教訓 / レビューチェック / 設計・実装注意）
+- 指示ファイル追記提案（必要時）
+
+## 3) Smart Commit
+目的: 変更を論理単位で分割コミットする。
+
+手順:
+1. `git status` と `git diff` を確認
+2. Feat/Fix/Refactor/Style/Docs/Chore に分類
+3. グループごとに `git add` + `git commit`
+4. 最後に `git push`
+5. Milestone（総コミット数と LOC 増分）を報告
+
+コミットメッセージ:
+- `<Type>: <日本語で簡潔な説明>`
+
+## Sync Policy
+- 仕様変更は最初にこのファイルを更新する。
+- その後、Claude Commands と Codex Skills を同期する。
+- ツール固有差分のみ各ファイルに残す。

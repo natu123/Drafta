@@ -1,3 +1,6 @@
+﻿> Sync Source: `docs/automation-spec.md`（正本）
+> Mapping: `.claude/commands/smart-commit.md` <-> `.codex/skills/drafta-smart-commit/SKILL.md`
+> 更新時は先に `docs/automation-spec.md` を修正し、その後このファイルへ同期する。
 # Smart-Commit Workflow
 
 コミットを論理的なグループに分けて実行します。
@@ -28,3 +31,4 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 - 論理的に独立した変更は別々のコミットに分ける
 - 関連する変更はまとめる
 - コミットメッセージは日本語で簡潔に
+

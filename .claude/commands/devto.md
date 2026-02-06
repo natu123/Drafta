@@ -1,3 +1,6 @@
+﻿> Sync Source: `docs/automation-spec.md`（正本）
+> Mapping: `.claude/commands/devto.md` <-> `.codex/skills/drafta-devto-article/SKILL.md`
+> 更新時は先に `docs/automation-spec.md` を修正し、その後このファイルへ同期する。
 # Dev.to 記事作成
 
 Claude Codeでスタックした問題について、Dev.toに投稿する記事を作成します。
@@ -61,3 +64,4 @@ tags: claudecode, [tech1], [tech2], [tech3]
 ## シリーズ
 - シリーズ名: `Claude Code Debugging Chronicles`
 - 関連記事へのリンクを末尾に追加
+

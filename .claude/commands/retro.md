@@ -1,3 +1,6 @@
+﻿> Sync Source: `docs/automation-spec.md`（正本）
+> Mapping: `.claude/commands/retro.md` <-> `.codex/skills/drafta-retrospective/SKILL.md`
+> 更新時は先に `docs/automation-spec.md` を修正し、その後このファイルへ同期する。
 # Retrospective（振り返り）
 
 直前に解決した問題やバグについて振り返りを行い、再発防止策を検討してください。
@@ -19,3 +22,4 @@
 ---
 
 簡潔に、かつ今後に活かせる形でまとめてください。
+
