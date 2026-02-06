@@ -314,6 +314,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   }, []);
 
   const editor = useEditor({
+    // Keep styling deterministic across dev/prod by using only app-managed CSS.
+    injectCSS: false,
     extensions,
     content: getInitialContent(note.title, note.content),
     immediatelyRender: false,
@@ -330,7 +332,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-150px)]',
+        class: 'drafta-editor max-w-none focus:outline-none min-h-[calc(100vh-150px)]',
       },
       clipboardTextSerializer: (slice, view) => {
         try {

@@ -101,12 +101,12 @@
 
 /* Tiptap styles - No min-height restriction to let content flow naturally */
 
-.ProseMirror-focused {
+.ProseMirror.drafta-editor.ProseMirror-focused {
     @apply outline-none;
 }
 
 /* Placeholder style - Title H1 (first-child) only */
-.ProseMirror > h1:first-child.is-empty::before {
+.ProseMirror.drafta-editor > h1:first-child.is-empty::before {
     content: attr(data-placeholder);
     float: left;
     color: hsl(var(--muted-foreground));
@@ -116,21 +116,21 @@
 }
 
 /* Paragraph spacing - small margin for readability, minimal for copy-paste consistency */
-.ProseMirror p {
+.ProseMirror.drafta-editor p {
     margin-top: 0;
     margin-bottom: 0.25em;
     min-height: 1.5em;
     /* Ensure empty paragraphs are clickable */
 }
 
-.ProseMirror h1,
-.ProseMirror h2,
-.ProseMirror h3 {
+.ProseMirror.drafta-editor h1,
+.ProseMirror.drafta-editor h2,
+.ProseMirror.drafta-editor h3 {
     @apply my-0 font-bold;
 }
 
 /* Title H1 (first child) — largest, with distinct border */
-.ProseMirror > h1:first-child {
+.ProseMirror.drafta-editor > h1:first-child {
     @apply text-3xl font-bold;
     padding-top: 1rem;
     padding-bottom: 0.5rem;
@@ -139,47 +139,47 @@
 }
 
 /* Body H1s — smaller than title, no border */
-.ProseMirror > h1:not(:first-child) {
+.ProseMirror.drafta-editor > h1:not(:first-child) {
     @apply text-2xl font-bold;
     padding-top: 0.5rem;
     padding-bottom: 0.25rem;
     margin-bottom: 0.5rem;
 }
 
-.ProseMirror h2 {
+.ProseMirror.drafta-editor h2 {
     @apply text-xl;
 }
 
-.ProseMirror h3 {
+.ProseMirror.drafta-editor h3 {
     @apply text-lg;
 }
 
 /* TABLE STYLES */
-.ProseMirror table {
+.ProseMirror.drafta-editor table {
     border-collapse: collapse;
     width: 100%;
     margin: 0.5rem 0;
 }
 
-.ProseMirror th,
-.ProseMirror td {
+.ProseMirror.drafta-editor th,
+.ProseMirror.drafta-editor td {
     border: 1px solid hsl(var(--border));
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.75rem !important;
     text-align: left;
 }
 
-.ProseMirror th {
+.ProseMirror.drafta-editor th {
     background-color: hsl(var(--muted));
     font-weight: 600;
 }
 
-.ProseMirror tr:nth-child(even) td {
+.ProseMirror.drafta-editor tr:nth-child(even) td {
     background-color: hsl(var(--muted) / 0.3);
 }
 
 /* UNIVERSAL LIST STYLES (Bullet & Numbered) */
-.ProseMirror ul,
-.ProseMirror ol {
+.ProseMirror.drafta-editor ul,
+.ProseMirror.drafta-editor ol {
     padding-left: 0 !important;
     margin-left: 0 !important;
     margin-top: 0 !important;
@@ -187,7 +187,7 @@
     list-style: none !important;
 }
 
-.ProseMirror li {
+.ProseMirror.drafta-editor li {
     display: flex !important;
     align-items: flex-start !important;
     gap: 0.5rem;
@@ -198,8 +198,8 @@
     /* Removed line-height: normal so it inherits standard relaxed spacing */
 }
 
-.ProseMirror ul p,
-.ProseMirror ol p {
+.ProseMirror.drafta-editor ul p,
+.ProseMirror.drafta-editor ol p {
     margin: 0 !important;
     display: block;
     /* changed to block to behave like normal lines */
@@ -207,7 +207,7 @@
 
 /* CUSTOM BULLETS for standard UL */
 /* data-type="taskList" is handled separately below, so we target generic ul li */
-.ProseMirror ul:not([data-type="taskList"]) li::before {
+.ProseMirror.drafta-editor ul:not([data-type="taskList"]) li::before {
     content: "•";
     color: hsl(var(--foreground));
     font-size: 1.5rem;
@@ -241,20 +241,20 @@
 }
 
 /* NUMBERED LISTS */
-.ProseMirror ol {
+.ProseMirror.drafta-editor ol {
     counter-reset: ol-counter;
 }
 
-.ProseMirror ol li {
+.ProseMirror.drafta-editor ol li {
     counter-increment: ol-counter;
 }
 
 /* Support for li[value] attribute - use CSS variable set via inline style */
-.ProseMirror ol li[style*="--li-value"] {
+.ProseMirror.drafta-editor ol li[style*="--li-value"] {
     counter-set: ol-counter var(--li-value);
 }
 
-.ProseMirror ol li::before {
+.ProseMirror.drafta-editor ol li::before {
     content: counter(ol-counter) ".";
     color: hsl(var(--foreground));
     font-weight: bold;
@@ -266,7 +266,7 @@
 
 
 /* HR STYLES */
-.ProseMirror hr {
+.ProseMirror.drafta-editor hr {
     margin-top: 0.5rem !important;
     margin-bottom: 0.5rem !important;
     width: 100%;
@@ -275,31 +275,26 @@
 }
 
 /* BLOCKQUOTE STYLES */
-.ProseMirror blockquote {
-    border-left: 4px solid hsl(var(--primary));
-    padding-left: 1rem;
-    margin: 0.25rem 0;
+.ProseMirror.drafta-editor blockquote {
+    border-left: 4px solid hsl(var(--primary)) !important;
+    padding-left: 1rem !important;
+    margin: 0.25rem 0 !important;
     font-style: italic;
     color: hsl(var(--muted-foreground));
 }
 
-.ProseMirror blockquote p {
+.ProseMirror.drafta-editor blockquote p {
     margin: 0 !important;
 }
 
 /* Remove default prose quotes */
-.ProseMirror blockquote::before,
-.ProseMirror blockquote::after {
-    content: none !important;
-}
-
-.prose blockquote::before,
-.prose blockquote::after {
+.ProseMirror.drafta-editor blockquote::before,
+.ProseMirror.drafta-editor blockquote::after {
     content: none !important;
 }
 
 /* TASK LIST (Checkbox) Styles */
-.ProseMirror ul[data-type="taskList"] li {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li {
     gap: 0.5rem;
     /* Match the bullet list gap exactly (0.5rem + ? margin compensation) */
     /* 
@@ -313,7 +308,7 @@
 }
 
 /* Checkbox container alignment */
-.ProseMirror ul[data-type="taskList"] li>label {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li>label {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -329,7 +324,7 @@
     flex-shrink: 0;
 }
 
-.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"] {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li>label>input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
@@ -346,7 +341,7 @@
 }
 
 /* Custom Checkmark */
-.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"]::before {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li>label>input[type="checkbox"]::before {
     content: "";
     width: 0.65rem;
     height: 0.65rem;
@@ -358,16 +353,16 @@
     background-color: currentColor;
 }
 
-.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"]:checked {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li>label>input[type="checkbox"]:checked {
     background-color: hsl(var(--primary));
 }
 
-.ProseMirror ul[data-type="taskList"] li>label>input[type="checkbox"]:checked::before {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li>label>input[type="checkbox"]:checked::before {
     transform: scale(1);
 }
 
 
-.ProseMirror ul[data-type="taskList"] li>div {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li>div {
     flex: 1;
     min-width: 0;
     align-self: flex-start;
@@ -377,12 +372,12 @@
 }
 
 /* Line-through for done items */
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"] {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li[data-checked="true"] {
     opacity: 0.6;
     transition: opacity 0.2s;
 }
 
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div>p {
+.ProseMirror.drafta-editor ul[data-type="taskList"] li[data-checked="true"]>div>p {
     text-decoration: line-through;
     color: hsl(var(--muted-foreground));
 }
@@ -502,3 +497,4 @@ body.resizing-columns,
 body.resizing-columns * {
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 5l-5 7 5 7' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8 5l-5 7 5 7' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M16 5l5 7-5 7' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M16 5l5 7-5 7' stroke='%23333' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='12' y1='3' x2='12' y2='21' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='12' y1='3' x2='12' y2='21' stroke='%23333' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, col-resize !important;
 }
+
