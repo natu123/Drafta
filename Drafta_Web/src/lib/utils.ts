@@ -28,66 +28,260 @@ export function parseColorMarkdown(text: string): { color: string | null; text: 
   return { color: null, text };
 }
 
+export function normalizeOrderedListTags(text: string): string {
+  return text.replace(
+    /\{ol:(\d+)\}([\s\S]*?)(?:\{\/ol\}|\[\/ol\})/gi,
+    (_match, num, body) => {
+      const normalizedBody = String(body).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = normalizedBody.split('\n');
+      const firstLine = lines[0] ?? '';
+      const continuation = lines
+        .slice(1)
+        .map((line) => (line === '' ? '' : `    ${line}`));
+      return [`${num}. ${firstLine}`, ...continuation].join('\n');
+    }
+  );
+}
+
+export function normalizeOrderedListHtml(html: string): string {
+  if (typeof document === 'undefined') return html;
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+
+  tempDiv.querySelectorAll('ol').forEach((ol) => {
+    let nextNumber =
+      parseInt(ol.getAttribute('start') || '', 10) ||
+      parseInt(ol.getAttribute('startFrom') || '', 10) ||
+      parseInt(ol.getAttribute('data-start-from') || '', 10) ||
+      1;
+
+    const listItems = Array.from(ol.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement && child.tagName === 'LI'
+    );
+
+    listItems.forEach((li, idx) => {
+      const rawValue = parseInt(li.getAttribute('value') || '', 10);
+      const fallback = nextNumber;
+      const computed = Number.isFinite(rawValue)
+        ? Math.max(rawValue, fallback)
+        : fallback;
+
+      li.setAttribute('value', String(computed));
+      li.setAttribute('style', `--li-value: ${computed}`);
+      nextNumber = computed + 1;
+    });
+  });
+
+  return tempDiv.innerHTML;
+}
+
 export function removeFormatting(html: string): string {
   if (typeof document === 'undefined') return '';
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // Strategy:
-  // 1. Traverse nodes and accumulate text.
-  // 2. Insert '\n' for block elements (P, DIV, H1-H6, LI, BLOCKQUOTE) only if not already ending in \n.
-  // 3. Strip color markdown from the result.
+  // Keep two-level separation:
+  // - "\n"   : line breaks inside the same visual block (<br>, table row, etc.)
+  // - "\n\n" : visual block boundaries (paragraph, heading, list item, etc.)
+  const blocks: string[] = [];
+  const blockTags = new Set([
+    'P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI',
+    'BLOCKQUOTE', 'PRE', 'UL', 'OL', 'TABLE', 'TR',
+  ]);
 
-  let text = '';
+  const normalizeText = (text: string): string => text.replace(/\u00A0/g, ' ');
 
-  const isBlock = (node: Node) => {
-    return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'UL', 'OL', 'TR'].includes(node.nodeName);
+  const pushBlock = (value: string) => {
+    blocks.push(value.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
   };
 
-  // Skip visual-only lists that wrapper UL/OL might introduce if we process LIs
-  // But actually, just extracting text with \n for blocks is usually enough.
-
-  // Actually, innerText is close to what we want but handling newlines is browser-dependent.
-  // Let's use a manual traversal for predictable newlines.
-
-  const traverse = (node: Node) => {
+  const extractInlineText = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
-      text += node.textContent;
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
+      return normalizeText(node.textContent || '');
+    }
 
-      // Handle BR
-      if (el.tagName === 'BR') {
-        text += '\n';
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return '';
+    }
+
+    const element = node as HTMLElement;
+    if (element.tagName === 'BR') {
+      return '\n';
+    }
+
+    let result = '';
+    element.childNodes.forEach((child) => {
+      const childText = extractInlineText(child);
+      if (!childText) return;
+
+      const isChildBlock =
+        child.nodeType === Node.ELEMENT_NODE &&
+        blockTags.has((child as HTMLElement).tagName) &&
+        (child as HTMLElement).tagName !== 'BR';
+
+      if (isChildBlock && result !== '' && !result.endsWith('\n')) {
+        result += '\n';
+      }
+
+      result += childText;
+
+      if (isChildBlock && !result.endsWith('\n')) {
+        result += '\n';
+      }
+    });
+
+    return result;
+  };
+
+  const getDirectListItems = (listElement: HTMLElement): HTMLElement[] => {
+    return Array.from(listElement.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement && child.tagName === 'LI'
+    );
+  };
+
+  const processList = (listElement: HTMLElement) => {
+    const isTaskList = listElement.getAttribute('data-type') === 'taskList';
+    let orderedIndex =
+      Number.parseInt(listElement.getAttribute('start') || '', 10) ||
+      Number.parseInt(listElement.getAttribute('startFrom') || '', 10) ||
+      Number.parseInt(listElement.getAttribute('data-start-from') || '', 10) ||
+      1;
+    if (!Number.isFinite(orderedIndex)) {
+      orderedIndex = 1;
+    }
+
+    getDirectListItems(listElement).forEach((listItem) => {
+      const clone = listItem.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('ul, ol').forEach((nested) => nested.remove());
+
+      const text = extractInlineText(clone).replace(/\n+/g, ' ').replace(/\s+$/g, '');
+
+      if (isTaskList) {
+        const checked = listItem.getAttribute('data-checked') === 'true';
+        pushBlock(`${checked ? '[x]' : '[ ]'} ${text}`);
+        return;
+      }
+
+      if (listElement.tagName === 'OL') {
+        const valueAttr = Number.parseInt(listItem.getAttribute('value') || '', 10);
+        const itemNumber = Number.isFinite(valueAttr)
+          ? Math.max(valueAttr, orderedIndex)
+          : orderedIndex;
+        pushBlock(`${itemNumber}. ${text}`);
+        orderedIndex = itemNumber + 1;
+        return;
+      }
+
+      pushBlock(`- ${text}`);
+    });
+  };
+
+  const processTable = (tableElement: HTMLElement) => {
+    const table = tableElement as HTMLTableElement;
+    const rows = Array.from(table.rows);
+    if (rows.length === 0) {
+      pushBlock(extractInlineText(tableElement));
+      return;
+    }
+
+    const rowLines = rows.map((row) => {
+      const cellTexts = Array.from(row.cells).map((cell) => {
+        return extractInlineText(cell).replace(/\n/g, ' ').replace(/\s+$/g, '');
+      });
+      return `| ${cellTexts.join(' | ')} |`;
+    });
+
+    const markdownLines: string[] = [];
+    rowLines.forEach((line, index) => {
+      markdownLines.push(line);
+      // Keep markdown table structure explicitly:
+      // header row + separator row + data rows
+      if (index === 0) {
+        const headerCellCount = Math.max(1, rows[0].cells.length);
+        markdownLines.push(`| ${Array(headerCellCount).fill('---').join(' | ')} |`);
+      }
+    });
+
+    pushBlock(markdownLines.join('\n'));
+  };
+
+  const processNode = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = normalizeText(node.textContent || '');
+      if (text.trim() !== '') {
+        pushBlock(text);
+      }
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+
+    const element = node as HTMLElement;
+    const tagName = element.tagName;
+
+    if (tagName === 'UL' || tagName === 'OL') {
+      processList(element);
+      return;
+    }
+
+    if (tagName === 'TABLE') {
+      processTable(element);
+      return;
+    }
+
+    if (tagName === 'HR') {
+      pushBlock('---');
+      return;
+    }
+
+    if (tagName === 'BLOCKQUOTE') {
+      const quoteText = extractInlineText(element).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const quoteLines = quoteText.split('\n');
+      while (quoteLines.length > 0 && quoteLines[quoteLines.length - 1] === '') {
+        quoteLines.pop();
+      }
+
+      if (quoteLines.length === 0) {
+        pushBlock('> ');
       } else {
-        // Recursively process children
-        el.childNodes.forEach(traverse);
+        pushBlock(quoteLines.map((line) => `> ${line}`).join('\n'));
+      }
+      return;
+    }
 
-        // Append newline after block elements if not present
-        if (isBlock(el)) {
-          if (!text.endsWith('\n')) {
-            text += '\n';
-          }
-        }
+    if (tagName === 'DIV') {
+      const hasDirectBlockChild = Array.from(element.children).some(
+        (child) => child instanceof HTMLElement && blockTags.has(child.tagName)
+      );
+
+      if (hasDirectBlockChild) {
+        element.childNodes.forEach(processNode);
+        return;
       }
     }
+
+    if (tagName === 'BR') {
+      if (blocks.length === 0) {
+        pushBlock('');
+      } else {
+        blocks[blocks.length - 1] += '\n';
+      }
+      return;
+    }
+
+    pushBlock(extractInlineText(element));
   };
 
-  tempDiv.childNodes.forEach(traverse);
+  tempDiv.childNodes.forEach(processNode);
 
-  // Strip Color Markdown tags: {color:#...}text{/color} -> text
-  // The regex needs to be robust for nested or adjacent tags?
-  // Existing stripColorMarkdown utility logic:
-  text = text.replace(/\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi, '$2');
-
-  // Cleanup multiple newlines if any weirdness occurred (optional, but requested "don't increase newlines")
-  // The user complained about "double newlines", so let's normalize >2 newlines to 2, or just leave as is if our block logic is tight.
-  // Our block logic ensures at least one \n after block.
-
-  // Handle specific case: <p>Text</p><p>Text</p> -> Text\nText\n
-  // If we want blank lines between paragraphs: <p>T</p><p><br></p><p>T</p> -> T\n\nT\n
-
-  return text;
+  return normalizeOrderedListTags(
+    blocks
+    .join('\n\n')
+    .replace(/\{color:(#[0-9A-Fa-f]{3,6})\}([\s\S]+?)\{\/color\}/gi, '$2')
+  );
 }
 
 export function htmlToSimpleText(html: string): string {
@@ -137,11 +331,25 @@ export function richToPlainMarkdown(html: string): string {
 
   const output: string[] = [];
 
-  // Helper to process inline formatting
-  const processInline = (text: string): string => {
-    return text
-      .replace(/\*\*(.+?)\*\*/g, '**$1**')  // Already has **
-      .trim();
+  const extractTextWithBreaks = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.textContent || '').replace(/\u00A0/g, ' ');
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return '';
+    }
+
+    const element = node as HTMLElement;
+    if (element.tagName === 'BR') {
+      return '\n';
+    }
+
+    let text = '';
+    element.childNodes.forEach((child) => {
+      text += extractTextWithBreaks(child);
+    });
+    return text;
   };
 
   // Helper to get clean text content (handles inline formatting)
@@ -186,7 +394,7 @@ export function richToPlainMarkdown(html: string): string {
       }
     });
 
-    return clone.textContent?.trim() || '';
+    return extractTextWithBreaks(clone);
   };
 
   // Check if element is an empty paragraph
@@ -270,11 +478,21 @@ export function richToPlainMarkdown(html: string): string {
     // Ordered list - output as custom tag syntax (like color syntax)
     // Format: {ol:N}text{/ol} where N is the item number
     if (tagName === 'OL') {
+      const listStart =
+        parseInt(child.getAttribute('start') || '', 10) ||
+        parseInt(child.getAttribute('startFrom') || '', 10) ||
+        parseInt(child.getAttribute('data-start-from') || '', 10) ||
+        1;
+
+      let nextExpected = listStart;
       child.querySelectorAll('li').forEach((li, idx) => {
-        const valueAttr = li.getAttribute('value');
-        const num = valueAttr ? parseInt(valueAttr, 10) : idx + 1;
+        const valueAttr = parseInt(li.getAttribute('value') || '', 10);
+        const fallback = listStart + idx;
+        const base = Math.max(nextExpected, fallback);
+        const num = Number.isFinite(valueAttr) ? Math.max(valueAttr, base) : base;
         const text = getCleanText(li);
         output.push(`{ol:${num}}${text}{/ol}`);
+        nextExpected = num + 1;
       });
       return;
     }
@@ -324,10 +542,21 @@ export function plainMarkdownToRich(text: string): string {
   let inList = false;
   let inTaskList = false;
   let listType: 'ul' | 'ol' | null = null;
+  let inTable = false;
+  let tableRowCount = 0;
   let inCodeBlock = false;
   let codeBlockFence = '';
   let codeBlockLang = '';
   let codeBlockContent: string[] = [];
+
+  const appendToLastOrderedListItem = (htmlLine: string): boolean => {
+    for (let i = result.length - 1; i >= 0; i--) {
+      if (!result[i].startsWith('<li')) continue;
+      result[i] = result[i].replace(/<\/p><\/li>$/, `<br>${htmlLine}</p></li>`);
+      return true;
+    }
+    return false;
+  };
 
   const processInline = (str: string): string => {
     return str
@@ -335,7 +564,8 @@ export function plainMarkdownToRich(text: string): string {
       .replace(/\{color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\}(.+?)\{\/color\}/gi, '<span style="color: $1">$2</span>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.+?)__/g, '<strong>$1</strong>')
-      .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '<em>$1</em>')
+      // Avoid parsing CSS comment markers like /* ... */ as italic markdown.
+      .replace(/(?<![/*])\*(?![/*])([^*]+)\*(?![/*])/g, '<em>$1</em>')
       .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>')
       .replace(/~~(.+?)~~/g, '<s>$1</s>')
       .replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -354,8 +584,22 @@ export function plainMarkdownToRich(text: string): string {
     }
   };
 
+  const closeTable = () => {
+    if (inTable) {
+      result.push('</tbody></table>');
+      inTable = false;
+      tableRowCount = 0;
+    }
+  };
+
   for (const line of lines) {
     const trimmed = line.trim();
+    const isTableRow = !inCodeBlock && trimmed.startsWith('|') && trimmed.endsWith('|');
+
+    // Ensure an open table is closed before handling non-table lines.
+    if (inTable && !isTableRow) {
+      closeTable();
+    }
 
     // Code block fence detection - use original line to preserve indentation check
     // Fences must start at the beginning of the line (no leading whitespace)
@@ -378,6 +622,7 @@ export function plainMarkdownToRich(text: string): string {
           continue;
         }
       } else {
+        closeTable();
         closeList();
         codeBlockFence = fence;
         codeBlockLang = rest;
@@ -389,6 +634,16 @@ export function plainMarkdownToRich(text: string): string {
     if (inCodeBlock) {
       codeBlockContent.push(line);
       continue;
+    }
+
+    // Ordered list continuation line (e.g. "    detail" after "1. item")
+    // Keep it inside the same list item as a line break.
+    const isIndentedLine = /^[ \t]+/.test(line);
+    if (inList && listType === 'ol' && isIndentedLine && trimmed !== '') {
+      const continuationText = line.replace(/^[ \t]+/, '');
+      if (appendToLastOrderedListItem(processInline(continuationText))) {
+        continue;
+      }
     }
 
     // Headings
@@ -410,22 +665,24 @@ export function plainMarkdownToRich(text: string): string {
     }
 
     // Table row
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+    if (isTableRow) {
+      closeList();
+      if (!inTable) {
+        result.push('<table><tbody>');
+        inTable = true;
+        tableRowCount = 0;
+      }
+
       const isSeparator = /^\|[\s\-:|]+\|$/.test(trimmed);
       if (isSeparator) continue;
 
-      if (!result.length || !result[result.length - 1].endsWith('</tr>')) {
-        result.push('<table><tbody>');
-      }
-
       const cells = trimmed.slice(1, -1).split('|').map((c: string) => c.trim());
-      const isHeader = result[result.length - 1] === '<table><tbody>';
+      const isHeader = tableRowCount === 0;
       const cellTag = isHeader ? 'th' : 'td';
       const cellsHtml = cells.map((c: string) => `<${cellTag}>${processInline(c)}</${cellTag}>`).join('');
       result.push(`<tr>${cellsHtml}</tr>`);
+      tableRowCount += 1;
       continue;
-    } else if (result.length && result[result.length - 1].endsWith('</tr>')) {
-      result.push('</tbody></table>');
     }
 
     // Task list
@@ -438,7 +695,7 @@ export function plainMarkdownToRich(text: string): string {
       }
       const isChecked = taskMatch[1].toLowerCase() === 'x';
       const content = processInline(taskMatch[2]);
-      result.push(`<li data-type="taskItem" data-checked="${isChecked}"><label><input type="checkbox" ${isChecked ? 'checked' : ''}><span></span></label><div><p>${content}</p></div></li>`);
+      result.push(`<li data-type="taskItem" data-checked="${isChecked}"><label><input type="checkbox" name="task-item" ${isChecked ? 'checked' : ''}><span></span></label><div><p>${content}</p></div></li>`);
       continue;
     }
 
@@ -457,12 +714,13 @@ export function plainMarkdownToRich(text: string): string {
     }
 
     // Ordered list - Custom tag format: {ol:N}text{/ol} (空の内容も許可)
-    const olTagMatch = trimmed.match(/^\{ol:(\d+)\}(.*?)\{\/ol\}$/);
+    const olTagMatch = trimmed.match(/^\{ol:(\d+)\}(.*?)(?:\{\/ol\}|\[\/ol\})$/);
     if (olTagMatch) {
       if (inTaskList) closeList();
       if (!inList || listType !== 'ol') {
         if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
-        result.push('<ol>');
+        const startNum = parseInt(olTagMatch[1], 10);
+        result.push(`<ol start="${startNum}">`);
         inList = true;
         listType = 'ol';
       }
@@ -478,7 +736,8 @@ export function plainMarkdownToRich(text: string): string {
       if (inTaskList) closeList();
       if (!inList || listType !== 'ol') {
         if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
-        result.push('<ol>');
+        const startNum = parseInt(orderedMatch[1], 10);
+        result.push(`<ol start="${startNum}">`);
         inList = true;
         listType = 'ol';
       }
@@ -498,13 +757,18 @@ export function plainMarkdownToRich(text: string): string {
     // Regular paragraph
     closeList();
     if (trimmed) {
-      const content = processInline(trimmed);
+      const tabExpandedLine = line.replace(/\t/g, '    ');
+      const leadingSpaces = tabExpandedLine.match(/^ +/)?.[0] || '';
+      const bodyLine = tabExpandedLine.slice(leadingSpaces.length);
+      const preservedLeading = '&nbsp;'.repeat(leadingSpaces.length);
+      const content = preservedLeading + processInline(bodyLine);
       result.push(`<p>${content}</p>`);
     } else {
       result.push('<p></p>');
     }
   }
 
+  closeTable();
   closeList();
   return result.join('');
 }

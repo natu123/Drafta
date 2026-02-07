@@ -19,7 +19,7 @@ import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, Lis
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { cn, removeFormatting, richToPlainMarkdown, plainMarkdownToRich } from '@/lib/utils';
+import { cn, removeFormatting, richToPlainMarkdown, plainMarkdownToRich, normalizeOrderedListTags, normalizeOrderedListHtml } from '@/lib/utils';
 import Text from '@tiptap/extension-text';
 import Paragraph from '@tiptap/extension-paragraph';
 import { Separator } from './ui/separator';
@@ -156,6 +156,39 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     isPlainTextModeRef.current = isPlainTextMode;
   }, [isPlainTextMode]);
 
+  // Plain view body extraction:
+  // - Normal case: body is paragraph-only, so preserve each line exactly as typed.
+  // - Fallback: if non-paragraph blocks exist (e.g. accidental rich paste), convert safely via richToPlainMarkdown.
+  const extractMarkdownFromPlainBody = React.useCallback((bodyContainer: HTMLElement): string => {
+    const children = Array.from(bodyContainer.children);
+
+    if (children.length === 0) {
+      return bodyContainer.textContent || '';
+    }
+
+    const hasNonParagraphChild = children.some((child) => child.tagName !== 'P');
+    if (hasNonParagraphChild) {
+      return richToPlainMarkdown(bodyContainer.innerHTML);
+    }
+
+    const lines: string[] = [];
+    children.forEach((child) => {
+      if (child.tagName !== 'P') return;
+
+      const isEmptyP =
+        (child.children.length === 1 && child.children[0].tagName === 'BR') ||
+        (child.textContent === '' && child.children.length === 0);
+
+      if (isEmptyP) {
+        lines.push('');
+      } else {
+        lines.push(child.textContent || '');
+      }
+    });
+
+    return lines.join('\n');
+  }, []);
+
   const handleSave = React.useCallback((editorInstance: Editor) => {
     // Extract title (first H1) and content (rest)
     const json = editorInstance.getJSON();
@@ -182,21 +215,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         // Remove H1 from content
         firstChild.remove();
 
-        // Extract Markdown text from remaining <p> tags
-        const bodyMarkdownLines: string[] = [];
-        Array.from(tempDiv.children).forEach((child) => {
-          if (child.tagName !== 'P') return;
-          const isEmptyP = (child.children.length === 1 && child.children[0].tagName === 'BR') ||
-            (child.textContent?.trim() === '' && child.children.length === 0);
-          if (isEmptyP) {
-            bodyMarkdownLines.push('');
-          } else {
-            bodyMarkdownLines.push(child.textContent || '');
-          }
-        });
-
-        // Convert Markdown to Rich HTML for storage
-        const markdownText = bodyMarkdownLines.join('\n');
+        // Convert Plain view body to markdown robustly.
+        const markdownText = extractMarkdownFromPlainBody(tempDiv);
         newContent = plainMarkdownToRich(markdownText);
       } else {
         // Fallback logic
@@ -243,7 +263,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
     contentRef.current = newContent;
     onNoteUpdate({ title: newTitle, content: newContent });
-  }, [htmlToTitle, onNoteUpdate]);
+  }, [extractMarkdownFromPlainBody, htmlToTitle, onNoteUpdate]);
 
 
   // Renumber ordered list items with smart grouping
@@ -341,7 +361,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           const domFragment = serializer.serializeFragment(slice.content);
           const tempDiv = document.createElement('div');
           tempDiv.appendChild(domFragment);
-          return richToPlainMarkdown(tempDiv.innerHTML);
+          const normalizedHtml = normalizeOrderedListHtml(tempDiv.innerHTML);
+          return normalizeOrderedListTags(richToPlainMarkdown(normalizedHtml));
         } catch (e) {
           console.error('Failed to serialize clibpoard text to markdown', e);
           return slice.content.textBetween(0, slice.content.size, '\n', '\n');
@@ -353,9 +374,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
         // In Plain mode: always paste as plain text only (ignore HTML formatting)
         if (isPlainTextModeRef.current) {
-          if (!text) return false;
-          // Insert plain text directly
-          view.dispatch(view.state.tr.insertText(text));
+          const plainText = text || (html ? removeFormatting(html) : '');
+          if (!plainText) return true;
+          // Always insert plain text, even for HTML-only clipboards.
+          view.dispatch(view.state.tr.insertText(plainText));
           return true;
         }
 
@@ -577,16 +599,36 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     // CRITICAL: Manually update ref BEFORE setContent triggers synchronous handleSave/onUpdate
     isPlainTextModeRef.current = nextMode;
 
-    if (isPlainTextMode) {
+    const escapeHtml = (value: string): string => {
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    const preserveSpacesForHtml = (value: string): string => {
+      const escaped = escapeHtml(value).replace(/\t/g, '    ');
+      return escaped
+        .split('\n')
+        .map((line) => {
+          let converted = line.replace(/^ +/g, (leading) => '&nbsp;'.repeat(leading.length));
+          converted = converted.replace(/ {2,}/g, (spaces) => ` ${'&nbsp;'.repeat(spaces.length - 1)}`);
+          return converted;
+        })
+        .join('\n');
+    };
+
+    const currentHtml = editor.getHTML();
+
+    try {
+      if (isPlainTextMode) {
       // Switching: Plain -> Rich
       // Current Content: H1 (Rich HTML) + P (Markdown Text)
-      const currentHtml = editor.getHTML();
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = currentHtml;
 
       const firstChild = tempDiv.firstElementChild;
       let titleHtml = '';
-      let bodyMarkdownLines: string[] = [];
 
       // Extract Rich Title
       if (firstChild && firstChild.tagName === 'H1') {
@@ -594,30 +636,15 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         firstChild.remove();
       }
 
-      const { from } = editor.state.selection;
-
-      // Extract Body (Markdown Text) - Plain mode body is P tags only
-      Array.from(tempDiv.children).forEach((child) => {
-        if (child.tagName !== 'P') return;
-
-        const isEmptyP = (child.children.length === 1 && child.children[0].tagName === 'BR') ||
-          (child.textContent?.trim() === '' && child.children.length === 0);
-        if (isEmptyP) {
-          bodyMarkdownLines.push('');
-        } else {
-          bodyMarkdownLines.push(child.textContent || '');
-        }
-      });
-
-      const markdownText = bodyMarkdownLines.join('\n');
+      // Convert Plain view body to markdown robustly (supports accidental rich blocks).
+      const markdownText = extractMarkdownFromPlainBody(tempDiv);
       const richBody = plainMarkdownToRich(markdownText);
-      const finalContent = titleHtml + richBody;
+      const finalContent = titleHtml + (richBody || '<p></p>');
 
-      editor.chain().setContent(finalContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } }).setTextSelection(from).run();
+      editor.commands.setContent(finalContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } });
     } else {
       // Switching: Rich -> Plain
       // Strategy: Keep Title Rich (H1 HTML), Convert Body to Plain (MD in P)
-      const currentHtml = editor.getHTML();
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = currentHtml;
 
@@ -636,20 +663,22 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       const bodyHtml = tempDiv.innerHTML;
       const plainBody = richToPlainMarkdown(bodyHtml);
 
-      const { from } = editor.state.selection;
-
       const lines = plainBody.split('\n');
       while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
 
       // Wrap Markdown lines in P tags
       const wrappedBody = lines.map(line => {
         if (line === '') return '<p></p>';
-        return `<p>${line}</p>`;
+        return `<p>${preserveSpacesForHtml(line)}</p>`;
       }).join('');
 
       const finalContent = titleHtml + (wrappedBody || '<p></p>');
 
-      editor.chain().setContent(finalContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } }).setTextSelection(from).run();
+      editor.commands.setContent(finalContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } });
+    }
+    } catch (error) {
+      console.error('Failed to toggle plain text mode safely:', error);
+      editor.commands.setContent(currentHtml, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } });
     }
 
     setIsPlainTextMode(nextMode);
@@ -664,93 +693,142 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   };
 
   const handleRemoveFormatting = () => {
-    if (editor) {
-      const json = editor.getJSON();
-      const blocks: string[] = [];
+    if (!editor) return;
+    const currentContent = editor.getHTML();
+    const isCurrentlyPlainMode = isPlainTextMode;
 
-      // Extract text blocks from JSON
-      // Each top-level block becomes one entry in blocks array
-      const extractText = (node: any): string => {
-        if (node.type === 'text') {
-          return node.text || '';
-        } else if (node.type === 'hardBreak') {
-          return '\n';
-        } else if (node.content) {
-          return node.content.map((child: any) => extractText(child)).join('');
-        }
-        return '';
-      };
+    const escapeHtml = (value: string): string => {
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
 
-      const processTopLevel = (node: any) => {
-        // Check if this is an "empty block"
-        const isEmptyBlock =
-          ['paragraph', 'heading'].includes(node.type) &&
-          (!node.content ||
-            node.content.length === 0 ||
-            (node.content.length === 1 && node.content[0].type === 'hardBreak'));
+    const preserveSpacesForHtml = (value: string): string => {
+      const escaped = escapeHtml(value).replace(/\t/g, '    ');
+      return escaped
+        .split('\n')
+        .map((line) => {
+          let converted = line.replace(/^ +/g, (leading) => '&nbsp;'.repeat(leading.length));
+          converted = converted.replace(/ {2,}/g, (spaces) => ` ${'&nbsp;'.repeat(spaces.length - 1)}`);
+          return converted;
+        })
+        .join('\n');
+    };
 
-        if (isEmptyBlock) {
-          blocks.push('');
+    const buildBodyHtml = (plainText: string): string => {
+      const normalized = plainText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const blocks = normalized.split('\n\n');
+      const paragraphs: string[] = [];
+
+      while (blocks.length > 0 && blocks[blocks.length - 1] === '') {
+        blocks.pop();
+      }
+
+      if (blocks.length === 0) {
+        return '<p></p>';
+      }
+
+      blocks.forEach((block) => {
+        if (block === '') {
+          paragraphs.push('<p></p>');
           return;
         }
 
-        // Handle lists: extract each listItem's text as separate block
-        if (node.type === 'bulletList' || node.type === 'orderedList' || node.type === 'taskList') {
-          if (node.content) {
-            node.content.forEach((listItem: any) => {
-              const text = extractText(listItem).trim();
-              if (text) blocks.push(text);
-            });
+        const lines = block.split('\n');
+        lines.forEach((line) => {
+          if (line === '') {
+            paragraphs.push('<p></p>');
+            return;
           }
-          return;
-        }
+          paragraphs.push(`<p>${preserveSpacesForHtml(line)}</p>`);
+        });
+      });
 
-        // Regular block (paragraph, heading, etc.)
-        const text = extractText(node);
-        blocks.push(text);
-      };
+      return paragraphs.join('');
+    };
 
-      if (json.content) {
-        json.content.forEach((node: any) => processTopLevel(node));
+    const plainViewHtmlToRichHtml = (plainViewHtml: string): string => {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = plainViewHtml;
+
+      const firstChild = tempDiv.firstElementChild;
+      let titleHtml = '<h1></h1>';
+
+      if (firstChild && firstChild.tagName === 'H1') {
+        titleHtml = firstChild.outerHTML;
+        firstChild.remove();
       }
 
-      // Strip color markdown from all blocks
-      const cleanBlocks = blocks.map(block =>
-        block.replace(/\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi, '$2')
-      );
+      const markdownText = extractMarkdownFromPlainBody(tempDiv);
+      const richBody = plainMarkdownToRich(markdownText);
+      return titleHtml + (richBody || '<p></p>');
+    };
 
-      // Clean up trailing empty blocks
-      while (cleanBlocks.length > 0 && cleanBlocks[cleanBlocks.length - 1].trim() === '') {
-        cleanBlocks.pop();
+    const richHtmlToPlainViewHtml = (richHtml: string): string => {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = richHtml;
+
+      const firstChild = tempDiv.firstElementChild;
+      let titleHtml = '<h1></h1>';
+
+      if (firstChild && firstChild.tagName === 'H1') {
+        titleHtml = firstChild.outerHTML;
+        firstChild.remove();
       }
 
-      // Rebuild: H1 + Ps
-      let newContent = '';
-      if (cleanBlocks.length > 0) {
-        // First block is Title (replace any internal \n with space)
-        newContent += `<h1>${cleanBlocks[0].replace(/\n/g, ' ')}</h1>`;
+      const plainBody = richToPlainMarkdown(tempDiv.innerHTML);
+      const lines = plainBody.split('\n');
+      while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
 
-        const bodyBlocks = cleanBlocks.slice(1);
+      const wrappedBody = lines.map((line) => {
+        if (line === '') return '<p></p>';
+        return `<p>${preserveSpacesForHtml(line)}</p>`;
+      }).join('');
 
-        if (bodyBlocks.length === 0) {
-          newContent += '<p></p>';
-        } else {
-          newContent += bodyBlocks.map(block => {
-            // Empty block = empty paragraph
-            if (block === '') return '<p></p>';
-            // Internal \n = <br> (preserve line breaks within paragraph)
-            return `<p>${block.replace(/\n/g, '<br>')}</p>`;
-          }).join('');
-        }
+      return titleHtml + (wrappedBody || '<p></p>');
+    };
+
+    try {
+      const richSourceContent = isCurrentlyPlainMode
+        ? plainViewHtmlToRichHtml(currentContent)
+        : currentContent;
+
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = richSourceContent;
+
+      let plainTitle = '';
+      let plainBody = '';
+
+      const firstElement = tempDiv.firstElementChild as HTMLElement | null;
+      if (firstElement && firstElement.tagName === 'H1') {
+        plainTitle = removeFormatting(firstElement.outerHTML);
+        firstElement.remove();
+        plainBody = removeFormatting(tempDiv.innerHTML);
       } else {
-        newContent = '<h1></h1><p></p>';
+        const allPlain = removeFormatting(tempDiv.innerHTML);
+        const blocks = allPlain.split('\n\n');
+        plainTitle = blocks.shift() || '';
+        plainBody = blocks.join('\n\n');
       }
 
-      const currentContent = editor.getHTML();
-      if (newContent !== currentContent) {
-        editor.commands.setContent(newContent);
-        editor.commands.focus();
+      const normalizedTitle = plainTitle
+        .replace(/\n+/g, ' ')
+        .replace(/\s+$/g, '');
+
+      const nextRichContent = `<h1>${escapeHtml(normalizedTitle)}</h1>${buildBodyHtml(plainBody)}`;
+      const nextContent = isCurrentlyPlainMode
+        ? richHtmlToPlainViewHtml(nextRichContent)
+        : nextRichContent;
+
+      if (nextContent !== currentContent) {
+        editor.commands.setContent(nextContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } });
       }
+      editor.commands.focus();
+    } catch (error) {
+      console.error('Failed to remove formatting safely:', error);
+      editor.commands.setContent(currentContent, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } });
+      editor.commands.focus();
     }
   };
 
@@ -760,7 +838,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     // Get HTML content
     const html = editor.getHTML();
     // Get Markdown (Drafta-MD) for plain text
-    const markdown = richToPlainMarkdown(html);
+    const normalizedHtml = normalizeOrderedListHtml(html);
+    const markdown = normalizeOrderedListTags(richToPlainMarkdown(normalizedHtml));
 
     try {
       // Use ClipboardItem API to copy both HTML and Markdown
@@ -793,7 +872,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   return (
     <TooltipProvider>
       {/* ADDED: plain-mode class for CSS targeting */}
-      <div className="flex flex-col h-full">
+      <div className={cn("flex flex-col h-full", isPlainTextMode && "plain-text-mode")}>
         <div className="px-4 border-b flex items-center gap-1 shrink-0 h-[57px]">
           <Popover>
             <PopoverTrigger asChild>

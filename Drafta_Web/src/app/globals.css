@@ -123,6 +123,11 @@
     /* Ensure empty paragraphs are clickable */
 }
 
+/* Plain mode should preserve indentation and consecutive spaces. */
+.plain-text-mode .ProseMirror.drafta-editor p {
+    white-space: break-spaces;
+}
+
 .ProseMirror.drafta-editor h1,
 .ProseMirror.drafta-editor h2,
 .ProseMirror.drafta-editor h3 {
