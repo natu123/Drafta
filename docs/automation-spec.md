@@ -44,6 +44,12 @@
 4. 最後に `git push`
 5. Milestone（総コミット数と LOC 増分）を報告
 
+Milestone集計ルール（固定）:
+- 総コミット数: `git rev-list --count HEAD`
+- LOC: **リポジトリ全体の git 追跡ファイルを対象**に集計する
+- 除外: `package-lock.json` のみ
+- `Drafta_Web/src` など部分範囲のLOCは Milestone には使わない
+
 コミットメッセージ:
 - `<Type>: <日本語で簡潔な説明>`
 
