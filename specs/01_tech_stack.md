@@ -12,7 +12,7 @@
 
 | 項目 | 技術 |
 |------|------|
-| DB | Firebase Firestore |
+| DB | Firebase Firestore（`us-central1`） |
 | Storage | Firebase Storage（画像のみ） |
 | Auth | Firebase Authentication |
 | Hosting | Firebase Hosting |
@@ -30,7 +30,7 @@
 |------|----------------|
 | 広告（Web） | Google AdSense |
 | 広告（Mobile） | Google AdMob（バナーのみ） |
-| サブスク | Stripe（$3/月、全通貨自動換算） |
+| サブスク | Stripe（Pro: $3/月、追加10GB: $2/月、全通貨自動換算） |
 
 ## ドメイン
 
