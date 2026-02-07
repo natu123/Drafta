@@ -53,6 +53,20 @@ Milestone集計ルール（固定）:
 コミットメッセージ:
 - `<Type>: <日本語で簡潔な説明>`
 
+## 4) Dev Server & Build Operations
+目的: 開発サーバーと build 実行時の手順ブレを防ぐ。
+
+運用ルール（固定）:
+- 開発サーバーは `Drafta_Web` で起動する
+- devサーバーのポートは `9002` 固定
+- `build` 実行前は dev サーバーを停止する
+- シェルは PowerShell を前提とする
+
+標準コマンド（PowerShell）:
+- dev起動: `Set-Location "...\Drafta_Web"; npm run dev`
+- dev停止（例）: `Get-NetTCPConnection -LocalPort 9002 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
+- build実行: `Set-Location "...\Drafta_Web"; npm run build`
+
 ## Sync Policy
 - 仕様変更は最初にこのファイルを更新する。
 - その後、Claude Commands と Codex Skills を同期する。
