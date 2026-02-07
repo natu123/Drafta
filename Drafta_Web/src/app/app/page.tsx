@@ -818,6 +818,30 @@ export default function Home() {
     }));
   }, []);
 
+  // Keep protected seed notes in sync with latest template.
+  // This avoids stale malformed HTML remaining during HMR/dev sessions.
+  React.useEffect(() => {
+    const protectedSeedMap = new Map(
+      initialNotes
+        .filter((n) => n.id === 'note-1' || n.id === 'note-2')
+        .map((n) => [n.id, n])
+    );
+
+    setNotes((prev) =>
+      prev.map((note) => {
+        const seed = protectedSeedMap.get(note.id);
+        if (!seed || !note.isProtected) return note;
+        return {
+          ...note,
+          title: seed.title,
+          icon: seed.icon,
+          content: seed.content,
+          plainTextContent: seed.plainTextContent,
+        };
+      })
+    );
+  }, []);
+
   // Initialize with 'Welcome to Drafta' note (note-1)
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
     initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
