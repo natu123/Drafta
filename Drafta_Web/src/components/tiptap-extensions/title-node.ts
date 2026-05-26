@@ -25,6 +25,19 @@ export const Title = Heading.extend({
   renderHTML({ HTMLAttributes }) {
     return ['h1', HTMLAttributes, 0]
   },
+
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        const { state } = this.editor
+        const { $from } = state.selection
+        if ($from.parent.type !== this.type) return false
+        const titleEnd = state.doc.firstChild!.nodeSize
+        this.editor.commands.setTextSelection(titleEnd + 1)
+        return true
+      },
+    }
+  },
 }).configure({
   levels: [1],
 })

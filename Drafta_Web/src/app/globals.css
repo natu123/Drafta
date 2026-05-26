@@ -139,7 +139,7 @@
     @apply text-3xl font-bold;
     padding-top: 1rem;
     padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.75rem;
     border-bottom: 3px solid hsl(var(--foreground) / 0.7);
 }
 
