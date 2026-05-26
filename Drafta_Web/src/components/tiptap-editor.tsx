@@ -30,6 +30,7 @@ import { CustomListItem } from './tiptap-extensions/custom-list-item';
 import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
 import { PreserveBody } from './tiptap-extensions/preserve-body';
 import { useTheme } from 'next-themes';
+import { useLang } from '@/contexts/lang-context';
 
 // Create lowlight instance with all languages to ensure markdown support
 const lowlight = createLowlight(all);
@@ -54,18 +55,16 @@ const baseColors = [
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
-const extensions = [
-  TitleDocument, // Custom Document schema: title block+
-  Title, // Dedicated title node (separate from heading)
-  PreserveBody, // Prevent deletion of last paragraph in body
+const staticExtensions = [
+  TitleDocument,
+  Title,
+  PreserveBody,
   StarterKit.configure({
-    document: false, // Disable default document (using TitleDocument)
-    heading: {
-      levels: [1, 2, 3], // Body headings (H1-H3)
-    },
-    codeBlock: false, // Disable default codeBlock to use lowlight
-    listItem: false, // Disable default listItem to use CustomListItem with value attribute
-    orderedList: false, // Disable default orderedList to use CustomOrderedList with newList attribute
+    document: false,
+    heading: { levels: [1, 2, 3] },
+    codeBlock: false,
+    listItem: false,
+    orderedList: false,
   }),
   CustomListItem,
   CustomOrderedList,
@@ -73,29 +72,11 @@ const extensions = [
     lowlight,
     defaultLanguage: 'plaintext',
   }),
-  Placeholder.configure({
-    placeholder: ({ node }) => {
-      // Title node のみプレースホルダーを表示
-      if (node.type.name === 'title') {
-        return 'Untitled Memo';
-      }
-      // 本文（paragraph, heading等）にはプレースホルダーなし
-      return '';
-    },
-    showOnlyCurrent: false, // 常に表示（フォーカス関係なし）
-    includeChildren: false, // 子ノードには適用しない
-  }),
   TextStyle,
-  Color.configure({
-    types: ['textStyle'],
-  }),
+  Color.configure({ types: ['textStyle'] }),
   TaskList,
-  TaskItem.configure({
-    nested: true,
-  }),
-  Table.configure({
-    resizable: true,
-  }),
+  TaskItem.configure({ nested: true }),
+  Table.configure({ resizable: true }),
   TableRow,
   TableCell,
   TableHeader,
@@ -104,12 +85,26 @@ const extensions = [
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom' }) => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
+  const { t } = useLang();
 
   // Build colors array with theme-appropriate default color
   const colors = React.useMemo(() => {
     const defaultColor = isDarkMode ? darkModeDefaultColor : lightModeDefaultColor;
     return [defaultColor, ...baseColors];
   }, [isDarkMode]);
+
+  // Dynamic extensions including translated Placeholder
+  const extensions = React.useMemo(() => [
+    ...staticExtensions,
+    Placeholder.configure({
+      placeholder: ({ node }) => {
+        if (node.type.name === 'title') return t.untitledMemo;
+        return '';
+      },
+      showOnlyCurrent: false,
+      includeChildren: false,
+    }),
+  ], [t.untitledMemo]);
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
@@ -906,7 +901,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Undo />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Undo (Ctrl+Z)</p></TooltipContent>
+            <TooltipContent><p>{t.undo}</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -914,7 +909,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Redo />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Redo (Ctrl+Y)</p></TooltipContent>
+            <TooltipContent><p>{t.redo}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           {/* List buttons ... */}
@@ -924,7 +919,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Minus />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Add Separator</p></TooltipContent>
+            <TooltipContent><p>{t.addSeparator}</p></TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -933,7 +928,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <List />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Bullet List</p></TooltipContent>
+            <TooltipContent><p>{t.bulletList}</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -941,7 +936,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <ListChecks />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Checkbox List</p></TooltipContent>
+            <TooltipContent><p>{t.checkboxList}</p></TooltipContent>
           </Tooltip>
           {/* Ordered List: 前にリストがあればPopover、なければ直接作成 */}
           {editor.isActive('orderedList') ? (
@@ -956,7 +951,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   <ListOrdered />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Remove Numbered List</p></TooltipContent>
+              <TooltipContent><p>{t.removeNumberedList}</p></TooltipContent>
             </Tooltip>
           ) : hasOrderedListBefore() ? (
             <Popover>
@@ -972,7 +967,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                     </Button>
                   </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent><p>Numbered List</p></TooltipContent>
+                <TooltipContent><p>{t.numberedList}</p></TooltipContent>
               </Tooltip>
               <PopoverContent className="w-auto p-2" align="start">
                 <div className="flex flex-col gap-1">
@@ -984,7 +979,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                       insertOrderedList();
                     }}
                   >
-                    1. 新しいリスト
+                    {t.newListStart}
                   </Button>
                   <Button
                     variant="ghost"
@@ -994,7 +989,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                       continueOrderedList();
                     }}
                   >
-                    N. 続きの番号
+                    {t.continueList}
                   </Button>
                 </div>
               </PopoverContent>
@@ -1011,7 +1006,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   <ListOrdered />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Numbered List</p></TooltipContent>
+              <TooltipContent><p>{t.numberedList}</p></TooltipContent>
             </Tooltip>
           )}
 
@@ -1026,7 +1021,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>{isPlainTextMode ? 'To Rich Text' : 'To Plain Text'}</p></TooltipContent>
+            <TooltipContent><p>{isPlainTextMode ? t.toRichText : t.toPlainText}</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1034,7 +1029,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Pilcrow />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Remove Formatting</p></TooltipContent>
+            <TooltipContent><p>{t.removeFormatting}</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1042,7 +1037,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 {isCopied ? <Check className="text-green-500" /> : <Copy />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Copy Memo</p></TooltipContent>
+            <TooltipContent><p>{t.copyMemo}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex gap-1 ml-1">

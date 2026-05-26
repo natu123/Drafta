@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useLang } from '@/contexts/lang-context';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -21,42 +22,39 @@ interface SettingsDialogProps {
 
 const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scrollDirection, onScrollDirectionChange }) => {
   const { theme, setTheme } = useTheme();
+  const { t } = useLang();
 
-  // Mounted check to avoid hydration mismatch
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>
-            Customize your application experience.
-          </DialogDescription>
+          <DialogTitle>{t.settingsTitle}</DialogTitle>
+          <DialogDescription>{t.settingsDesc}</DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <div className="space-y-4">
             <div>
               <hr className="border-border mb-2" />
-              <h3 className="text-lg font-medium">Appearance</h3>
+              <h3 className="text-lg font-medium">{t.appearance}</h3>
             </div>
             <div className="space-y-2">
-              <Label>Theme</Label>
+              <Label>{t.theme}</Label>
               {mounted && (
                 <RadioGroup value={theme} onValueChange={setTheme}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="light" id="light" />
-                    <Label htmlFor="light">Light</Label>
+                    <Label htmlFor="light">{t.themeLight}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="dark" id="dark" />
-                    <Label htmlFor="dark">Dark</Label>
+                    <Label htmlFor="dark">{t.themeDark}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="system" id="system" />
-                    <Label htmlFor="system">System</Label>
+                    <Label htmlFor="system">{t.themeSystem}</Label>
                   </div>
                 </RadioGroup>
               )}
@@ -64,21 +62,21 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
 
             <div className="pt-2">
               <hr className="border-border mb-2" />
-              <h3 className="text-lg font-medium">List Style</h3>
+              <h3 className="text-lg font-medium">{t.listStyle}</h3>
             </div>
             <div className="space-y-2">
-              <Label>New Item Position</Label>
+              <Label>{t.newItemPos}</Label>
               <RadioGroup value={scrollDirection} onValueChange={(v) => onScrollDirectionChange(v as 'top' | 'bottom')}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="top" id="scroll-top" />
-                  <Label htmlFor="scroll-top">Add to Top (ToDo Style)</Label>
+                  <Label htmlFor="scroll-top">{t.addToTop}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="bottom" id="scroll-bottom" />
-                  <Label htmlFor="scroll-bottom">Add to Bottom (Chat Style)</Label>
+                  <Label htmlFor="scroll-bottom">{t.addToBottom}</Label>
                 </div>
               </RadioGroup>
-              <p className="text-sm text-muted-foreground">Sets where new memos and trays are added, and the initial scroll position.</p>
+              <p className="text-sm text-muted-foreground">{t.newItemPosDesc}</p>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useLang } from '@/contexts/lang-context';
 
 interface DeleteConfirmDialogProps {
     open: boolean;
@@ -27,24 +28,26 @@ export function DeleteConfirmDialog({
     open,
     onOpenChange,
     onConfirm,
-    title = "Are you absolutely sure?",
-    description = "This action cannot be undone. This will permanently delete the item.",
-    confirmText = "Delete",
-    cancelText = "Cancel",
+    title,
+    description,
+    confirmText,
+    cancelText,
     variant = 'destructive'
 }: DeleteConfirmDialogProps) {
+    const { t } = useLang();
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogTitle>{title ?? t.deleteMemoTitle}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        {description}
+                        {description ?? t.deleteMemoDesc}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => onOpenChange(false)}>
-                        {cancelText}
+                        {cancelText ?? t.cancel}
                     </AlertDialogCancel>
                     <AlertDialogAction
                         onClick={(e) => {
@@ -54,7 +57,7 @@ export function DeleteConfirmDialog({
                         }}
                         className={variant === 'destructive' ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
                     >
-                        {confirmText}
+                        {confirmText ?? t.delete}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

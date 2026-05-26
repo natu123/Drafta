@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Note, OpenTab } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { useLang } from '@/contexts/lang-context';
 
 type TabItem = Note & { type: 'note' };
 
@@ -23,6 +24,7 @@ interface VerticalTabsProps {
 }
 
 const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs, searchTerm, onSearchChange, scrollDirection = 'top' }) => {
+  const { t } = useLang();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const activeTabRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -109,7 +111,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Filter tabs..."
+                  placeholder={t.filterTabs}
                   className="pl-8 h-8 text-xs bg-background/50"
                   value={searchTerm}
                   onChange={(e) => onSearchChange(e.target.value)}

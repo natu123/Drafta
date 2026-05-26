@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn, stripColorMarkdown } from '@/lib/utils';
 import type { Note, Group } from '@/lib/types';
+import { useLang } from '@/contexts/lang-context';
 
 interface SearchDialogProps {
   open: boolean;
@@ -29,10 +30,10 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
   onNoteSelect,
   onGroupSelect,
 }) => {
+  const { t } = useLang();
   const [searchTerm, setSearchTerm] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Focus input when dialog opens
   React.useEffect(() => {
     if (open) {
       setSearchTerm('');
@@ -74,7 +75,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg p-0 gap-0">
         <DialogHeader className="p-4 pb-2">
-          <DialogTitle>Search</DialogTitle>
+          <DialogTitle>{t.searchTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="px-4 pb-2">
@@ -82,7 +83,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={inputRef}
-              placeholder="Search memos and trays..."
+              placeholder={t.searchPlaceholder}
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -93,19 +94,18 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
         <div className="max-h-[400px] overflow-y-auto">
           {searchTerm.trim() === '' ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
-              Type to search...
+              {t.searchPrompt}
             </div>
           ) : filteredGroups.length === 0 && filteredNotes.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
-              No results found
+              {t.noResults}
             </div>
           ) : (
             <div className="pb-2">
-              {/* Trays Section */}
               {filteredGroups.length > 0 && (
                 <div>
                   <div className="px-4 py-1 text-xs font-medium text-muted-foreground uppercase">
-                    Trays
+                    {t.traysSection}
                   </div>
                   {filteredGroups.map(group => (
                     <button
@@ -124,11 +124,10 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
                 </div>
               )}
 
-              {/* Memos Section */}
               {filteredNotes.length > 0 && (
                 <div>
                   <div className="px-4 py-1 text-xs font-medium text-muted-foreground uppercase">
-                    Memos
+                    {t.memosSection}
                   </div>
                   {filteredNotes.map(note => (
                     <button

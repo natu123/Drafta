@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import Image from 'next/image';
+import { LangContext } from '@/contexts/lang-context';
+import { type Lang, appTranslations } from '@/app/translations';
 import { Minus, List, LayoutGrid, ArrowDownUp, Inbox, Search, Trash2, RotateCcw, Plus, MoreHorizontal, FolderInput, CheckSquare, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -415,6 +417,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange
 }) => {
+  const { t } = React.useContext(LangContext);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
@@ -493,7 +496,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           {/* Selection Mode Actions */}
           {isSelectionMode ? (
             <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground mr-1">{selectedIds.size} Selected</span>
+              <span className="text-sm text-muted-foreground mr-1">{selectedIds.size}{t.selected}</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" disabled={selectedIds.size === 0} title="Move selected">
@@ -502,10 +505,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Move to...</DropdownMenuSubTrigger>
+                    <DropdownMenuSubTrigger>{t.moveTo}</DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onSelect={() => onBulkMove('inbox')}>Inbox</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onBulkMove('inbox')}>{t.inbox}</DropdownMenuItem>
                         {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
                           <DropdownMenuItem key={g.id} onSelect={() => onBulkMove(g.id)}>{g.name}</DropdownMenuItem>
                         ))}
@@ -545,10 +548,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={() => onSortChange('manual')}>Manual</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSortChange('newest')}>Newest First</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSortChange('oldest')}>Oldest First</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>Last Accessed</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('manual')}>{t.sortManual}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('newest')}>{t.sortNewest}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('oldest')}>{t.sortOldest}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>{t.sortLastAccessed}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
@@ -563,7 +566,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
             <div className="relative">
               <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Add memo"
+                placeholder={t.addMemo}
                 className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -610,7 +613,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                           </div>
                           <div className="flex flex-col overflow-hidden">
                             <span className="truncate font-semibold text-sm">{group.name}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase">Tray</span>
+                            <span className="text-[10px] text-muted-foreground uppercase">{t.tray}</span>
                           </div>
                         </div>
                         <div className="flex gap-1">
@@ -627,7 +630,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
                   {items.length === 0 && deletedGroups.length === 0 && (
                     <div className="flex flex-col items-center justify-center text-muted-foreground py-10 opacity-50">
-                      <p>No items found</p>
+                      <p>{t.noItems}</p>
                     </div>
                   )}
 
@@ -730,7 +733,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         </div>
                         <div className="flex flex-col overflow-hidden">
                           <span className="truncate font-semibold text-sm">{group.name}</span>
-                          <span className="text-[10px] text-muted-foreground uppercase">Tray</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">{t.tray}</span>
                         </div>
                       </div>
                       <div className="flex gap-1">
@@ -747,7 +750,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
                 {items.length === 0 && deletedGroups.length === 0 && (
                   <div className="col-span-full flex flex-col items-center justify-center text-muted-foreground py-10 opacity-50">
-                    <p>No items found</p>
+                    <p>{t.noItems}</p>
                   </div>
                 )}
 
@@ -796,6 +799,13 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 
 export default function Home() {
+  const [lang, setLang] = React.useState<Lang>('en');
+  const appT = appTranslations[lang];
+  const langContextValue = React.useMemo(
+    () => ({ lang, setLang, t: appT }),
+    [lang, appT]
+  );
+
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
 
@@ -1398,6 +1408,7 @@ export default function Home() {
 
 
   return (
+    <LangContext.Provider value={langContextValue}>
     <>
       <div className="flex h-screen flex-col bg-background text-foreground overflow-hidden">
         <Header
@@ -1436,7 +1447,7 @@ export default function Home() {
           >
               {/* Header for Lists */}
               <div className="flex items-center justify-between px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
-                <h2 className="text-lg font-semibold">Trays</h2>
+                <h2 className="text-lg font-semibold">{appT.trays}</h2>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
                     <Minus className="w-4 h-4" />
@@ -1448,9 +1459,9 @@ export default function Home() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onSelect={() => setGroupSort('manual')}>Manual</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setGroupSort('name')}>Name (A-Z)</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setGroupSort('newest')}>Newest First</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setGroupSort('manual')}>{appT.sortManual}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setGroupSort('name')}>{appT.sortNameAZ}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setGroupSort('newest')}>{appT.sortNewest}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -1461,7 +1472,7 @@ export default function Home() {
                 <div className="relative">
                   <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Add tray"
+                    placeholder={appT.addTray}
                     className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1539,7 +1550,7 @@ export default function Home() {
                           onClick={() => setActiveGroupId('restore')}
                         >
                           <RotateCcw className="w-4 h-4" />
-                          <span>Restore</span>
+                          <span>{appT.restore}</span>
                         </Button>
                       </div>
                     </div>
@@ -1574,7 +1585,7 @@ export default function Home() {
           >
 
             <HomeSection
-              title={activeGroupId === 'restore' ? 'Restore' : groups.find(g => g.id === activeGroupId)?.name || 'Inbox'}
+              title={activeGroupId === 'restore' ? appT.restore : groups.find(g => g.id === activeGroupId)?.name || appT.inbox}
               icon={activeGroupId === 'restore' ? RotateCcw : Inbox}
               items={sortedNotes}
               onItemSelect={handleNoteSelect}
@@ -1634,11 +1645,11 @@ export default function Home() {
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                   <Inbox className="w-8 h-8 opacity-20" />
                 </div>
-                <h3 className="text-xl font-medium text-foreground mb-2">No active memo</h3>
-                <p className="max-w-xs">Select a memo from the list or create a new one to start writing.</p>
+                <h3 className="text-xl font-medium text-foreground mb-2">{appT.noActiveMemo}</h3>
+                <p className="max-w-xs">{appT.noActiveMemoDesc}</p>
                 <Button variant="outline" className="mt-6" onClick={handleNewNote}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create New Memo
+                  {appT.createNewMemo}
                 </Button>
               </div>
             )}
@@ -1678,12 +1689,11 @@ export default function Home() {
           open={deleteConfirmOpen}
           onOpenChange={setDeleteConfirmOpen}
           onConfirm={handleExecutePermanentDelete}
-          title={itemToDelete?.type === 'group' ? "Delete Tray Forever?" : "Delete Memo Forever?"}
-          description={itemToDelete?.type === 'group'
-            ? "This will permanently delete this Tray and ALL memos inside it. This action cannot be undone."
-            : "This will permanently delete this memo. This action cannot be undone."}
+          title={itemToDelete?.type === 'group' ? appT.deleteTrayTitle : appT.deleteMemoTitle}
+          description={itemToDelete?.type === 'group' ? appT.deleteTrayDesc : appT.deleteMemoDesc}
         />
       </div >
     </>
+    </LangContext.Provider>
   );
 }
