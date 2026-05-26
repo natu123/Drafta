@@ -55,14 +55,17 @@ firebase deploy --only hosting
 
 ## Project YuniIn
 
-Drafta is being developed as a component of **YuniIn [Unifying-Informations]** — an open-source, browser-based unified workspace integrating:
+Drafta is the notes layer of **YuniIn [Unifying-Informations]** — an open-source, browser-based unified workspace.
 
-- **Drafta** — Notes and tasks
-- **OpenHands** — Agentic AI
-- **VS Code** — Code environment
-- **Chromium** — Browser runtime
+```
+Browser (Chromium)
+├── Drafta              ← notes & tasks  [this repo]
+└── Chat UI (OSS)       ← messaging & collaboration
+    ├── VS Code         ← code environment
+    └── OpenHands       ← agentic AI
+```
 
-YuniIn's vision: everything you need — notes, AI, code, and communication — in one place, with no manual copy-pasting between silos.
+YuniIn's vision: notes, messaging, code, and AI — all in one browser, zero copy-pasting between silos. AI agents handle organization automatically; humans review and direct.
 
 ---
 
