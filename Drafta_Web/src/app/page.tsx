@@ -1,18 +1,52 @@
 "use client";
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles } from 'lucide-react';
+import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, Feather } from 'lucide-react';
+import { Lang, LANGS, LANG_LABEL, translations } from './translations';
 
 export default function LandingPage() {
+  const [lang, setLang] = useState<Lang>('en');
+  const t = translations[lang];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
+    <div className="min-h-screen bg-gradient-to-br from-[#E7A1B0]/10 via-background to-[#C49547]/10">
+
+      {/* Sticky Nav Bar */}
+      <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/75 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <Feather className="h-6 w-6 text-primary" />
+            <span className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</span>
+          </div>
+          <div className="flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-none">
+            <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0 mr-1" />
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                title={LANG_LABEL[l]}
+                className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                  lang === l
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                {LANG_LABEL[l]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-[#FFB7C5]/20 rounded-full blur-[80px]" />
+          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-[#FFB7C5]/15 rounded-full blur-[80px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-primary/10 rounded-full blur-[60px]" />
         </div>
 
         <div className="relative max-w-6xl mx-auto px-6 pt-3 pb-12 md:pt-5 md:pb-16">
@@ -20,55 +54,46 @@ export default function LandingPage() {
           <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#E7A1B0]/15 border border-[#E7A1B0]/30 text-sm">
               <span className="w-2 h-2 rounded-full bg-[#E7A1B0] animate-pulse" />
-              <span className="text-foreground/80">Beta - 正式リリース 準備中</span>
+              <span className="text-foreground/80">{t.statusBadge}</span>
             </div>
           </div>
 
-          {/* Main Title */}
-          <h1 className="text-5xl md:text-7xl font-bold text-center mb-6 tracking-tight">
-            <span className="text-primary">Drafta</span>
-          </h1>
-
           {/* Main Tagline */}
           <p className="text-xl md:text-2xl text-center text-foreground mb-4 max-w-2xl mx-auto">
-            「ToDoと ノートを統合した <span className="font-bold">新しいメモアプリ</span>」
+            {t.taglinePre}<span className="font-bold">{t.taglineBold}</span>
           </p>
 
           <p className="text-lg md:text-xl text-center text-primary/80 italic mb-10 max-w-xl mx-auto">
-            Organize your to-dos and thoughts seamlessly.
+            {t.subTagline}
           </p>
 
           {/* Before/After Section */}
           <div className="max-w-3xl mx-auto mb-14">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="p-5 rounded-2xl bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600">
-                <h3 className="text-base font-semibold mb-3 text-gray-500 dark:text-gray-400">Before</h3>
+                <h3 className="text-base font-semibold mb-3 text-gray-500 dark:text-gray-400">{t.beforeTitle}</h3>
                 <ul className="space-y-2 text-gray-500 dark:text-gray-400 text-sm">
-                  <li className="flex items-center gap-2">
-                    <span className="line-through">タスクはToDoアプリ</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="line-through">メモはノートアプリ</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="line-through">散らばった情報</span>
-                  </li>
+                  {t.beforeItems.map((item, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="line-through">{item}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
               <div className="p-5 rounded-2xl bg-[#C49547]/10 border border-[#C49547]/30">
-                <h3 className="text-base font-semibold mb-3 text-[#C49547]">After with Drafta</h3>
+                <h3 className="text-base font-semibold mb-3 text-[#C49547]">{t.afterTitle}</h3>
                 <ul className="space-y-2 text-foreground text-sm">
                   <li className="flex items-center gap-2">
                     <CheckSquare className="w-4 h-4 text-[#C49547]" />
-                    <span>すべてが一箇所に</span>
+                    <span>{t.afterItems[0]}</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-[#C49547]" />
-                    <span>構造化された知識</span>
+                    <span>{t.afterItems[1]}</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#C49547]" />
-                    <span>磨かれたアイデア</span>
+                    <span>{t.afterItems[2]}</span>
                   </li>
                 </ul>
               </div>
@@ -79,7 +104,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-5">
             <Link href="/app">
               <Button size="lg" className="text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all">
-                Try Drafta-web!
+                {t.ctaButton}
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
@@ -88,9 +113,9 @@ export default function LandingPage() {
           {/* Notice */}
           <div className="max-w-md mx-auto p-4 rounded-xl bg-muted/50 border border-border/50 text-center">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">「Web版は 試験公開中です。」</span><br />
-              現在、データはブラウザに保存されません。<br />
-              正式リリースをお待ちください。
+              <span className="font-medium text-foreground">{t.noticeTitle}</span><br />
+              {t.noticeBody}<br />
+              {t.noticeFooter}
             </p>
           </div>
         </div>
@@ -99,24 +124,24 @@ export default function LandingPage() {
       {/* Features Section */}
       <div className="max-w-[60rem] mx-auto px-6 pt-10 pb-[5.5rem] border-t border-border/50">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
-          Features
+          {t.featuresTitle}
         </h2>
 
         <div className="grid md:grid-cols-3 gap-8">
           <FeatureCard
             icon={<CheckSquare className="w-8 h-8" />}
-            title="ToDo + Notes"
-            description="タスクとノートを1つのアプリに統合！"
+            title={t.features[0].title}
+            description={t.features[0].desc}
           />
           <FeatureCard
             icon={<FileText className="w-8 h-8" />}
-            title="Rich & Plain Mode"
-            description="リッチ ⇄ Markdownをワンクリックで切り替え！"
+            title={t.features[1].title}
+            description={t.features[1].desc}
           />
           <FeatureCard
             icon={<Sparkles className="w-8 h-8" />}
-            title="Improved Markdown"
-            description="Drafta-MD：色付きテキスト＆スマートな番号リストを搭載！"
+            title={t.features[2].title}
+            description={t.features[2].desc}
           />
         </div>
       </div>
@@ -124,19 +149,19 @@ export default function LandingPage() {
       {/* Platform Section */}
       <div className="max-w-5xl mx-auto px-6 pt-10 pb-20 border-t border-border/50">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
-          Coming to All Platforms
+          {t.platformTitle}
         </h2>
         <p className="text-center text-muted-foreground mb-12">
-          順次、各プラットフォーム向けにリリース予定
+          {t.platformSubtitle}
         </p>
 
         <div className="flex flex-wrap justify-center gap-6 md:gap-12">
-          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Web" status="beta" />
-          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" status="coming" />
-          <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" status="coming" />
-          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" status="coming" />
-          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" status="coming" />
-          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" status="coming" />
+          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Web" status="beta" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
+          <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
+          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
+          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
         </div>
       </div>
 
@@ -162,7 +187,13 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
-function PlatformBadge({ icon, label, status }: { icon: React.ReactNode; label: string; status: 'beta' | 'coming' }) {
+function PlatformBadge({ icon, label, status, betaLabel, comingLabel }: {
+  icon: React.ReactNode;
+  label: string;
+  status: 'beta' | 'coming';
+  betaLabel: string;
+  comingLabel: string;
+}) {
   return (
     <div className="flex flex-col items-center gap-2">
       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${
@@ -178,7 +209,7 @@ function PlatformBadge({ icon, label, status }: { icon: React.ReactNode; label: 
           ? 'bg-primary/15 text-primary'
           : 'bg-muted text-muted-foreground'
       }`}>
-        {status === 'beta' ? 'Beta' : 'Coming Soon'}
+        {status === 'beta' ? betaLabel : comingLabel}
       </span>
     </div>
   );
