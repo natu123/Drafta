@@ -3,8 +3,14 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, Feather } from 'lucide-react';
+import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, Feather, ChevronDown } from 'lucide-react';
 import { Lang, LANGS, LANG_LABEL, translations } from './translations';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function LandingPage() {
   const [lang, setLang] = useState<Lang>('en');
@@ -20,23 +26,26 @@ export default function LandingPage() {
             <Feather className="h-6 w-6 text-primary" />
             <span className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</span>
           </div>
-          <div className="flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-none">
-            <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0 mr-1" />
-            {LANGS.map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                title={LANG_LABEL[l]}
-                className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                  lang === l
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                {LANG_LABEL[l]}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <Globe className="w-4 h-4 shrink-0 text-primary" />
+                <span>{LANG_LABEL[lang]}</span>
+                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
               </button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              {LANGS.map((l) => (
+                <DropdownMenuItem
+                  key={l}
+                  onSelect={() => setLang(l)}
+                  className={lang === l ? 'bg-primary/10 text-primary font-medium' : ''}
+                >
+                  {LANG_LABEL[l]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </nav>
 
