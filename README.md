@@ -74,4 +74,4 @@ MIT License — see [LICENSE](LICENSE)
 
 ## Author
 
-**Gles** (Kenji Masuda) — [@____natu______](https://x.com/____natu______)
+**Gles** (Kenji Masuda) — natu.soral.123@gmail.com
