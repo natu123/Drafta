@@ -10,7 +10,7 @@
 
 ## Overview
 
-Drafta is the notes layer of **Project YuniIn** — a vision for a unified, browser-based workspace where notes, AI agents, code environments, and communication coexist.
+Drafta is a standalone note and task app built on TipTap — focused on a seamless writing experience with rich formatting and Drafta-MD syntax.
 
 ### Core Features
 
@@ -50,22 +50,6 @@ npm run dev
 ```bash
 firebase deploy --only hosting
 ```
-
----
-
-## Project YuniIn
-
-Drafta is the notes layer of **YuniIn [Unifying-Informations]** — an open-source, browser-based unified workspace.
-
-```
-Browser (Chromium)
-├── Drafta              ← notes & tasks  [this repo]
-└── Chat UI (OSS)       ← messaging & collaboration
-    ├── VS Code         ← code environment
-    └── OpenHands       ← agentic AI
-```
-
-YuniIn's vision: notes, messaging, code, and AI — all in one browser, zero copy-pasting between silos. AI agents handle organization automatically; humans review and direct.
 
 ---
 
