@@ -57,8 +57,4 @@ firebase deploy --only hosting
 
 MIT License — see [LICENSE](LICENSE)
 
----
 
-## Author
-
-**Gles** (Kenji Masuda) — natu.soral.123@gmail.com
