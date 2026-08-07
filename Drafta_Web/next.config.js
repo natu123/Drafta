@@ -2,12 +2,6 @@
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   allowedDevOrigins: [
     'https://6000-firebase-studio-1759286430513.cluster-euie3bjlbvhliv5fpqv5ofgi46.cloudworkstations.dev',
   ],

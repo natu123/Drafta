@@ -1,6 +1,6 @@
 "use client";
 
-import { DOMSerializer, DOMParser } from '@tiptap/pm/model';
+import { DOMSerializer, DOMParser, Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { TextSelection } from '@tiptap/pm/state';
 
 import * as React from 'react';
@@ -20,8 +20,6 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn, removeFormatting, richToPlainMarkdown, plainMarkdownToRich, normalizeOrderedListTags, normalizeOrderedListHtml } from '@/lib/utils';
-import Text from '@tiptap/extension-text';
-import Paragraph from '@tiptap/extension-paragraph';
 import { Separator } from './ui/separator';
 import type { Note } from '@/lib/types';
 import { TitleDocument } from './tiptap-extensions/title-document';
@@ -275,7 +273,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     let runningNumber = 0; // 前のリストグループからの連番
 
     // まず全ての orderedList の位置と情報を収集
-    const lists: { pos: number; node: any }[] = [];
+    const lists: { pos: number; node: ProseMirrorNode }[] = [];
     doc.descendants((node, pos) => {
       if (node.type.name === 'orderedList') {
         lists.push({ pos, node });
@@ -307,7 +305,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
       // リスト内のアイテムに番号を振る
       let itemIndex = 0;
-      node.forEach((itemNode: any, offset: number) => {
+      node.forEach((itemNode: ProseMirrorNode, offset: number) => {
         if (itemNode.type.name === 'listItem') {
           const newValue = effectiveStartFrom + itemIndex;
           const itemPos = pos + 1 + offset;
@@ -338,7 +336,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     editable: !note.isProtected,
     enableInputRules: false,
     enablePasteRules: false,
-    onUpdate: ({ editor, transaction }) => {
+    onUpdate: ({ editor }) => {
       // Auto-renumber all ordered list items after any change
       // Use setTimeout to avoid dispatch during update
       setTimeout(() => {

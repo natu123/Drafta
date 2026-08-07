@@ -316,7 +316,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
     setDropTargetId(targetId);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = () => {
     // Determine if we actually left the container or just child
     // e.preventDefault();
     // setDropTargetId(null);

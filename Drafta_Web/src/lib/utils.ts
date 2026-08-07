@@ -60,7 +60,7 @@ export function normalizeOrderedListHtml(html: string): string {
       (child): child is HTMLElement => child instanceof HTMLElement && child.tagName === 'LI'
     );
 
-    listItems.forEach((li, idx) => {
+    listItems.forEach((li) => {
       const rawValue = parseInt(li.getAttribute('value') || '', 10);
       const fallback = nextNumber;
       const computed = Number.isFinite(rawValue)
@@ -376,7 +376,7 @@ export function richToPlainMarkdown(html: string): string {
       const style = e.getAttribute('style') || '';
 
       // Try HEX format first: #XXXXXX or #XXX
-      let hexMatch = style.match(/color:\s*(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})/i);
+      const hexMatch = style.match(/color:\s*(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})/i);
       if (hexMatch) {
         e.replaceWith(`{color:${hexMatch[1]}}${e.textContent}{/color}`);
         return;

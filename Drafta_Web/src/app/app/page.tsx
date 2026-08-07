@@ -4,7 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import { LangContext } from '@/contexts/lang-context';
 import { type Lang, appTranslations } from '@/app/translations';
-import { Minus, List, LayoutGrid, ArrowDownUp, Inbox, Search, Trash2, RotateCcw, Plus, MoreHorizontal, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
+import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,7 @@ import SearchDialog from '@/components/search-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
-import { CreateListDialog } from '@/components/create-list-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -40,7 +39,7 @@ const createRestrictToSortableArea = (sortableAreaRef: React.RefObject<HTMLDivEl
     }
 
     const sortableRect = sortableAreaRef.current.getBoundingClientRect();
-    const { top: dragTop, bottom: dragBottom, height: dragHeight } = draggingNodeRect;
+    const { top: dragTop, bottom: dragBottom } = draggingNodeRect;
 
     // ドラッグ中のアイテムがSortableArea外に出ないように制限
     let newY = transform.y;
@@ -62,8 +61,7 @@ type ViewMode = 'list' | 'grid';
 
 const getSortedItems = (
   items: Note[],
-  sortOption: SortOption,
-  openTabsForType: OpenTab[]
+  sortOption: SortOption
 ): Note[] => {
   switch (sortOption) {
     case 'newest':
@@ -90,7 +88,6 @@ interface HomeSectionProps {
   sortOption: SortOption;
   onSortChange: (sortOption: SortOption) => void;
   viewMode: ViewMode;
-  onViewModeChange: (viewMode: ViewMode) => void;
   onDeleteItem: (id: string) => void;
   onRestoreItem?: (id: string) => void;
   onPermanentDeleteItem?: (id: string) => void;
@@ -110,7 +107,6 @@ interface HomeSectionProps {
   onPermanentDeleteGroup?: (id: string) => void;
 
   groups: Group[]; // For Move Menu
-  onMoveNote: (noteId: string, targetGroupId: string) => void;
   onAddSeparator?: () => void;
   onQuickAdd?: (title: string) => void;
   onIconChange?: (id: string, icon: string) => void;
@@ -309,13 +305,12 @@ interface SortableGroupItemProps {
   group: Group;
   activeGroupId: string;
   hasNotes: boolean;
-  notes: Note[];
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
 const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
-  group, activeGroupId, hasNotes, notes, onSelect, onDelete
+  group, activeGroupId, hasNotes, onSelect, onDelete
 }) => {
   const {
     attributes,
@@ -411,11 +406,11 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
 
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
-  sortOption, onSortChange, viewMode, onViewModeChange,
+  sortOption, onSortChange, viewMode,
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
-  groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
+  groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction
 }) => {
   const { t } = React.useContext(LangContext);
@@ -865,14 +860,11 @@ export default function Home() {
     initialNotes.length > 0 ? initialNotes[0].id : null
   );
 
-  const [lastActiveTab, setLastActiveTab] = React.useState<OpenTab | null>(null);
-
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
-  const [isCreateListOpen, setIsCreateListOpen] = React.useState(false);
 
   const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
-  const [noteViewMode, setNoteViewMode] = React.useState<ViewMode>('list');
+  const [noteViewMode] = React.useState<ViewMode>('list');
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
 
@@ -1095,11 +1087,11 @@ export default function Home() {
 
 
 
-  const addToHistory = (item: Note, type: 'note') => {
+  const addToHistory = React.useCallback((item: Note) => {
     setHistory(prev => {
       const newHistory: HistoryItem = {
         id: item.id,
-        type: type,
+        type: 'note',
         title: item.title,
         icon: item.icon,
         accessedAt: new Date().toISOString(),
@@ -1107,7 +1099,7 @@ export default function Home() {
       const filtered = prev.filter(h => h.id !== item.id);
       return [newHistory, ...filtered].slice(0, 15);
     });
-  };
+  }, []);
 
   const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }) => {
     if (!activeTabId) return;
@@ -1123,12 +1115,10 @@ export default function Home() {
     }));
   }, [activeTabId]);
 
-  const openTab = (id: string, type: 'note') => {
-    if (!openTabs.some(t => t.id === id)) {
-      setOpenTabs(prev => [...prev, { id, type }]);
-    }
+  const openTab = React.useCallback((id: string, type: 'note') => {
+    setOpenTabs(prev => prev.some(tab => tab.id === id) ? prev : [...prev, { id, type }]);
     setActiveTabId(id);
-  };
+  }, []);
 
   const closeTab = (id: string) => {
     const newTabs = openTabs.filter(t => t.id !== id);
@@ -1185,7 +1175,7 @@ export default function Home() {
       return [...prev, newNote];
     });
     openTab(newNote.id, 'note'); // Ensure it opens a tab
-    addToHistory(newNote, 'note');
+    addToHistory(newNote);
     if (layoutMode === 'mobile') setMobilePane('editor');
   };
 
@@ -1252,20 +1242,16 @@ export default function Home() {
     const note = notes.find(n => n.id === id);
     if (note) {
       openTab(id, 'note'); // Ensure tab opens
-      addToHistory(note, 'note');
+      addToHistory(note);
       if (layoutMode === 'mobile') setMobilePane('editor');
     }
-  }, [notes, layoutMode]);
+  }, [notes, layoutMode, openTab, addToHistory]);
 
   const handleGroupSelect = React.useCallback((id: string) => {
     setActiveGroupId(id);
     if (layoutMode === 'mobile') setMobilePane('notes');
     if (layoutMode === 'tablet') setIsTrayDrawerOpen(false);
   }, [layoutMode]);
-
-  const handleHistorySelect = (id: string, type: 'note') => {
-    handleNoteSelect(id);
-  };
 
   const handleToggleComplete = (id: string, isCompleted: boolean) => {
     setNotes(prev => prev.map(note => note.id === id ? { ...note, isCompleted } : note));
@@ -1298,12 +1284,6 @@ export default function Home() {
     });
   }, []);
 
-  const handleMoveNoteToGroup = (noteId: string, targetGroupId: string) => {
-    setNotes(prev => prev.map(note => note.id === noteId ? { ...note, group: targetGroupId } : note));
-    // If we moved the active note out of view (and we are viewing that group), maybe we should switch group? 
-    // Or just let it disappear. Let's let it disappear from current view.
-  };
-
   // Delete helpers
   const handleDeleteNote = (id: string) => {
     const note = notes.find(n => n.id === id);
@@ -1322,7 +1302,6 @@ export default function Home() {
     closeTab(id);
   };
 
-  const handleAddGroup = () => setIsCreateListOpen(true);
   const handleAddGroupSeparator = () => {
     const newSeparator: Group = { id: `sep-${Date.now()}`, name: '', type: 'separator' };
     setGroups(prev => {
@@ -1355,16 +1334,10 @@ export default function Home() {
     setActiveGroupId(newGroup.id); // Auto-switch to new group
   };
 
-  const handleSortGroup = (option: 'manual' | 'name' | 'newest') => {
-    // If manual, we don't change state, just use order.
-    // If name or newest, we might want to store that preference.
-    setGroupSort(option);
-  };
-
   const [groupSort, setGroupSort] = React.useState<'manual' | 'name' | 'newest'>('manual');
 
   const filteredGroups = React.useMemo(() => {
-    let items = groups.filter(g => !g.isDeleted);
+    const items = groups.filter(g => !g.isDeleted);
 
     // Separate Inbox from other groups
     const inbox = items.find(g => g.id === 'inbox');
@@ -1406,7 +1379,7 @@ export default function Home() {
   }, []);
 
   const sortedNotes = React.useMemo(() => {
-    let items = getSortedItems(notes, noteSort, []);
+    let items = getSortedItems(notes, noteSort);
     if (activeGroupId === 'restore') {
       items = items.filter(note => note.isDeleted);
     } else {
@@ -1427,7 +1400,7 @@ export default function Home() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
           history={history}
-          onHistorySelect={handleHistorySelect}
+          onHistorySelect={handleNoteSelect}
         />
 
         <div className="flex flex-1 overflow-hidden relative min-h-0">
@@ -1569,7 +1542,6 @@ export default function Home() {
                                 group={group}
                                 activeGroupId={activeGroupId}
                                 hasNotes={hasNotes}
-                                notes={notes}
                                 onSelect={handleGroupSelect}
                                 onDelete={handleDeleteGroup}
                               />
@@ -1636,7 +1608,6 @@ export default function Home() {
               sortOption={noteSort}
               onSortChange={setNoteSort}
               viewMode={noteViewMode}
-              onViewModeChange={setNoteViewMode}
               onDeleteItem={handleDeleteNote}
               onToggleComplete={handleToggleComplete}
               onRestoreItem={handleRestoreNote}
@@ -1655,7 +1626,6 @@ export default function Home() {
               onPermanentDeleteGroup={(id) => confirmPermanentDelete(id, 'group')}
 
               groups={groups}
-              onMoveNote={handleMoveNoteToGroup}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
               onIconChange={handleIconChange}
@@ -1745,12 +1715,6 @@ export default function Home() {
             handleNoteSelect(noteId);
           }}
           onGroupSelect={handleGroupSelect}
-        />
-
-        <CreateListDialog
-          open={isCreateListOpen}
-          onOpenChange={setIsCreateListOpen}
-          onCreate={handleCreateGroup}
         />
 
         <DeleteConfirmDialog

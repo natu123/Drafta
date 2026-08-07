@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Settings } from 'lucide-react';
-
 interface UserNavProps {
     onOpenSettings: () => void;
 }

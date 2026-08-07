@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useLang } from '@/contexts/lang-context';
-import { LANGS, LANG_LABEL, type Lang } from '@/app/translations';
+import { LANGS, LANG_LABEL } from '@/app/translations';
 
 interface HistoryNavProps {
   history: HistoryItem[];
