@@ -368,6 +368,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Delete separator"
             className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
             onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
           >
@@ -413,6 +414,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
         <Button
           variant="ghost"
           size="icon"
+          aria-label={`Delete ${group.name}`}
           className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/list:opacity-100 transition-opacity"
           onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
         >
@@ -781,7 +783,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                       {/* Grid View Content */}
                       <div className="absolute top-2 right-2 z-10 flex gap-1">
                         {isTrash && (
-                          <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                          <Button variant="secondary" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || 'Untitled'}`} className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
                             <RotateCcw className="w-3.5 h-3.5" />
                           </Button>
                         )}
