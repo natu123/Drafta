@@ -1,5 +1,10 @@
 # **App Name**: Draftio × Prōla
 
+> **Status: Legacy concept document.** This file preserves an early Firebase Studio
+> concept and is not the current implementation specification. Use the repository
+> `AGENTS.md` and `specs/` documents as the source of truth. AI integration remains
+> an uncommitted future concept until it is added to the development plan.
+
 ## Core Features:
 
 - Note Creation and Organization: Create notes with text, handwriting, and voice input. Organize notes into groups and bookmark them with 1-3 stars.
