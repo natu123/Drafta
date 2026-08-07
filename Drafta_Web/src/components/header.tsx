@@ -30,6 +30,7 @@ interface HistoryNavProps {
 
 const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => {
   const { t } = useLang();
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   if (history.length === 0) {
     return (
@@ -49,8 +50,6 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
       </TooltipProvider>
     );
   }
-
-  const [isExpanded, setIsExpanded] = React.useState(false);
 
   const sortedHistory = [...history].reverse();
 
