@@ -1,34 +1,14 @@
-export type Lang = 'en' | 'ja' | 'zh-CN' | 'ko' | 'hi' | 'ar' | 'ru' | 'id' | 'es' | 'fr' | 'pt-BR';
+import type { Lang } from './languages';
 
-export const LANGS: Lang[] = ['en', 'ja', 'zh-CN', 'ko', 'hi', 'ar', 'ru', 'id', 'es', 'fr', 'pt-BR'];
-
-export const LANG_LABEL: Record<Lang, string> = {
-  'en': 'English',
-  'ja': '日本語',
-  'zh-CN': '中文',
-  'ko': '한국어',
-  'hi': 'हिन्दी',
-  'ar': 'العربية',
-  'ru': 'Русский',
-  'id': 'Indonesia',
-  'es': 'Español',
-  'fr': 'Français',
-  'pt-BR': 'Português',
-};
-
-export const LANG_SHORT: Record<Lang, string> = {
-  'en': 'EN',
-  'ja': 'JA',
-  'zh-CN': 'ZH',
-  'ko': 'KO',
-  'hi': 'HI',
-  'ar': 'AR',
-  'ru': 'RU',
-  'id': 'ID',
-  'es': 'ES',
-  'fr': 'FR',
-  'pt-BR': 'PT',
-};
+export {
+  LANGUAGE_OPTIONS,
+  LANGS,
+  LANG_DIRECTION,
+  LANG_LABEL,
+  LANG_SHORT,
+  type Lang,
+  type LanguageDirection,
+} from './languages';
 
 export interface FeatureItem {
   title: string;
