@@ -2,8 +2,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
-import { LangContext } from '@/contexts/lang-context';
-import { type Lang, appTranslations } from '@/app/translations';
+import { useLang } from '@/contexts/lang-context';
 import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -413,7 +412,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction
 }) => {
-  const { t } = React.useContext(LangContext);
+  const { t } = useLang();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
@@ -796,12 +795,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 
 export default function Home() {
-  const [lang, setLang] = React.useState<Lang>('en');
-  const appT = appTranslations[lang];
-  const langContextValue = React.useMemo(
-    () => ({ lang, setLang, t: appT }),
-    [lang, appT]
-  );
+  const { t: appT } = useLang();
 
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
@@ -1390,7 +1384,6 @@ export default function Home() {
 
 
   return (
-    <LangContext.Provider value={langContextValue}>
     <>
       <div className="flex h-screen flex-col bg-background text-foreground overflow-hidden">
         <Header
@@ -1726,6 +1719,5 @@ export default function Home() {
         />
       </div >
     </>
-    </LangContext.Provider>
   );
 }

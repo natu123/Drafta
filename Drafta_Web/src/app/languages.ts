@@ -15,6 +15,8 @@ export const LANGUAGE_OPTIONS = [
 export type Lang = (typeof LANGUAGE_OPTIONS)[number]['code'];
 export type LanguageDirection = (typeof LANGUAGE_OPTIONS)[number]['direction'];
 
+export const LANG_STORAGE_KEY = 'drafta-language';
+
 export const LANGS: readonly Lang[] = LANGUAGE_OPTIONS.map(({ code }) => code);
 
 export const LANG_LABEL = Object.fromEntries(
@@ -28,3 +30,7 @@ export const LANG_SHORT = Object.fromEntries(
 export const LANG_DIRECTION = Object.fromEntries(
   LANGUAGE_OPTIONS.map(({ code, direction }) => [code, direction]),
 ) as Record<Lang, LanguageDirection>;
+
+export function isLang(value: unknown): value is Lang {
+  return typeof value === 'string' && LANGS.includes(value as Lang);
+}

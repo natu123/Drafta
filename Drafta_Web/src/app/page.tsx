@@ -1,10 +1,10 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, Feather, ChevronDown } from 'lucide-react';
-import { Lang, LANGS, LANG_LABEL, translations } from './translations';
+import { LANGS, LANG_LABEL, translations } from './translations';
+import { useLang } from '@/contexts/lang-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<Lang>('en');
+  const { lang, setLang } = useLang();
   const t = translations[lang];
 
   return (

@@ -6,6 +6,7 @@ import {
   LANG_DIRECTION,
   LANG_LABEL,
   LANG_SHORT,
+  isLang,
 } from './languages';
 
 describe('language metadata', () => {
@@ -41,5 +42,14 @@ describe('language metadata', () => {
         expect(LANG_DIRECTION[code]).toBe('ltr');
       }
     }
+  });
+
+  it('accepts only supported language codes', () => {
+    for (const code of LANGS) {
+      expect(isLang(code)).toBe(true);
+    }
+
+    expect(isLang('en-US')).toBe(false);
+    expect(isLang(null)).toBe(false);
   });
 });

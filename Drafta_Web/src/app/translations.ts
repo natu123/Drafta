@@ -6,6 +6,8 @@ export {
   LANG_DIRECTION,
   LANG_LABEL,
   LANG_SHORT,
+  LANG_STORAGE_KEY,
+  isLang,
   type Lang,
   type LanguageDirection,
 } from './languages';

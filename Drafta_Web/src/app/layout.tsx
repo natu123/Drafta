@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PT_Sans } from 'next/font/google';
+import { LangProvider } from '@/contexts/lang-context';
 
 const ptSans = PT_Sans({
   subsets: ['latin'],
@@ -31,8 +32,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <LangProvider>
+            {children}
+            <Toaster />
+          </LangProvider>
         </ThemeProvider>
       </body>
     </html>
