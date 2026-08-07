@@ -41,7 +41,7 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     let storedLang: string | null = null;
 
     try {

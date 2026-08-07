@@ -1120,7 +1120,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             }
           }}
         >
-          <EditorContent editor={editor} />
+          <EditorContent editor={editor} dir="auto" />
         </div>
       </div>
     </TooltipProvider >
