@@ -11,13 +11,13 @@
         --card-foreground: 202 58% 11%;
         --popover: 0 0% 100%;
         --popover-foreground: 202 58% 11%;
-        --primary: 202 58% 41%;
-        /* #2D7BA1 */
+        --primary: 202 58% 35%;
+        /* Darkened blue for WCAG contrast on light backgrounds */
         --primary-foreground: 0 0% 98%;
         --secondary: 43 25% 90%;
         --secondary-foreground: 202 58% 11%;
         --muted: 43 25% 90%;
-        --muted-foreground: 202 20% 45%;
+        --muted-foreground: 202 24% 35%;
         --accent: 35 77% 64%;
         /* #E8B05D */
         --accent-foreground: 202 58% 11%;
@@ -25,7 +25,7 @@
         --destructive-foreground: 0 0% 98%;
         --border: 43 20% 85%;
         --input: 43 20% 88%;
-        --ring: 202 58% 41%;
+        --ring: 202 58% 35%;
         --radius: 0.5rem;
     }
 

@@ -38,7 +38,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="relative">
-              <Button variant="ghost" size="icon" disabled>
+              <Button variant="ghost" size="icon" aria-label={t.historyEmpty} disabled>
                 <History className="h-5 w-5" />
               </Button>
             </div>
@@ -65,7 +65,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label={t.historyOpen}>
                 <History className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -134,7 +134,7 @@ const Header: React.FC<HeaderProps> = ({
     <header className="flex items-center h-[57px] px-2 sm:px-4 border-b bg-background z-50">
       {/* Left: Logo Section */}
       <div className="flex-1 min-w-0 flex items-center">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link href="/" aria-label="Drafta" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Feather className="h-6 w-6 text-primary" />
           <h1 className="hidden sm:block text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
         </Link>
@@ -145,7 +145,7 @@ const Header: React.FC<HeaderProps> = ({
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onNewNote}>
+              <Button variant="ghost" size="icon" aria-label={t.newNote} onClick={onNewNote}>
                 <FilePlus className="h-5 w-5 text-accent" />
               </Button>
             </TooltipTrigger>
@@ -156,7 +156,7 @@ const Header: React.FC<HeaderProps> = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onOpenSearch}>
+              <Button variant="ghost" size="icon" aria-label={t.search} onClick={onOpenSearch}>
                 <Search className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
@@ -170,6 +170,7 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label={activeView === 'home' ? t.writingMode : t.homeMode}
                 onClick={onToggleView}
               >
                 {activeView === 'home' ? <PanelLeft className="h-5 w-5" /> : <AppWindow className="h-5 w-5" />}
@@ -194,7 +195,7 @@ const Header: React.FC<HeaderProps> = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" aria-label={t.language}>
                     <Globe className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -222,7 +223,7 @@ const Header: React.FC<HeaderProps> = ({
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onOpenSettings}>
+              <Button variant="ghost" size="icon" aria-label={t.settings} onClick={onOpenSettings}>
                 <Settings className="h-5 w-5" />
               </Button>
             </TooltipTrigger>

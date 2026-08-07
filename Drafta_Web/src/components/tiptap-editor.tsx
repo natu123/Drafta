@@ -42,6 +42,7 @@ interface TiptapEditorProps {
 }
 
 export const emojis = ['📝', '⚡', '🔥', '💎', '⭐️', '🛒', '💼', '💡', '🎯', '📌', '❤️', '🎉', '✈️', '🌱', '🌈'];
+
 const baseColors = [
   { name: 'Green', value: '#64A364' },
   { name: 'Blue', value: '#51A2FF' },
@@ -897,7 +898,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Tooltip>
             {/* Logic unchanged */}
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || note.isProtected}>
+              <Button variant="ghost" size="icon" aria-label={t.undo} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || note.isProtected}>
                 <Undo />
               </Button>
             </TooltipTrigger>
@@ -905,7 +906,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || note.isProtected}>
+              <Button variant="ghost" size="icon" aria-label={t.redo} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || note.isProtected}>
                 <Redo />
               </Button>
             </TooltipTrigger>
@@ -915,7 +916,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           {/* List buttons ... */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={note.isProtected || isPlainTextMode}>
+              <Button variant="ghost" size="icon" aria-label={t.addSeparator} onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={note.isProtected || isPlainTextMode}>
                 <Minus />
               </Button>
             </TooltipTrigger>
@@ -924,7 +925,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={note.isProtected || isPlainTextMode}>
+              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={note.isProtected || isPlainTextMode}>
                 <List />
               </Button>
             </TooltipTrigger>
@@ -932,7 +933,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={note.isProtected || isPlainTextMode}>
+              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.checkboxList} onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={note.isProtected || isPlainTextMode}>
                 <ListChecks />
               </Button>
             </TooltipTrigger>
@@ -945,6 +946,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Button
                   variant="secondary"
                   size="icon"
+                  aria-label={t.removeNumberedList}
                   onClick={removeOrderedList}
                   disabled={note.isProtected || isPlainTextMode}
                 >
@@ -961,6 +963,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={t.numberedList}
                       disabled={note.isProtected || isPlainTextMode}
                     >
                       <ListOrdered />
@@ -1000,6 +1003,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={t.numberedList}
                   onClick={insertOrderedList}
                   disabled={note.isProtected || isPlainTextMode}
                 >
@@ -1013,7 +1017,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleTogglePlainTextMode}>
+              <Button variant="ghost" size="icon" aria-label={isPlainTextMode ? t.toRichText : t.toPlainText} onClick={handleTogglePlainTextMode}>
                 {isPlainTextMode ? (
                   <span className="flex items-center text-xs font-bold">→<FileText className="w-4 h-4 ml-0.5" /></span>
                 ) : (
@@ -1025,7 +1029,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleRemoveFormatting} disabled={note.isProtected}>
+              <Button variant="ghost" size="icon" aria-label={t.removeFormatting} onClick={handleRemoveFormatting} disabled={note.isProtected}>
                 <Pilcrow />
               </Button>
             </TooltipTrigger>
@@ -1033,7 +1037,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleCopyNote}>
+              <Button variant="ghost" size="icon" aria-label={t.copyMemo} onClick={handleCopyNote}>
                 {isCopied ? <Check className="text-green-500" /> : <Copy />}
               </Button>
             </TooltipTrigger>
@@ -1077,6 +1081,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               onClick={() => editor.chain().focus().toggleBold().run()}
               variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
               size="icon"
+              aria-label="Bold"
             >
               <Bold />
             </Button>
@@ -1084,6 +1089,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               onClick={() => editor.chain().focus().toggleItalic().run()}
               variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
               size="icon"
+              aria-label="Italic"
             >
               <Italic />
             </Button>
@@ -1091,6 +1097,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               onClick={() => editor.chain().focus().toggleStrike().run()}
               variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
               size="icon"
+              aria-label="Strikethrough"
             >
               <Strikethrough />
             </Button>

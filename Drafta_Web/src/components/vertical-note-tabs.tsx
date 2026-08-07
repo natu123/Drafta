@@ -171,6 +171,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Close ${item.title || 'Untitled Memo'}`}
                         className="h-6 w-6 rounded-full ml-auto shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();

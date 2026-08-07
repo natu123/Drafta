@@ -170,6 +170,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         <div className="w-8 flex justify-center shrink-0">
           {isSelectionMode && (
             <Checkbox
+              aria-label="Select separator"
               checked={selectedIds.has(item.id)}
               onCheckedChange={() => onToggleSelect(item.id)}
             />
@@ -181,6 +182,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Delete separator"
               className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
             >
@@ -221,6 +223,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         {!isTrash && onToggleComplete && (
           <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             <Checkbox
+              aria-label={stripColorMarkdown(item.title) || 'Untitled'}
               checked={item.isCompleted || false}
               onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
               className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
@@ -274,7 +277,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           {item.plainTextContent && (
             <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
               <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-              <span className="text-[10px] text-muted-foreground/70 shrink-0">
+              <span className="text-[10px] text-muted-foreground shrink-0">
                 {new Date(item.updatedAt).toLocaleDateString()}
               </span>
             </div>
@@ -284,10 +287,10 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         {/* Restore view actions only - normal delete uses selection mode */}
         {!isSelectionMode && isTrash && (
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+            <Button variant="ghost" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || 'Untitled'}`} className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
               <RotateCcw className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+            <Button variant="ghost" size="icon" aria-label={`Delete ${stripColorMarkdown(item.title) || 'Untitled'}`} className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -645,6 +648,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         {!isTrash && onToggleComplete && (
                           <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
+                              aria-label={stripColorMarkdown(item.title) || 'Untitled'}
                               checked={item.isCompleted || false}
                               onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
                               className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
@@ -663,7 +667,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                           {item.plainTextContent && (
                             <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
                               <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-                              <span className="text-[10px] text-muted-foreground/70 shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
                             </div>
                           )}
                         </div>
@@ -873,7 +877,7 @@ export default function Home() {
   const [mobilePane, setMobilePane] = React.useState<'trays' | 'notes' | 'editor'>('notes');
   const [isTrayDrawerOpen, setIsTrayDrawerOpen] = React.useState(false);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const updateLayout = () => {
       const viewportWidth = window.innerWidth;
       const nextMode = viewportWidth < 768 ? 'mobile' : viewportWidth < 1280 ? 'tablet' : 'desktop';
@@ -1396,7 +1400,7 @@ export default function Home() {
           onHistorySelect={handleNoteSelect}
         />
 
-        <div className="flex flex-1 overflow-hidden relative min-h-0">
+        <div role="main" className="flex flex-1 overflow-hidden relative min-h-0">
 
           {layoutMode === 'tablet' && isTrayDrawerOpen && activeView === 'home' && (
             <button
