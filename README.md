@@ -18,7 +18,7 @@ Drafta is a standalone note and task app built on TipTap — focused on a seamle
 - **Drafta-MD** — Extended Markdown syntax:
   - Color text: `{color:#HEX}text{/color}`
   - Ordered lists: `{ol:N}...{/ol}`
-- **3-column layout** — Sidebar / Note list / Editor (ratio 1.8 : 3.5 : 6.7)
+- **Adaptive layout** — Three panes on desktop, focused navigation on tablets and phones
 - **Color palette** — 7-color text formatting in the editor
 - **Note groups** — Organize notes into collapsible groups
 
@@ -38,16 +38,30 @@ Drafta is a standalone note and task app built on TipTap — focused on a seamle
 
 ## Getting Started
 
+Requirements: Node.js 24 and npm 11.
+
 ```bash
 cd Drafta_Web
-npm install
+npm ci
 npm run dev
 # → http://localhost:9002
+```
+
+The current Phase 1 UI keeps notes in memory. Cloud persistence, authentication,
+and synchronization are planned for later phases and are not available yet.
+
+### Quality checks
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
 ```
 
 ### Deploy
 
 ```bash
+npm run build
 firebase deploy --only hosting
 ```
 
