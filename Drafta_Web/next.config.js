@@ -3,7 +3,8 @@ const nextConfig = {
   output: 'export',
   trailingSlash: true,
   allowedDevOrigins: [
-    'https://6000-firebase-studio-1759286430513.cluster-euie3bjlbvhliv5fpqv5ofgi46.cloudworkstations.dev',
+    '127.0.0.1',
+    '6000-firebase-studio-1759286430513.cluster-euie3bjlbvhliv5fpqv5ofgi46.cloudworkstations.dev',
   ],
   images: {
     unoptimized: true,
