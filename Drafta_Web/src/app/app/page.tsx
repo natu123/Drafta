@@ -1447,7 +1447,7 @@ export default function Home() {
           {/* PANE 1: LISTS SIDEBAR */}
           <div
             className={cn(
-              "flex-col border-r bg-secondary/30 min-h-0",
+              "flex-col border-r bg-secondary min-h-0",
               activeView !== 'home' && "hidden",
               activeView === 'home' && layoutMode === 'desktop' && "flex relative shrink-0",
               activeView === 'home' && layoutMode === 'tablet' && cn(
