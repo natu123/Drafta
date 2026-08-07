@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
 import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -9,8 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
-import Editor from '@/components/editor';
-import { emojis } from '@/components/tiptap-editor';
+import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
@@ -29,6 +29,23 @@ import type { Modifier } from '@dnd-kit/core';
 
 
 type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
+
+const Editor = dynamic(() => import('@/components/editor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full flex-col" role="status" aria-label="Loading editor">
+      <div className="flex h-[57px] shrink-0 items-center gap-2 border-b px-4">
+        <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
+        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+      </div>
+      <div className="flex-1 p-6">
+        <div className="mb-6 h-8 w-2/3 animate-pulse rounded bg-muted" />
+        <div className="mb-3 h-4 w-full animate-pulse rounded bg-muted" />
+        <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+      </div>
+    </div>
+  ),
+});
 
 // カスタムモディファイア: SortableContextの範囲内に制限
 const createRestrictToSortableArea = (sortableAreaRef: React.RefObject<HTMLDivElement | null>): Modifier => {

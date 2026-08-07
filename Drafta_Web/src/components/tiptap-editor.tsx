@@ -29,6 +29,7 @@ import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
 import { PreserveBody } from './tiptap-extensions/preserve-body';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
+import { emojis } from './editor-options';
 
 // Create lowlight instance with all languages to ensure markdown support
 const lowlight = createLowlight(all);
@@ -40,8 +41,6 @@ interface TiptapEditorProps {
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
 }
-
-export const emojis = ['📝', '⚡', '🔥', '💎', '⭐️', '🛒', '💼', '💡', '🎯', '📌', '❤️', '🎉', '✈️', '🌱', '🌈'];
 
 const baseColors = [
   { name: 'Green', value: '#64A364' },
