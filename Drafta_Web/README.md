@@ -67,6 +67,7 @@ Drafta is a modern, privacy-focused note-taking application designed to bridge t
 ```bash
 npm run typecheck
 npm run lint
+npm test
 npm run build
 ```
 

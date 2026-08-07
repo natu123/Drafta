@@ -55,6 +55,7 @@ and synchronization are planned for later phases and are not available yet.
 ```bash
 npm run typecheck
 npm run lint
+npm test
 npm run build
 ```
 
