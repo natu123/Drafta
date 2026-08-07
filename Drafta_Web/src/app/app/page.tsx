@@ -4,7 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import { LangContext } from '@/contexts/lang-context';
 import { type Lang, appTranslations } from '@/app/translations';
-import { Minus, List, LayoutGrid, ArrowDownUp, Inbox, Search, Trash2, RotateCcw, Plus, MoreHorizontal, FolderInput, CheckSquare, X } from 'lucide-react';
+import { Minus, List, LayoutGrid, ArrowDownUp, Inbox, Search, Trash2, RotateCcw, Plus, MoreHorizontal, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -114,6 +114,7 @@ interface HomeSectionProps {
   onAddSeparator?: () => void;
   onQuickAdd?: (title: string) => void;
   onIconChange?: (id: string, icon: string) => void;
+  leadingAction?: React.ReactNode;
 }
 
 // Sortable Note Item Component
@@ -415,7 +416,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onMoveNote, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange
+  onIconChange, leadingAction
 }) => {
   const { t } = React.useContext(LangContext);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
@@ -488,7 +489,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   return (
     <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between px-4 border-b bg-background/95 backdrop-blur z-20 sticky top-0 shrink-0 h-[57px]">
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-lg flex items-center gap-2 min-w-0">
+          {leadingAction}
           <Icon className="w-5 h-5 text-primary" />
           <span className="truncate">{title}</span>
         </CardTitle>
@@ -874,37 +876,36 @@ export default function Home() {
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
 
-  // Column Layout - 1.8:3.5:6.7 Ratio (horizontal scroll when window is narrow)
+  // Column Layout - Desktop keeps the 3-pane ratio. Narrow screens use adaptive navigation.
   const MIN_LEFT_WIDTH = 140;
   const MIN_CENTER_WIDTH = 280;
 
   const [listsWidth, setListsWidth] = React.useState(180);
   const [notesWidth, setNotesWidth] = React.useState(400);
   const [editorWidth, setEditorWidth] = React.useState(400);
-  const [minEditorWidth, setMinEditorWidth] = React.useState(400); // Locked to initial fullscreen width
-  const [minColumnHeight, setMinColumnHeight] = React.useState(500); // Locked to initial content height
-
-  // Calculate initial widths based on screen size minus browser UI
-  // Using fixed pixel offset to account for browser chrome (tabs, address bar, etc.)
-  const BROWSER_UI_WIDTH = 0;    // No offset needed for width
-  const BROWSER_UI_HEIGHT = 90;  // Tabs, address bar (reduced to minimize double scrollbar)
+  const [layoutMode, setLayoutMode] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [mobilePane, setMobilePane] = React.useState<'trays' | 'notes' | 'editor'>('notes');
+  const [isTrayDrawerOpen, setIsTrayDrawerOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const totalWidth = window.screen.availWidth - BROWSER_UI_WIDTH;
-    const totalHeight = window.screen.availHeight - BROWSER_UI_HEIGHT;
+    const updateLayout = () => {
+      const viewportWidth = window.innerWidth;
+      const nextMode = viewportWidth < 768 ? 'mobile' : viewportWidth < 1280 ? 'tablet' : 'desktop';
+      setLayoutMode(nextMode);
 
-    // 1.7:3.4:6.9 = 12 parts total (right column slightly wider for 7 color buttons)
-    const leftWidth = Math.max(MIN_LEFT_WIDTH, Math.floor(totalWidth * (1.7 / 12)));
-    const centerWidth = Math.max(MIN_CENTER_WIDTH, Math.floor(totalWidth * (3.4 / 12)));
-    const rightWidth = Math.floor(totalWidth * (6.9 / 12));
-    const contentHeight = totalHeight - 57; // Subtract header height
+      if (nextMode === 'desktop') {
+        // 1.7:3.4:6.9 = 12 parts total (right column remains widest for the editor toolbar).
+        setListsWidth(Math.max(MIN_LEFT_WIDTH, Math.floor(viewportWidth * (1.7 / 12))));
+        setNotesWidth(Math.max(MIN_CENTER_WIDTH, Math.floor(viewportWidth * (3.4 / 12))));
+        setEditorWidth(Math.floor(viewportWidth * (6.9 / 12)));
+        setIsTrayDrawerOpen(false);
+      }
+    };
 
-    setListsWidth(leftWidth);
-    setNotesWidth(centerWidth);
-    setEditorWidth(rightWidth);
-    setMinEditorWidth(rightWidth); // Lock minimum to calculated value
-    setMinColumnHeight(contentHeight); // Lock minimum to calculated content height
-  }, []); // Only runs once on mount
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
+  }, []);
 
   // Manual resize state (only left-center boundary is resizable)
   const [isResizingLists, setIsResizingLists] = React.useState(false);
@@ -1185,6 +1186,7 @@ export default function Home() {
     });
     openTab(newNote.id, 'note'); // Ensure it opens a tab
     addToHistory(newNote, 'note');
+    if (layoutMode === 'mobile') setMobilePane('editor');
   };
 
   const handleAddSeparator = () => {
@@ -1251,8 +1253,15 @@ export default function Home() {
     if (note) {
       openTab(id, 'note'); // Ensure tab opens
       addToHistory(note, 'note');
+      if (layoutMode === 'mobile') setMobilePane('editor');
     }
-  }, [notes]);
+  }, [notes, layoutMode]);
+
+  const handleGroupSelect = React.useCallback((id: string) => {
+    setActiveGroupId(id);
+    if (layoutMode === 'mobile') setMobilePane('notes');
+    if (layoutMode === 'tablet') setIsTrayDrawerOpen(false);
+  }, [layoutMode]);
 
   const handleHistorySelect = (id: string, type: 'note') => {
     handleNoteSelect(id);
@@ -1421,10 +1430,19 @@ export default function Home() {
           onHistorySelect={handleHistorySelect}
         />
 
-        <div className="flex flex-1 overflow-auto relative">
+        <div className="flex flex-1 overflow-hidden relative min-h-0">
+
+          {layoutMode === 'tablet' && isTrayDrawerOpen && activeView === 'home' && (
+            <button
+              type="button"
+              aria-label="Close trays"
+              className="absolute inset-0 z-30 bg-black/20"
+              onClick={() => setIsTrayDrawerOpen(false)}
+            />
+          )}
 
           {/* PANE 0: VERTICAL TABS (Only in Writing Mode) */}
-          {activeView === 'editor' && openTabDetails.length > 0 && (
+          {activeView === 'editor' && layoutMode !== 'mobile' && openTabDetails.length > 0 && (
             <VerticalTabs
               items={openTabDetails}
               activeId={activeTabId}
@@ -1440,14 +1458,34 @@ export default function Home() {
           {/* PANE 1: LISTS SIDEBAR */}
           <div
             className={cn(
-              "flex-col border-r bg-secondary/30 relative shrink-0",
-              activeView === 'home' ? "flex" : "hidden"
+              "flex-col border-r bg-secondary/30 min-h-0",
+              activeView !== 'home' && "hidden",
+              activeView === 'home' && layoutMode === 'desktop' && "flex relative shrink-0",
+              activeView === 'home' && layoutMode === 'tablet' && cn(
+                "flex absolute inset-y-0 left-0 z-40 w-[min(20rem,85vw)] shadow-xl transition-transform duration-200",
+                isTrayDrawerOpen ? "translate-x-0" : "-translate-x-full"
+              ),
+              activeView === 'home' && layoutMode === 'mobile' && (mobilePane === 'trays' ? "flex relative w-full" : "hidden")
             )}
-            style={{ width: listsWidth, minHeight: minColumnHeight }}
+            style={layoutMode === 'desktop' ? { width: listsWidth } : undefined}
           >
               {/* Header for Lists */}
-              <div className="flex items-center justify-between px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
-                <h2 className="text-lg font-semibold">{appT.trays}</h2>
+              <div className="flex items-center justify-between px-3 sm:px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
+                <div className="flex items-center gap-1 min-w-0">
+                  {layoutMode !== 'desktop' && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      title="Back to memos"
+                      aria-label="Back to memos"
+                      onClick={() => layoutMode === 'mobile' ? setMobilePane('notes') : setIsTrayDrawerOpen(false)}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
+                  )}
+                  <h2 className="text-lg font-semibold truncate">{appT.trays}</h2>
+                </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
                     <Minus className="w-4 h-4" />
@@ -1497,7 +1535,7 @@ export default function Home() {
                         "w-full justify-start gap-2 h-9 pr-8",
                         activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
                       )}
-                      onClick={() => setActiveGroupId(group.id)}
+                      onClick={() => handleGroupSelect(group.id)}
                     >
                       <Inbox className="w-4 h-4" />
                       <span className="truncate">{group.name}</span>
@@ -1532,7 +1570,7 @@ export default function Home() {
                                 activeGroupId={activeGroupId}
                                 hasNotes={hasNotes}
                                 notes={notes}
-                                onSelect={setActiveGroupId}
+                                onSelect={handleGroupSelect}
                                 onDelete={handleDeleteGroup}
                               />
                             );
@@ -1547,7 +1585,7 @@ export default function Home() {
                             "w-full justify-start gap-2 h-9",
                             activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
                           )}
-                          onClick={() => setActiveGroupId('restore')}
+                          onClick={() => handleGroupSelect('restore')}
                         >
                           <RotateCcw className="w-4 h-4" />
                           <span>{appT.restore}</span>
@@ -1578,10 +1616,13 @@ export default function Home() {
           {/* PANE 2: NOTES LIST */}
           <div
             className={cn(
-              "flex-col border-r relative shrink-0",
-              activeView === 'home' ? "flex" : "hidden"
+              "flex-col border-r relative min-h-0",
+              activeView !== 'home' && "hidden",
+              activeView === 'home' && layoutMode === 'desktop' && "flex shrink-0",
+              activeView === 'home' && layoutMode === 'tablet' && "flex shrink-0 w-[clamp(18rem,38vw,24rem)]",
+              activeView === 'home' && layoutMode === 'mobile' && (mobilePane === 'notes' ? "flex w-full" : "hidden")
             )}
-            style={{ width: activeView === 'home' ? notesWidth : '100%', minHeight: minColumnHeight }}
+            style={layoutMode === 'desktop' ? { width: activeView === 'home' ? notesWidth : '100%' } : undefined}
           >
 
             <HomeSection
@@ -1618,26 +1659,53 @@ export default function Home() {
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
               onIconChange={handleIconChange}
+              leadingAction={layoutMode !== 'desktop' ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                  title="Open trays"
+                  aria-label="Open trays"
+                  onClick={() => layoutMode === 'mobile' ? setMobilePane('trays') : setIsTrayDrawerOpen(true)}
+                >
+                  <Menu className="w-5 h-5" />
+                </Button>
+              ) : undefined}
             />
           </div>
 
           {/* PANE 3: EDITOR */}
           <div
             className={cn(
-              "bg-background relative overflow-hidden flex",
-              activeView === 'editor' ? "flex-1" : "shrink-0"
+              "bg-background relative overflow-hidden min-w-0 min-h-0",
+              activeView === 'editor' && "flex flex-1",
+              activeView === 'home' && layoutMode === 'desktop' && "flex shrink-0",
+              activeView === 'home' && layoutMode === 'tablet' && "flex flex-1",
+              activeView === 'home' && layoutMode === 'mobile' && (mobilePane === 'editor' ? "flex w-full" : "hidden")
             )}
-            style={activeView === 'editor'
-              ? { minWidth: editorWidth, minHeight: minColumnHeight }
-              : { width: editorWidth, minHeight: minColumnHeight }
+            style={layoutMode === 'desktop'
+              ? (activeView === 'editor' ? { minWidth: editorWidth } : { width: editorWidth })
+              : undefined
             }
           >
             {activeNote ? (
               <Editor
                 note={activeNote}
                 onNoteUpdate={handleNoteUpdate}
-                onIconChange={(id, icon) => handleIconChange(id, icon)}
-                scrollDirection={scrollDirection}
+                 onIconChange={(id, icon) => handleIconChange(id, icon)}
+                 scrollDirection={scrollDirection}
+                 navigationAction={layoutMode === 'mobile' && activeView === 'home' ? (
+                   <Button
+                     variant="ghost"
+                     size="icon"
+                     className="h-10 w-10 shrink-0"
+                     title="Back to memos"
+                     aria-label="Back to memos"
+                     onClick={() => setMobilePane('notes')}
+                   >
+                     <ChevronLeft className="w-5 h-5" />
+                   </Button>
+                 ) : undefined}
               />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center relative">
@@ -1676,7 +1744,7 @@ export default function Home() {
             }
             handleNoteSelect(noteId);
           }}
-          onGroupSelect={setActiveGroupId}
+          onGroupSelect={handleGroupSelect}
         />
 
         <CreateListDialog

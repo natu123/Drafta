@@ -10,9 +10,10 @@ interface EditorProps {
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (id: string, icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
+  navigationAction?: React.ReactNode;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction }) => {
 
   const handleContentUpdate = React.useCallback((updates: Partial<Note>) => {
     onNoteUpdate(updates);
@@ -31,6 +32,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
         onNoteUpdate={handleContentUpdate}
         onIconChange={handleIconSelect}
         scrollDirection={scrollDirection}
+        navigationAction={navigationAction}
       />
     </div>
   );

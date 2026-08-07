@@ -132,17 +132,17 @@ const Header: React.FC<HeaderProps> = ({
   const { lang, setLang, t } = useLang();
 
   return (
-    <header className="flex items-center h-[57px] px-4 border-b bg-background z-50">
+    <header className="flex items-center h-[57px] px-2 sm:px-4 border-b bg-background z-50">
       {/* Left: Logo Section */}
-      <div className="flex-1 flex items-center">
+      <div className="flex-1 min-w-0 flex items-center">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Feather className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
+          <h1 className="hidden sm:block text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
         </Link>
       </div>
 
       {/* Center: Main Actions Section */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -184,8 +184,10 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right: Util Actions Section */}
-      <div className="flex-1 flex items-center justify-end gap-1">
-        <HistoryNav history={history} onHistorySelect={onHistorySelect} />
+      <div className="flex-1 min-w-0 flex items-center justify-end gap-0.5 sm:gap-1">
+        <div className="hidden sm:block">
+          <HistoryNav history={history} onHistorySelect={onHistorySelect} />
+        </div>
 
         {/* Language Switcher */}
         <DropdownMenu>

@@ -40,6 +40,7 @@ interface TiptapEditorProps {
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
+  navigationAction?: React.ReactNode;
 }
 
 export const emojis = ['📝', '⚡', '🔥', '💎', '⭐️', '🛒', '💼', '💡', '🎯', '📌', '❤️', '🎉', '✈️', '🌱', '🌈'];
@@ -82,7 +83,7 @@ const staticExtensions = [
   TableHeader,
 ];
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom' }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction }) => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
@@ -868,7 +869,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     <TooltipProvider>
       {/* ADDED: plain-mode class for CSS targeting */}
       <div className={cn("flex flex-col h-full", isPlainTextMode && "plain-text-mode")}>
-        <div className="px-4 border-b flex items-center gap-1 shrink-0 h-[57px]">
+        <div className="px-2 sm:px-4 border-b flex items-center gap-1 shrink-0 h-[57px] overflow-x-auto overscroll-x-contain">
+          {navigationAction}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>
