@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather, Search, Globe } from 'lucide-react';
+import { History, Settings, PanelLeft, AppWindow, Feather, Search, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -114,7 +114,6 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 interface HeaderProps {
   onToggleView: () => void;
   activeView: 'home' | 'editor';
-  onNewNote: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
   history: HistoryItem[];
@@ -124,7 +123,6 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   onToggleView,
   activeView,
-  onNewNote,
   onOpenSettings,
   onOpenSearch,
   history,
@@ -145,17 +143,6 @@ const Header: React.FC<HeaderProps> = ({
       {/* Center: Main Actions Section */}
       <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
         <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.newNote} onClick={onNewNote}>
-                <FilePlus className="h-5 w-5 text-accent" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t.newNote}</p>
-            </TooltipContent>
-          </Tooltip>
-
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={t.search} onClick={onOpenSearch}>

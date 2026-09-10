@@ -6,7 +6,6 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
 import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
@@ -125,7 +124,7 @@ interface HomeSectionProps {
 
   groups: Group[]; // For Move Menu
   onAddSeparator?: () => void;
-  onQuickAdd?: (title: string) => void;
+  onQuickAdd?: () => void;
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
 }
@@ -579,25 +578,12 @@ const HomeSection: React.FC<HomeSectionProps> = ({
       </CardHeader>
 
       <div className="flex flex-col border-b z-10 sticky top-[57px]">
-        {/* Quick Add Note Input */}
+        {/* Create without prompting for a title or leaving the list. */}
         {onQuickAdd && !isTrash && (
           <div className="px-2 py-1.5 shrink-0 border-b" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-            <div className="relative">
-              <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t.addMemo}
-                className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const target = e.currentTarget;
-                    if (target.value.trim()) {
-                      onQuickAdd(target.value.trim());
-                      target.value = '';
-                    }
-                  }
-                }}
-              />
-            </div>
+            <Button variant="outline" className="w-full justify-start h-10" onClick={onQuickAdd}>
+              <Plus className="h-4 w-4" />{t.addMemo}
+            </Button>
           </div>
         )}
 
@@ -1156,36 +1142,6 @@ export default function Home() {
     });
   };
 
-  const handleNewNote = () => {
-    const newNote: Note = {
-      id: `note-${Date.now()}`,
-      title: '',
-      icon: '📝',
-      content: '',
-      plainTextContent: '',
-      group: activeGroupId,
-      stars: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastAccessedAt: new Date().toISOString(),
-    };
-    // Add to top or bottom based on scrollDirection
-    setNotes(prev => {
-      if (scrollDirection === 'top') {
-        // Find first note in current group and insert before it
-        const firstGroupIndex = prev.findIndex(n => n.group === activeGroupId);
-        if (firstGroupIndex === -1) return [...prev, newNote];
-        const result = [...prev];
-        result.splice(firstGroupIndex, 0, newNote);
-        return result;
-      }
-      return [...prev, newNote];
-    });
-    openTab(newNote.id, 'note'); // Ensure it opens a tab
-    addToHistory(newNote);
-    if (layoutMode === 'mobile') setMobilePane('editor');
-  };
-
   const handleAddSeparator = () => {
     const newSeparator: Note = {
       id: `sep-${Date.now()}`,
@@ -1213,10 +1169,10 @@ export default function Home() {
     });
   };
 
-  const handleQuickCreateNote = (title: string) => {
+  const handleQuickCreateNote = () => {
     const newNote: Note = {
-      id: `note-${Date.now()}`,
-      title: title,
+      id: `note-${crypto.randomUUID()}`,
+      title: '',
       icon: '📝',
       content: '',
       plainTextContent: '',
@@ -1238,7 +1194,6 @@ export default function Home() {
       }
       return [...prev, newNote];
     });
-    handleNoteSelect(newNote.id); // Auto-open/select the new note
   };
 
   const handleNoteSelect = React.useCallback((id: string) => {
@@ -1325,10 +1280,9 @@ export default function Home() {
       return [...prev, newSeparator];
     });
   };
-  const handleCreateGroup = (name: string) => {
-    const newGroup: Group = { id: `group-${Date.now()}`, name: name, type: 'group' };
+  const handleCreateGroup = () => {
+    const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name: appT.untitledTray, type: 'group' };
     setGroups(prev => [...prev, newGroup]);
-    setActiveGroupId(newGroup.id); // Auto-switch to new group
   };
 
   const filteredGroups = React.useMemo(() => {
@@ -1378,7 +1332,6 @@ export default function Home() {
         <Header
           onToggleView={handleToggleView}
           activeView={activeView}
-          onNewNote={handleNewNote}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
           history={history}
@@ -1448,24 +1401,11 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Quick Add List Input */}
+              {/* Create a tray while retaining the current selection and pane. */}
               <div className="px-2 py-1.5 border-b shrink-0" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-                <div className="relative">
-                  <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={appT.addTray}
-                    className="pl-9 h-8 bg-background focus-visible:bg-background transition-colors border-none shadow-none text-sm"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const target = e.currentTarget;
-                        if (target.value.trim()) {
-                          handleCreateGroup(target.value.trim());
-                          target.value = '';
-                        }
-                      }
-                    }}
-                  />
-                </div>
+                <Button variant="outline" className="w-full justify-start h-10" onClick={handleCreateGroup}>
+                  <Plus className="h-4 w-4" />{appT.addTray}
+                </Button>
               </div>
 
               {/* Inbox - fixed at top, outside ScrollArea */}
@@ -1655,9 +1595,13 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-medium text-foreground mb-2">{appT.noActiveMemo}</h3>
                 <p className="max-w-xs">{appT.noActiveMemoDesc}</p>
-                <Button variant="outline" className="mt-6" onClick={handleNewNote}>
+                <Button variant="outline" className="mt-6" onClick={() => {
+                  handleQuickCreateNote();
+                  setActiveView('home');
+                  setMobilePane('notes');
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
-                  {appT.createNewMemo}
+                  {appT.addMemo}
                 </Button>
               </div>
             )}

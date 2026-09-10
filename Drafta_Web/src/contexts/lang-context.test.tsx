@@ -69,7 +69,7 @@ describe('LangProvider', () => {
     await act(async () => currentLanguage?.setLang('ja'));
 
     expect(currentLanguage?.lang).toBe('ja');
-    expect(currentLanguage?.t.newNote).toBe('新しいメモ');
+    expect(currentLanguage?.t.untitledTray).toBe('無題のトレイ');
     expect(window.localStorage.getItem(LANG_STORAGE_KEY)).toBe('ja');
     expect(document.documentElement.lang).toBe('ja');
     expect(document.documentElement.dir).toBe('ltr');
