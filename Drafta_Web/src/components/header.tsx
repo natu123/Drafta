@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FilePlus, History, Settings, PanelLeft, AppWindow, Feather, Search, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +23,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { useLang } from '@/contexts/lang-context';
 import { LANGS, LANG_LABEL } from '@/app/translations';
+import { LANGUAGE_FLAGS } from '@/app/languages';
 
 interface HistoryNavProps {
   history: HistoryItem[];
@@ -214,6 +216,7 @@ const Header: React.FC<HeaderProps> = ({
                 onSelect={() => setLang(l)}
                 className={lang === l ? 'bg-primary/10 text-primary font-medium' : ''}
               >
+                <Image src={`/flags/${LANGUAGE_FLAGS[l]}.svg`} alt="" width={20} height={20} className="shrink-0" />
                 {LANG_LABEL[l]}
               </DropdownMenuItem>
             ))}

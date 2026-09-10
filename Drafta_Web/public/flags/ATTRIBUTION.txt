@@ -1,0 +1,4 @@
+Flag artwork: Twemoji v16.0.1, by Twitter, Inc. and other contributors.
+Source: https://github.com/jdecked/twemoji/tree/v16.0.1/assets/svg
+Licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+Artwork is unmodified. Flags are visual cues, not definitions of a language's region.

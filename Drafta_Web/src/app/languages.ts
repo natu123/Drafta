@@ -15,6 +15,12 @@ export const LANGUAGE_OPTIONS = [
 export type Lang = (typeof LANGUAGE_OPTIONS)[number]['code'];
 export type LanguageDirection = (typeof LANGUAGE_OPTIONS)[number]['direction'];
 
+// Visual cues only; languages are not restricted to these countries.
+export const LANGUAGE_FLAGS: Record<Lang, string> = {
+  en: 'us', ja: 'jp', 'zh-CN': 'cn', ko: 'kr', hi: 'in', ar: 'sa',
+  ru: 'ru', id: 'id', es: 'es', fr: 'fr', 'pt-BR': 'br',
+};
+
 export const LANG_STORAGE_KEY = 'drafta-language';
 
 export const LANGS: readonly Lang[] = LANGUAGE_OPTIONS.map(({ code }) => code);
