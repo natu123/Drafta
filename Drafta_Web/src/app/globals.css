@@ -6,6 +6,9 @@
 .editor-shell {
     container-type: inline-size;
 }
+.editor-toolbar {
+    position: relative;
+}
 .editor-tools {
     display: flex;
     flex-wrap: wrap;
@@ -14,10 +17,14 @@
     min-height: 56px;
     max-height: 45dvh;
     overflow-y: auto;
+    padding-right: 44px;
 }
 .editor-tools-toggle {
     display: flex;
     flex-shrink: 0;
+    position: absolute;
+    top: 8px;
+    right: 8px;
 }
 .editor-tools-content {
     display: contents;
@@ -34,6 +41,7 @@
     }
     .editor-tools {
         overflow: visible;
+        padding-right: 0;
     }
 }
 

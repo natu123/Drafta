@@ -908,9 +908,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Popover>
           </div>
           <div data-open={isWideToolbar || areToolsOpen} className="editor-tools flex-1 min-w-0">
-            <button type="button" aria-expanded={isWideToolbar || areToolsOpen} aria-controls={toolsId} onClick={() => setAreToolsOpen(open => !open)} className="editor-tools-toggle cursor-pointer rounded-md h-14 items-center gap-2 px-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button type="button" aria-label={t.editorTools} aria-expanded={isWideToolbar || areToolsOpen} aria-controls={toolsId} onClick={() => setAreToolsOpen(open => !open)} className="editor-tools-toggle cursor-pointer rounded-md h-10 w-10 items-center justify-center hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Menu className="h-5 w-5" aria-hidden="true" />
-              <span className="truncate">{t.editorTools}</span>
             </button>
             <div id={toolsId} className="editor-tools-content">
           <Tooltip>
