@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
@@ -1023,6 +1024,8 @@ export default function Home() {
 
   // Group DnD State (dnd-kit)
   const [activeDragGroupId, setActiveDragGroupId] = React.useState<string | null>(null);
+  const [groupOverlayContainer, setGroupOverlayContainer] = React.useState<HTMLElement | null>(null);
+  React.useEffect(() => setGroupOverlayContainer(document.body), []);
   const groupSortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // SortableContext範囲内に制限するカスタムモディファイア（グループ用）
@@ -1493,6 +1496,7 @@ export default function Home() {
                     modifiers={[restrictToVerticalAxis, restrictToGroupSortableArea]}
                     onDragStart={handleGroupDragStart}
                     onDragEnd={handleGroupDragEnd}
+                    onDragCancel={() => setActiveDragGroupId(null)}
                   >
                     <div className="flex flex-col gap-0 pb-2">
                       {/* Other groups - sortable */}
@@ -1531,17 +1535,16 @@ export default function Home() {
                         </Button>
                       </div>
                     </div>
-                    <DragOverlay>
+                    {groupOverlayContainer && createPortal(<DragOverlay>
                       {activeDragGroup && (
                         <div
-                          className="opacity-90 shadow-2xl border-2 border-primary bg-card rounded-md flex items-center justify-start gap-2 h-9 px-4"
-                          style={{ width: listsWidth - 32 }}
+                          className="opacity-90 shadow-2xl border-2 border-primary bg-card rounded-md flex items-center justify-start gap-2 h-full w-full px-4"
                         >
                           <Inbox className="w-4 h-4" />
                           <span className="font-medium truncate">{activeDragGroup.name}</span>
                         </div>
                       )}
-                    </DragOverlay>
+                    </DragOverlay>, groupOverlayContainer)}
                   </DndContext>
                 </div>
               </ScrollArea>
