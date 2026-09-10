@@ -6,23 +6,23 @@
 .editor-shell {
     container-type: inline-size;
 }
-.editor-tools-toggle {
-    display: flex;
-    list-style: none;
-}
-.editor-tools-toggle::-webkit-details-marker {
-    display: none;
-}
-.editor-tools-content {
+.editor-tools {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 4px;
-    padding-bottom: 8px;
-    max-height: 40dvh;
+    min-height: 56px;
+    max-height: 45dvh;
     overflow-y: auto;
 }
-.editor-tools:not([open]) > .editor-tools-content {
+.editor-tools-toggle {
+    display: flex;
+    flex-shrink: 0;
+}
+.editor-tools-content {
+    display: contents;
+}
+.editor-tools[data-open="false"] > .editor-tools-content {
     display: none;
 }
 .editor-tools-content > [data-orientation="vertical"] {
@@ -32,12 +32,7 @@
     .editor-tools-toggle {
         display: none;
     }
-    .editor-tools:not([open]) > .editor-tools-content,
-    .editor-tools-content {
-        display: flex;
-        flex-wrap: nowrap;
-        min-height: 56px;
-        padding-bottom: 0;
+    .editor-tools {
         overflow: visible;
     }
 }

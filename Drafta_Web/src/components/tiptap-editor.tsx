@@ -86,6 +86,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
   const [isWideToolbar, setIsWideToolbar] = React.useState(false);
+  const [areToolsOpen, setAreToolsOpen] = React.useState(false);
+  const toolsId = React.useId();
   const toolbarObserver = React.useRef<ResizeObserver | null>(null);
   const observeToolbar = React.useCallback((element: HTMLDivElement | null) => {
     toolbarObserver.current?.disconnect();
@@ -905,12 +907,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             )}
           </Popover>
           </div>
-          <details open={isWideToolbar} className="editor-tools flex-1 min-w-0">
-            <summary className="editor-tools-toggle cursor-pointer rounded-md h-14 items-center justify-end gap-2 px-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <div data-open={isWideToolbar || areToolsOpen} className="editor-tools flex-1 min-w-0">
+            <button type="button" aria-expanded={isWideToolbar || areToolsOpen} aria-controls={toolsId} onClick={() => setAreToolsOpen(open => !open)} className="editor-tools-toggle cursor-pointer rounded-md h-14 items-center gap-2 px-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Menu className="h-5 w-5" aria-hidden="true" />
               <span className="truncate">{t.editorTools}</span>
-            </summary>
-            <div className="editor-tools-content">
+            </button>
+            <div id={toolsId} className="editor-tools-content">
           <Tooltip>
             {/* Logic unchanged */}
             <TooltipTrigger asChild>
@@ -1060,7 +1062,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             <TooltipContent><p>{t.copyMemo}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
-          <div className="flex flex-wrap gap-2 p-2">
+          <div className="flex flex-wrap gap-0 p-1">
             {colors.map(color => {
               // Black/White are default colors - show as active when no color is set
               const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
@@ -1071,17 +1073,17 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                 <Tooltip key={color.name}>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
                       className={cn(
-                        "w-10 h-10 rounded-full p-0 transition-opacity",
-                        isActive && "ring-2 ring-primary ring-offset-2"
+                        "w-8 h-10 rounded-md p-1 transition-opacity"
                       )}
-                      style={{ backgroundColor: color.value }}
+                      aria-pressed={isActive}
                       disabled={note.isProtected || isPlainTextMode}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleSetColor(color.value)}
                     >
+                      <span aria-hidden="true" className={cn("block h-5 w-5 rounded-full border", isActive && "ring-2 ring-primary ring-offset-2")} style={{ backgroundColor: color.value }} />
                       <span className="sr-only">{color.name}</span>
                     </Button>
                   </TooltipTrigger>
@@ -1091,7 +1093,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             })}
           </div>
             </div>
-          </details>
+          </div>
         </div>
 
         {!note.isProtected && (
