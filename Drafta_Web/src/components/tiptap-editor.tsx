@@ -876,7 +876,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   };
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={200} disableHoverableContent>
       {/* ADDED: plain-mode class for CSS targeting */}
       <div ref={observeToolbar} className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")}>
         <div className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
