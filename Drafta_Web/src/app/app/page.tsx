@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, MouseSensor, TouchSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
@@ -179,7 +179,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         style={style}
         {...(canDrag ? { ...attributes, ...listeners } : {})}
         className={cn(
-          "group relative w-full flex items-center px-0 py-2 mx-[-8px] width-[calc(100%+16px)]",
+          "memo-drag-target group relative w-full flex items-center px-0 py-2 mx-[-8px] width-[calc(100%+16px)]",
           isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : ""
         )}
         onClick={() => isSelectionMode && onToggleSelect(item.id)}
@@ -221,7 +221,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
       <div
         {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
         className={cn(
-          "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
+          "memo-drag-target flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
           activeId === item.id && !isSelectionMode
             ? "bg-[#E7A1B0]/10 border-[#E7A1B0]/50 shadow-sm"
             : item.isProtected
@@ -449,10 +449,13 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 8, // Start drag after 8px of movement
       },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 350, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -603,6 +606,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 modifiers={[restrictToVerticalAxis, restrictToSortableArea]}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
+                onDragCancel={() => setActiveDragId(null)}
               >
                 <div className="flex flex-col gap-0 pb-10 p-2">
                   {/* Render Deleted Groups as Items if isTrash */}

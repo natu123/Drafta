@@ -545,6 +545,16 @@ code {
     font-style: italic;
 }
 
+/* Preserve native swiping until the delayed touch sensor starts a reorder. */
+@media (pointer: coarse) {
+    .memo-drag-target {
+        touch-action: pan-y;
+        -webkit-touch-callout: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+}
+
 /* Column Resize Cursor - Custom cursor for visibility in both light and dark modes */
 /* Using SVG data URI for a col-resize cursor with dark stroke and white outline for visibility */
 .resize-handle,
