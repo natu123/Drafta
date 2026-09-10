@@ -884,6 +884,10 @@ export default function Home() {
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
+  const handleListStyleChange = (direction: 'top' | 'bottom') => {
+    setScrollDirection(direction);
+    setNoteSort(direction === 'top' ? 'newest' : 'oldest');
+  };
 
   // Column Layout - Desktop keeps the 3-pane ratio. Narrow screens use adaptive navigation.
   const MIN_LEFT_WIDTH = 140;
@@ -1064,24 +1068,6 @@ export default function Home() {
   const activeDragGroup = activeDragGroupId ? groups.find(g => g.id === activeDragGroupId) : null;
 
 
-  const listScrollAreaRef = React.useRef<HTMLDivElement>(null);
-
-  // Left column (Lists Sidebar) scroll based on scrollDirection
-  React.useEffect(() => {
-    if (activeView !== 'home') return; // Only scroll when home view is active
-    setTimeout(() => {
-      if (listScrollAreaRef.current) {
-        const scrollContainer = listScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollContainer) {
-          if (scrollDirection === 'bottom') {
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-          } else {
-            scrollContainer.scrollTop = 0;
-          }
-        }
-      }
-    }, 50);
-  }, [scrollDirection, groups.length, activeView]);
 
   const activeNote = activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
 
@@ -1222,7 +1208,6 @@ export default function Home() {
       }
       return [...prev, newSeparator];
     });
-    setScrollDirection('bottom'); // Might need to adjust scrolling if inserted in middle
   };
 
   const handleQuickCreateNote = (title: string) => {
@@ -1339,20 +1324,9 @@ export default function Home() {
   };
   const handleCreateGroup = (name: string) => {
     const newGroup: Group = { id: `group-${Date.now()}`, name: name, type: 'group' };
-    // Add to top or bottom based on scrollDirection
-    setGroups(prev => {
-      if (scrollDirection === 'top') {
-        // Insert after inbox (index 0)
-        const result = [...prev];
-        result.splice(1, 0, newGroup);
-        return result;
-      }
-      return [...prev, newGroup];
-    });
+    setGroups(prev => [...prev, newGroup]);
     setActiveGroupId(newGroup.id); // Auto-switch to new group
   };
-
-  const [groupSort, setGroupSort] = React.useState<'manual' | 'name' | 'newest'>('manual');
 
   const filteredGroups = React.useMemo(() => {
     const items = groups.filter(g => !g.isDeleted);
@@ -1361,21 +1335,9 @@ export default function Home() {
     const inbox = items.find(g => g.id === 'inbox');
     const others = items.filter(g => g.id !== 'inbox');
 
-    // Sort only non-inbox items
-    if (groupSort === 'name') {
-      others.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (groupSort === 'newest') {
-      // Assuming ID has timestamp
-      others.sort((a, b) => {
-        const timeA = parseInt(a.id.split('-')[1] || '0') || 0;
-        const timeB = parseInt(b.id.split('-')[1] || '0') || 0;
-        return timeB - timeA;
-      });
-    }
-
     // Always keep Inbox at top
     return inbox ? [inbox, ...others] : others;
-  }, [groups, groupSort]);
+  }, [groups]);
 
   const handleDeleteGroup = (id: string) => {
     if (id === 'inbox') return;
@@ -1480,18 +1442,6 @@ export default function Home() {
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
                     <Minus className="w-4 h-4" />
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort trays">
-                        <ArrowDownUp className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onSelect={() => setGroupSort('manual')}>{appT.sortManual}</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setGroupSort('name')}>{appT.sortNameAZ}</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setGroupSort('newest')}>{appT.sortNewest}</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
 
@@ -1534,7 +1484,7 @@ export default function Home() {
                 ))}
               </div>
 
-              <ScrollArea className="flex-1 px-4" ref={listScrollAreaRef}>
+              <ScrollArea className="flex-1 px-4">
                 <div className="w-full max-w-full overflow-hidden">
                   <DndContext
                     id="groups-dnd"
@@ -1715,7 +1665,7 @@ export default function Home() {
           open={isSettingsOpen}
           onOpenChange={setIsSettingsOpen}
           scrollDirection={scrollDirection}
-          onScrollDirectionChange={setScrollDirection}
+          onScrollDirectionChange={handleListStyleChange}
         />
 
         <SearchDialog

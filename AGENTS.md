@@ -117,6 +117,7 @@ Drafta独自のMarkdown拡張。
 - Layout: 3カラム（左サイドバー / 中央ノートリスト / 右エディタ）、比率 1.8:3.5:6.7
 - Editor Modes: Rich（TipTap）/ Plain（textarea、Markdown）切り替え対応
 - Copy: 選択範囲をブラウザー標準のコピー操作 (Ctrl+Cなど) でコピーする。専用コピーボタンは設置しない。
+- List Style: 設定変更時にメモのソートを同期する (Topはnewest、Bottomはoldest)。Trayは対象外で手動順のみ。新規Trayは末尾へ追加する。
 
 ### Color System
 エディタのテキストカラーパレット（`tiptap-editor.tsx`）:
