@@ -1015,7 +1015,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             <TooltipContent><p>{t.removeFormatting}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
-          <div className="flex flex-wrap gap-0 p-1">
+          <div className="flex flex-wrap gap-0 px-1">
             {colors.map(color => {
               // Black/White are default colors - show as active when no color is set
               const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
