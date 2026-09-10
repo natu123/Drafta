@@ -87,7 +87,6 @@ export interface AppT {
   toRichText: string;
   toPlainText: string;
   removeFormatting: string;
-  copyMemo: string;
   // Settings dialog
   settingsTitle: string;
   settingsDesc: string;
@@ -166,7 +165,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'To Rich Text',
     toPlainText: 'To Plain Text',
     removeFormatting: 'Remove Formatting',
-    copyMemo: 'Copy Memo',
     settingsTitle: 'Settings',
     settingsDesc: 'Customize your application experience.',
     appearance: 'Appearance',
@@ -238,7 +236,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'リッチテキストへ',
     toPlainText: 'プレーンテキストへ',
     removeFormatting: '書式を削除',
-    copyMemo: 'メモをコピー',
     settingsTitle: '設定',
     settingsDesc: 'アプリの設定をカスタマイズします。',
     appearance: '外観',
@@ -310,7 +307,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: '切换到富文本',
     toPlainText: '切换到纯文本',
     removeFormatting: '清除格式',
-    copyMemo: '复制备忘录',
     settingsTitle: '设置',
     settingsDesc: '自定义应用程序体验。',
     appearance: '外观',
@@ -382,7 +378,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'A texto enriquecido',
     toPlainText: 'A texto simple',
     removeFormatting: 'Quitar formato',
-    copyMemo: 'Copiar nota',
     settingsTitle: 'Configuración',
     settingsDesc: 'Personaliza tu experiencia en la aplicación.',
     appearance: 'Apariencia',
@@ -454,7 +449,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: '서식 있는 텍스트로',
     toPlainText: '일반 텍스트로',
     removeFormatting: '서식 제거',
-    copyMemo: '메모 복사',
     settingsTitle: '설정',
     settingsDesc: '앱 환경을 사용자 지정합니다.',
     appearance: '모양',
@@ -526,7 +520,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'Vers texte enrichi',
     toPlainText: 'Vers texte brut',
     removeFormatting: 'Supprimer la mise en forme',
-    copyMemo: 'Copier la note',
     settingsTitle: 'Paramètres',
     settingsDesc: "Personnalisez votre expérience dans l'application.",
     appearance: 'Apparence',
@@ -598,7 +591,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'Para texto rico',
     toPlainText: 'Para texto simples',
     removeFormatting: 'Remover formatação',
-    copyMemo: 'Copiar nota',
     settingsTitle: 'Configurações',
     settingsDesc: 'Personalize sua experiência no aplicativo.',
     appearance: 'Aparência',
@@ -670,7 +662,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'रिच टेक्स्ट में',
     toPlainText: 'सादे टेक्स्ट में',
     removeFormatting: 'फ़ॉर्मेटिंग हटाएं',
-    copyMemo: 'नोट कॉपी करें',
     settingsTitle: 'सेटिंग्स',
     settingsDesc: 'अपना ऐप अनुभव कस्टमाइज़ करें।',
     appearance: 'दिखावट',
@@ -742,7 +733,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'إلى نص غني',
     toPlainText: 'إلى نص عادي',
     removeFormatting: 'إزالة التنسيق',
-    copyMemo: 'نسخ الملاحظة',
     settingsTitle: 'الإعدادات',
     settingsDesc: 'خصّص تجربة تطبيقك.',
     appearance: 'المظهر',
@@ -814,7 +804,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'В форматированный текст',
     toPlainText: 'В обычный текст',
     removeFormatting: 'Удалить форматирование',
-    copyMemo: 'Копировать заметку',
     settingsTitle: 'Настройки',
     settingsDesc: 'Настройте свой опыт использования приложения.',
     appearance: 'Внешний вид',
@@ -886,7 +875,6 @@ export const appTranslations: Record<Lang, AppT> = {
     toRichText: 'Ke teks kaya',
     toPlainText: 'Ke teks biasa',
     removeFormatting: 'Hapus pemformatan',
-    copyMemo: 'Salin catatan',
     settingsTitle: 'Pengaturan',
     settingsDesc: 'Sesuaikan pengalaman aplikasi Anda.',
     appearance: 'Tampilan',

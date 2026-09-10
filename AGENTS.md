@@ -116,7 +116,7 @@ Drafta独自のMarkdown拡張。
 - Protected Notes: `note-1` (Welcome), `note-2` (Quick Reference) — 削除・タイトル編集・アイコン変更禁止
 - Layout: 3カラム（左サイドバー / 中央ノートリスト / 右エディタ）、比率 1.8:3.5:6.7
 - Editor Modes: Rich（TipTap）/ Plain（textarea、Markdown）切り替え対応
-- Copy Note: エディタ上部にコピーボタン、チェックマーク表示 800ms
+- Copy: 選択範囲をブラウザー標準のコピー操作 (Ctrl+Cなど) でコピーする。専用コピーボタンは設置しない。
 
 ### Color System
 エディタのテキストカラーパレット（`tiptap-editor.tsx`）:

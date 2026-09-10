@@ -15,7 +15,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
-import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Copy, Check, Menu } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -118,7 +118,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   ], [t.untitledMemo]);
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
-  const [isCopied, setIsCopied] = React.useState(false);
   const contentRef = React.useRef(note.content);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -838,43 +837,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
   };
 
-  const handleCopyNote = async () => {
-    if (!editor) return;
-
-    // Get HTML content
-    const html = editor.getHTML();
-    // Get Markdown (Drafta-MD) for plain text
-    const normalizedHtml = normalizeOrderedListHtml(html);
-    const markdown = normalizeOrderedListTags(richToPlainMarkdown(normalizedHtml));
-
-    try {
-      // Use ClipboardItem API to copy both HTML and Markdown
-      // - Rich mode paste: uses HTML, preserves formatting
-      // - Plain mode paste: uses text/plain (Markdown), can be converted back
-      const clipboardItem = new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([markdown], { type: 'text/plain' }),
-      });
-      await navigator.clipboard.write([clipboardItem]);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 800);
-    } catch {
-      // Fallback: copy Markdown only
-      try {
-        await navigator.clipboard.writeText(markdown);
-      } catch {
-        const textarea = document.createElement('textarea');
-        textarea.value = markdown;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 800);
-    }
-  };
-
   return (
     <TooltipProvider delayDuration={200} disableHoverableContent>
       {/* ADDED: plain-mode class for CSS targeting */}
@@ -1051,14 +1013,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>{t.removeFormatting}</p></TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.copyMemo} onClick={handleCopyNote}>
-                {isCopied ? <Check className="text-green-500" /> : <Copy />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>{t.copyMemo}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <div className="flex flex-wrap gap-0 p-1">
