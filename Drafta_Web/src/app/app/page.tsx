@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
-import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu } from 'lucide-react';
+import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
@@ -127,6 +129,7 @@ interface HomeSectionProps {
   onQuickAdd?: () => void;
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
+  onRenameTray?: (name: string) => void;
 }
 
 // Sortable Note Item Component
@@ -432,10 +435,12 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange, leadingAction
+  onIconChange, leadingAction, onRenameTray
 }) => {
   const { t } = useLang();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const [isRenamingTray, setIsRenamingTray] = React.useState(false);
+  const [trayName, setTrayName] = React.useState('');
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // dnd-kit setup
@@ -511,7 +516,11 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         <CardTitle className="text-lg flex items-center gap-2 min-w-0">
           {leadingAction}
           <Icon className="w-5 h-5 text-primary" />
-          <span className="truncate">{title}</span>
+          {onRenameTray ? (
+            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => { setTrayName(title); setIsRenamingTray(true); }}>
+              <span className="truncate">{title}</span><Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
+            </button>
+          ) : <span className="truncate">{title}</span>}
         </CardTitle>
         <div className="flex items-center gap-1">
           {/* Selection Mode Actions */}
@@ -579,6 +588,23 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           )}
         </div>
       </CardHeader>
+      <Dialog open={isRenamingTray} onOpenChange={setIsRenamingTray}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>{t.renameTray}</DialogTitle></DialogHeader>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            if (!trayName.trim()) return;
+            onRenameTray?.(trayName.trim());
+            setIsRenamingTray(false);
+          }}>
+            <Input aria-label={t.renameTray} value={trayName} onChange={event => setTrayName(event.target.value)} autoFocus />
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsRenamingTray(false)}>{t.cancel}</Button>
+              <Button type="submit" disabled={!trayName.trim()}>{t.renameTray}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col border-b z-10 sticky top-[57px]">
         {/* Create without prompting for a title or leaving the list. */}
@@ -1542,6 +1568,9 @@ export default function Home() {
               groups={groups}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
+              onRenameTray={activeGroupId !== 'inbox' && activeGroupId !== 'restore' ? (name) => {
+                setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
+              } : undefined}
               onIconChange={handleIconChange}
               leadingAction={layoutMode !== 'desktop' ? (
                 <Button
