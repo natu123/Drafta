@@ -49,6 +49,7 @@ export interface AppT {
   newNote: string;
   search: string;
   writingMode: string;
+  editorTools: string;
   homeMode: string;
   settings: string;
   // Sidebar
@@ -131,6 +132,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'New note',
     search: 'Search',
     writingMode: 'Writing Mode',
+    editorTools: 'Editing tools',
     homeMode: 'Home',
     settings: 'Settings',
     trays: 'Trays',
@@ -202,6 +204,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: '新しいメモ',
     search: '検索',
     writingMode: 'ライティングモード',
+    editorTools: '編集ツール',
     homeMode: 'ホーム',
     settings: '設定',
     trays: 'トレイ',
@@ -273,6 +276,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: '新建备忘录',
     search: '搜索',
     writingMode: '写作模式',
+    editorTools: '编辑工具',
     homeMode: '主页',
     settings: '设置',
     trays: '托盘',
@@ -344,6 +348,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'Nueva nota',
     search: 'Buscar',
     writingMode: 'Modo escritura',
+    editorTools: 'Herramientas de edición',
     homeMode: 'Inicio',
     settings: 'Configuración',
     trays: 'Bandejas',
@@ -415,6 +420,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: '새 메모',
     search: '검색',
     writingMode: '쓰기 모드',
+    editorTools: '편집 도구',
     homeMode: '홈',
     settings: '설정',
     trays: '트레이',
@@ -486,6 +492,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'Nouvelle note',
     search: 'Rechercher',
     writingMode: 'Mode écriture',
+    editorTools: 'Outils d’édition',
     homeMode: 'Accueil',
     settings: 'Paramètres',
     trays: 'Bacs',
@@ -557,6 +564,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'Nova nota',
     search: 'Pesquisar',
     writingMode: 'Modo escrita',
+    editorTools: 'Ferramentas de edição',
     homeMode: 'Início',
     settings: 'Configurações',
     trays: 'Bandejas',
@@ -628,6 +636,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'नया नोट',
     search: 'खोजें',
     writingMode: 'लेखन मोड',
+    editorTools: 'संपादन उपकरण',
     homeMode: 'होम',
     settings: 'सेटिंग्स',
     trays: 'ट्रे',
@@ -699,6 +708,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'ملاحظة جديدة',
     search: 'بحث',
     writingMode: 'وضع الكتابة',
+    editorTools: 'أدوات التحرير',
     homeMode: 'الرئيسية',
     settings: 'الإعدادات',
     trays: 'الأدراج',
@@ -770,6 +780,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'Новая заметка',
     search: 'Поиск',
     writingMode: 'Режим письма',
+    editorTools: 'Инструменты редактирования',
     homeMode: 'Главная',
     settings: 'Настройки',
     trays: 'Лотки',
@@ -841,6 +852,7 @@ export const appTranslations: Record<Lang, AppT> = {
     newNote: 'Catatan baru',
     search: 'Cari',
     writingMode: 'Mode penulisan',
+    editorTools: 'Alat penyuntingan',
     homeMode: 'Beranda',
     settings: 'Pengaturan',
     trays: 'Nampan',

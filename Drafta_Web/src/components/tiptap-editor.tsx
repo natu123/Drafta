@@ -15,7 +15,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
-import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Copy, Check } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Copy, Check, Menu } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -85,6 +85,16 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
+  const [isWideToolbar, setIsWideToolbar] = React.useState(false);
+  const toolbarObserver = React.useRef<ResizeObserver | null>(null);
+  const observeToolbar = React.useCallback((element: HTMLDivElement | null) => {
+    toolbarObserver.current?.disconnect();
+    if (!element) return;
+    toolbarObserver.current = new ResizeObserver(([entry]) => {
+      setIsWideToolbar(entry.contentRect.width >= 850);
+    });
+    toolbarObserver.current.observe(element);
+  }, []);
 
   // Build colors array with theme-appropriate default color
   const colors = React.useMemo(() => {
@@ -866,8 +876,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   return (
     <TooltipProvider>
       {/* ADDED: plain-mode class for CSS targeting */}
-      <div className={cn("flex flex-col h-full", isPlainTextMode && "plain-text-mode")}>
-        <div className="px-2 sm:px-4 border-b flex items-center gap-1 shrink-0 h-[57px] overflow-x-auto overscroll-x-contain">
+      <div ref={observeToolbar} className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")}>
+        <div className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
+          <div className="flex items-center shrink-0 h-14">
           {navigationAction}
           <Popover>
             <PopoverTrigger asChild>
@@ -893,7 +904,13 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </PopoverContent>
             )}
           </Popover>
-          <Separator orientation="vertical" className="h-6 mx-2" />
+          </div>
+          <details open={isWideToolbar} className="editor-tools flex-1 min-w-0">
+            <summary className="editor-tools-toggle cursor-pointer rounded-md h-14 items-center justify-end gap-2 px-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Menu className="h-5 w-5" aria-hidden="true" />
+              <span className="truncate">{t.editorTools}</span>
+            </summary>
+            <div className="editor-tools-content">
           <Tooltip>
             {/* Logic unchanged */}
             <TooltipTrigger asChild>
@@ -1043,7 +1060,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             <TooltipContent><p>{t.copyMemo}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
-          <div className="flex gap-1 ml-1">
+          <div className="flex flex-wrap gap-2 p-2">
             {colors.map(color => {
               // Black/White are default colors - show as active when no color is set
               const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
@@ -1057,12 +1074,13 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "w-6 h-6 rounded-full p-0 transition-opacity",
+                        "w-10 h-10 rounded-full p-0 transition-opacity",
                         isActive && "ring-2 ring-primary ring-offset-2"
                       )}
                       style={{ backgroundColor: color.value }}
                       disabled={note.isProtected || isPlainTextMode}
-                      onMouseDown={(e) => { e.preventDefault(); handleSetColor(color.value); }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSetColor(color.value)}
                     >
                       <span className="sr-only">{color.name}</span>
                     </Button>
@@ -1072,6 +1090,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               );
             })}
           </div>
+            </div>
+          </details>
         </div>
 
         {!note.isProtected && (

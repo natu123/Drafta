@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Respond to the editor pane, including narrow desktop split views. */
+.editor-shell {
+    container-type: inline-size;
+}
+.editor-tools-toggle {
+    display: flex;
+    list-style: none;
+}
+.editor-tools-toggle::-webkit-details-marker {
+    display: none;
+}
+.editor-tools-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding-bottom: 8px;
+    max-height: 40dvh;
+    overflow-y: auto;
+}
+.editor-tools:not([open]) > .editor-tools-content {
+    display: none;
+}
+.editor-tools-content > [data-orientation="vertical"] {
+    display: none;
+}
+@container (min-width: 850px) {
+    .editor-tools-toggle {
+        display: none;
+    }
+    .editor-tools:not([open]) > .editor-tools-content,
+    .editor-tools-content {
+        display: flex;
+        flex-wrap: nowrap;
+        min-height: 56px;
+        padding-bottom: 0;
+        overflow: visible;
+    }
+}
+
 @layer base {
     :root {
         --background: 0 0% 100%;
