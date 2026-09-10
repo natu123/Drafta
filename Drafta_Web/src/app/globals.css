@@ -35,13 +35,18 @@
 .editor-tools-content > [data-orientation="vertical"] {
     display: none;
 }
-@container (min-width: 850px) {
+@container (min-width: 720px) {
     .editor-tools-toggle {
         display: none;
     }
     .editor-tools {
         overflow: visible;
         padding-right: 0;
+        flex-wrap: nowrap;
+    }
+    .editor-tools-content > button,
+    .editor-tools-content > div {
+        flex-shrink: 0;
     }
 }
 

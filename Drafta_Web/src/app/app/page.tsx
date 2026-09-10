@@ -888,6 +888,7 @@ export default function Home() {
   // Column Layout - Desktop keeps the 3-pane ratio. Narrow screens use adaptive navigation.
   const MIN_LEFT_WIDTH = 140;
   const MIN_CENTER_WIDTH = 280;
+  const MIN_EDITOR_WIDTH = 720;
 
   const [listsWidth, setListsWidth] = React.useState(180);
   const [notesWidth, setNotesWidth] = React.useState(400);
@@ -906,7 +907,7 @@ export default function Home() {
         // 1.7:3.4:6.9 = 12 parts total (right column remains widest for the editor toolbar).
         setListsWidth(Math.max(MIN_LEFT_WIDTH, Math.floor(viewportWidth * (1.7 / 12))));
         setNotesWidth(Math.max(MIN_CENTER_WIDTH, Math.floor(viewportWidth * (3.4 / 12))));
-        setEditorWidth(Math.floor(viewportWidth * (6.9 / 12)));
+        setEditorWidth(Math.max(MIN_EDITOR_WIDTH, Math.floor(viewportWidth * (6.9 / 12))));
         setIsTrayDrawerOpen(false);
       }
     };

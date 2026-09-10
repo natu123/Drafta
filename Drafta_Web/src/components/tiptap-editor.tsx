@@ -93,7 +93,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     toolbarObserver.current?.disconnect();
     if (!element) return;
     toolbarObserver.current = new ResizeObserver(([entry]) => {
-      setIsWideToolbar(entry.contentRect.width >= 850);
+      setIsWideToolbar(entry.contentRect.width >= 720);
     });
     toolbarObserver.current.observe(element);
   }, []);
