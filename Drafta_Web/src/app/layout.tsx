@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { siteMetadata } from '@/lib/site-metadata';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
@@ -13,10 +14,7 @@ const ptSans = PT_Sans({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Drafta',
-  description: 'Drafta — Minimal design, Quick idea.',
-};
+export const metadata: Metadata = siteMetadata('/');
 
 export default function RootLayout({
   children,
