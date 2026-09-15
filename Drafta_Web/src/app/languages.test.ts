@@ -7,9 +7,19 @@ import {
   LANG_LABEL,
   LANG_SHORT,
   isLang,
+  detectBrowserLanguage,
 } from './languages';
 
 describe('language metadata', () => {
+  it.each([
+    [['ja-JP'], 'ja'], [['en-GB'], 'en'], [['ko-KR'], 'ko'],
+    [['de-DE', 'fr-CA', 'ja'], 'fr'], [['ar-SA'], 'ar'],
+    [['pt-PT'], 'pt-BR'], [['zh-Hans-SG'], 'zh-CN'],
+    [['zh-TW', 'ja-JP'], 'ja'], [['zh-Hant-CN'], 'en'],
+    [['invalid_tag', 'es-MX'], 'es'], [[], 'en'], [['de-DE'], 'en'],
+  ])('detects %j as %s', (preferences, expected) => {
+    expect(detectBrowserLanguage(preferences as string[])).toBe(expected);
+  });
   it('keeps all supported language codes in their display order', () => {
     expect(LANGS).toEqual([
       'en',

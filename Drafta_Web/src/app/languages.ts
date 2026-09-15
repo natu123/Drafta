@@ -40,3 +40,20 @@ export const LANG_DIRECTION = Object.fromEntries(
 export function isLang(value: unknown): value is Lang {
   return typeof value === 'string' && LANGS.includes(value as Lang);
 }
+
+export function detectBrowserLanguage(preferences: readonly string[]): Lang {
+  for (const preference of preferences) {
+    try {
+      const locale = new Intl.Locale(preference);
+      const exact = LANGS.find(code => code.toLowerCase() === locale.baseName.toLowerCase());
+      if (exact) return exact;
+      // Only Simplified Chinese translations are available; do not substitute for Traditional.
+      if (locale.language === 'zh' && locale.maximize().script !== 'Hans') continue;
+      const match = LANGS.find(code => code.split('-')[0] === locale.language);
+      if (match) return match;
+    } catch {
+      // Ignore malformed preferences and continue through the priority list.
+    }
+  }
+  return 'en';
+}

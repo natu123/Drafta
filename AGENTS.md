@@ -112,6 +112,7 @@ Drafta独自のMarkdown拡張。
   - Unix系シェル向けコマンド（`rm`, `ls`, `&&`）の提案は、PowerShell構文に置き換えて提示する
 
 ## Project Specs
+- Language: 保存された手動選択を優先。未設定・無効値・保存領域の利用不可時はブラウザーの優先言語から対応言語を選び、候補がなければ英語。自動判定結果は保存せず、手動選択のみ保存する。中国語は簡体字のみ対応する。
 - Port: 9002 (Next.js dev server)
 - Protected Notes: `note-1` (Welcome), `note-2` (Quick Reference) — 削除・タイトル編集・アイコン変更禁止
 - Layout: 3カラム（左サイドバー / 中央ノートリスト / 右エディタ）、比率 1.8:3.5:6.7

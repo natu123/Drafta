@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from 'react';
+import { detectBrowserLanguage } from '@/app/languages';
 import {
   type Lang,
   type AppT,
@@ -47,10 +48,11 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     try {
       storedLang = window.localStorage.getItem(LANG_STORAGE_KEY);
     } catch {
-      // Keep the server-safe English default when browser storage is unavailable.
+      // Browser-language detection still works when storage is unavailable.
     }
 
-    const initialLang = isLang(storedLang) ? storedLang : 'en';
+    const preferences = navigator.languages?.length ? navigator.languages : [navigator.language];
+    const initialLang = isLang(storedLang) ? storedLang : detectBrowserLanguage(preferences);
     setLangState(initialLang);
     syncDocumentLanguage(initialLang);
   }, []);

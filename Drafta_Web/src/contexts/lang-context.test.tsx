@@ -4,7 +4,7 @@
 
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LANG_STORAGE_KEY } from '@/app/languages';
 import { LangProvider, useLang } from './lang-context';
@@ -22,6 +22,7 @@ function LanguageProbe() {
 }
 
 beforeEach(() => {
+  vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['en-US']);
   window.localStorage.clear();
   document.documentElement.lang = 'en';
   document.documentElement.dir = 'ltr';
@@ -34,6 +35,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  vi.restoreAllMocks();
 });
 
 async function renderProvider() {
@@ -43,6 +45,35 @@ async function renderProvider() {
 }
 
 describe('LangProvider', () => {
+  it('detects browser language without persisting an automatic choice', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['ja-JP']);
+    await renderProvider();
+    expect(currentLanguage?.lang).toBe('ja');
+    expect(document.documentElement.lang).toBe('ja');
+    expect(window.localStorage.getItem(LANG_STORAGE_KEY)).toBeNull();
+  });
+
+  it('uses browser preferences when storage is inaccessible', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['ar-SA']);
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    await renderProvider();
+    expect(currentLanguage?.lang).toBe('ar');
+    expect(document.documentElement.dir).toBe('rtl');
+  });
+
+  it('ignores invalid saved values in favor of browser preferences', async () => {
+    window.localStorage.setItem(LANG_STORAGE_KEY, 'unsupported');
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['ja-JP']);
+    await renderProvider();
+    expect(currentLanguage?.lang).toBe('ja');
+  });
+
+  it('falls back to navigator.language when the preference list is empty', async () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue([]);
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('ja-JP');
+    await renderProvider();
+    expect(currentLanguage?.lang).toBe('ja');
+  });
   it('restores a supported stored language and its writing direction', async () => {
     window.localStorage.setItem(LANG_STORAGE_KEY, 'ar');
 
