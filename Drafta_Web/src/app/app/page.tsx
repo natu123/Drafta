@@ -16,6 +16,7 @@ import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { localizeSampleNote, applySampleEdit } from '@/lib/sample-notes';
+import { localizeUntitledGroup } from '@/lib/group-display';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import SearchDialog from '@/components/search-dialog';
@@ -131,6 +132,7 @@ interface HomeSectionProps {
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
+  trayNameValue?: string;
 }
 
 // Sortable Note Item Component
@@ -437,7 +439,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange, leadingAction, onRenameTray
+  onIconChange, leadingAction, onRenameTray, trayNameValue
 }) => {
   const { t } = useLang();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
@@ -519,7 +521,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           {leadingAction}
           <Icon className="w-5 h-5 text-primary" />
           {onRenameTray ? (
-            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => { setTrayName(title); setIsRenamingTray(true); }}>
+            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => { setTrayName(trayNameValue ?? title); setIsRenamingTray(true); }}>
               <span className="truncate">{title}</span><Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
             </button>
           ) : <span className="truncate">{title}</span>}
@@ -599,7 +601,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
             onRenameTray?.(trayName.trim());
             setIsRenamingTray(false);
           }}>
-            <Input aria-label={t.renameTray} value={trayName} onChange={event => setTrayName(event.target.value)} autoFocus />
+            <Input aria-label={t.renameTray} placeholder={t.untitledTray} value={trayName} onChange={event => setTrayName(event.target.value)} autoFocus />
             <DialogFooter className="mt-4">
               <Button type="button" variant="outline" onClick={() => setIsRenamingTray(false)}>{t.cancel}</Button>
               <Button type="submit" disabled={!trayName.trim()}>{t.renameTray}</Button>
@@ -842,7 +844,8 @@ export default function Home() {
   const [sourceNotes, setNotes] = React.useState<Note[]>(initialNotes);
   const [modKey, setModKey] = React.useState<'Cmd' | 'Ctrl'>('Ctrl');
   const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
-  const [groups, setGroups] = React.useState<Group[]>(initialGroups);
+  const [sourceGroups, setGroups] = React.useState<Group[]>(initialGroups);
+  const groups = React.useMemo(() => sourceGroups.map(group => localizeUntitledGroup(group, appT.untitledTray)), [sourceGroups, appT.untitledTray]);
 
   // Sample rendering is separate from user-authored note data.
   React.useEffect(() => {
@@ -1278,7 +1281,7 @@ export default function Home() {
     });
   };
   const handleCreateGroup = () => {
-    const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name: appT.untitledTray, type: 'group' };
+    const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name: '', type: 'group' };
     setGroups(prev => [...prev, newGroup]);
   };
 
@@ -1538,6 +1541,7 @@ export default function Home() {
               groups={groups}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
+              trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'inbox' && activeGroupId !== 'restore' ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
               } : undefined}
