@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, Feather, ChevronDown } from 'lucide-react';
+import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, ChevronDown } from 'lucide-react';
+import { BrandIcon } from '@/components/brand-icon';
 import { LANGS, LANG_LABEL, translations } from './translations';
 import { useLang } from '@/contexts/lang-context';
 import {
@@ -23,7 +24,7 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/75 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
-            <Feather className="h-6 w-6 text-primary" />
+            <BrandIcon />
             <span className="text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</span>
           </div>
           <DropdownMenu>

@@ -3,7 +3,8 @@
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { History, Settings, PanelLeft, AppWindow, Feather, Search, Globe } from 'lucide-react';
+import { History, Settings, PanelLeft, AppWindow, Search, Globe } from 'lucide-react';
+import { BrandIcon } from '@/components/brand-icon';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -135,7 +136,7 @@ const Header: React.FC<HeaderProps> = ({
       {/* Left: Logo Section */}
       <div className="flex-1 min-w-0 flex items-center">
         <Link href="/" aria-label="Drafta" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Feather className="h-6 w-6 text-primary" />
+          <BrandIcon />
           <h1 className="hidden sm:block text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
         </Link>
       </div>
