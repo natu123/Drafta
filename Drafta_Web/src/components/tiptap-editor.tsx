@@ -655,7 +655,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
     } catch (error) {
       console.error('Failed to toggle plain text mode safely:', error);
+      isPlainTextModeRef.current = isPlainTextMode;
       editor.commands.setContent(currentHtml, { emitUpdate: false, parseOptions: { preserveWhitespace: 'full' } });
+      return;
     }
 
     setIsPlainTextMode(nextMode);

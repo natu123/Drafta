@@ -13,6 +13,31 @@ import {
   stripColorMarkdown,
 } from './utils';
 
+describe('empty Markdown tables', () => {
+  it.each([' ', '\u00a0', '\u3000'])('preserves blank rows containing %j', space => {
+    const row = `| ${space} | ${space} |`;
+    const markdown = [row, '| --- | --- |', row, row].join('\n');
+    const html = plainMarkdownToRich(markdown);
+    const root = document.createElement('div');root.innerHTML = html;
+    expect(root.querySelectorAll('tr')).toHaveLength(3);
+    expect(root.querySelectorAll('th')).toHaveLength(2);
+    expect(root.querySelectorAll('td')).toHaveLength(4);
+    expect(root.querySelectorAll('th > p, td > p')).toHaveLength(6);
+    expect(plainMarkdownToRich(richToPlainMarkdown(html))).toBe(html);
+  });
+
+  it('does not emit an empty table for a lone delimiter', () => {
+    expect(plainMarkdownToRich('| --- | --- |')).not.toContain('<table>');
+  });
+
+  it('keeps ordinary hyphens and blank cells as data', () => {
+    const root = document.createElement('div');
+    root.innerHTML = plainMarkdownToRich('| Key | Value |\n| --- | --- |\n| - | |\n| | - |');
+    expect(root.querySelectorAll('tr')).toHaveLength(3);
+    expect(Array.from(root.querySelectorAll('td')).map(cell => cell.textContent)).toEqual(['-', '', '', '-']);
+  });
+});
+
 describe('Drafta-MD color syntax', () => {
   it('extracts and strips a complete color tag', () => {
     const source = '{color:#64A364}Green title{/color}';

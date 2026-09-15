@@ -667,19 +667,22 @@ export function plainMarkdownToRich(text: string): string {
     // Table row
     if (isTableRow) {
       closeList();
+      const cells = trimmed.slice(1, -1).split('|').map((c: string) => c.trim());
+      const isSeparator = cells.length > 0 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+      if (isSeparator) {
+        // A delimiter without a preceding header must not create a zero-row table.
+        if (!inTable) result.push(`<p>${processInline(trimmed)}</p>`);
+        continue;
+      }
       if (!inTable) {
         result.push('<table><tbody>');
         inTable = true;
         tableRowCount = 0;
       }
 
-      const isSeparator = /^\|[\s\-:|]+\|$/.test(trimmed);
-      if (isSeparator) continue;
-
-      const cells = trimmed.slice(1, -1).split('|').map((c: string) => c.trim());
       const isHeader = tableRowCount === 0;
       const cellTag = isHeader ? 'th' : 'td';
-      const cellsHtml = cells.map((c: string) => `<${cellTag}>${processInline(c)}</${cellTag}>`).join('');
+      const cellsHtml = cells.map((c: string) => `<${cellTag}><p>${processInline(c)}</p></${cellTag}>`).join('');
       result.push(`<tr>${cellsHtml}</tr>`);
       tableRowCount += 1;
       continue;

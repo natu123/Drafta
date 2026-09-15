@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from 'vitest';
 import { notes } from './data';
+import { plainMarkdownToRich } from './utils';
 import { LANGS } from '@/app/languages';
 import { localizeSampleNote } from './sample-notes';
 import { editorHtmlToDocument, editorDocumentToHtml, type SerializedEditorDocument } from './document-codec';
@@ -8,6 +9,16 @@ import { editorHtmlToDocument, editorDocumentToHtml, type SerializedEditorDocume
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 describe('versioned editor document codec', () => {
+  it('parses an all-empty two-column table into six paragraph-backed cells', () => {
+    const html = plainMarkdownToRich('|  |  |\n| --- | --- |\n|  |  |\n|  |  |');
+    const value = editorHtmlToDocument(`<h1>Empty table</h1>${html}`, document);
+    const table = value.document.content?.[1];
+    expect(table?.type).toBe('table');expect(table?.content).toHaveLength(3);
+    for (const row of table!.content!) {
+      expect(row.content).toHaveLength(2);
+      for (const cell of row.content!) expect(cell.content?.[0].type).toBe('paragraph');
+    }
+  });
   it.each(LANGS)('round-trips all sample documents in %s', lang => {
     for (const seed of notes) {
       const note = localizeSampleNote(seed, lang, 'Ctrl');
