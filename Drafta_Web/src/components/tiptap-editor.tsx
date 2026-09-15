@@ -27,6 +27,7 @@ import { Title } from './tiptap-extensions/title-node';
 import { CustomListItem } from './tiptap-extensions/custom-list-item';
 import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
 import { PreserveBody } from './tiptap-extensions/preserve-body';
+import { RichMarkdownInputRules } from './tiptap-extensions/rich-markdown-input-rules';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
 import { emojis } from './editor-options';
@@ -105,8 +106,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   }, [isDarkMode]);
 
   // Dynamic extensions including translated Placeholder
+  const isPlainTextModeRef = React.useRef(false);
   const extensions = React.useMemo(() => [
     ...staticExtensions,
+    RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
     Placeholder.configure({
       placeholder: ({ node }) => {
         if (node.type.name === 'title') return t.untitledMemo;
@@ -156,7 +159,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   }, [titleToHtml]);
 
   // Ref to track plain text mode in callbacks without re-triggering dependency changes
-  const isPlainTextModeRef = React.useRef(isPlainTextMode);
   React.useEffect(() => {
     isPlainTextModeRef.current = isPlainTextMode;
   }, [isPlainTextMode]);
@@ -345,7 +347,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     content: getInitialContent(note.title, note.content),
     immediatelyRender: false,
     editable: !note.isProtected,
-    enableInputRules: false,
+    enableInputRules: ['richMarkdownInputRules'],
     enablePasteRules: false,
     onUpdate: ({ editor, transaction }) => {
       // Initialization may emit an update without changing the document.
