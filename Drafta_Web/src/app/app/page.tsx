@@ -15,7 +15,7 @@ import VerticalTabs from '@/components/vertical-note-tabs';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
-import { localizeSampleNote } from '@/lib/sample-notes';
+import { localizeSampleNote, applySampleEdit } from '@/lib/sample-notes';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import SearchDialog from '@/components/search-dialog';
@@ -1094,7 +1094,7 @@ export default function Home() {
     if (!activeTabId) return;
     setNotes(notes => notes.map(note => {
       if (note.id === activeTabId) {
-        const newNote = { ...note, ...updatedNote, updatedAt: new Date().toISOString() };
+        const newNote = { ...applySampleEdit(note, updatedNote, lang, modKey), updatedAt: new Date().toISOString() };
         if (updatedNote.content !== undefined) {
           newNote.plainTextContent = htmlToSimpleText(updatedNote.content);
         }
@@ -1102,7 +1102,7 @@ export default function Home() {
       }
       return note;
     }));
-  }, [activeTabId]);
+  }, [activeTabId, lang, modKey]);
 
   const openTab = React.useCallback((id: string, type: 'note') => {
     setOpenTabs(prev => prev.some(tab => tab.id === id) ? prev : [...prev, { id, type }]);
@@ -1331,8 +1331,8 @@ export default function Home() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
           history={history.map(item => {
-            const sample = notes.find(note => note.id === item.id && note.sampleKey && note.isProtected);
-            return sample ? { ...item, title: sample.title } : item;
+            const currentNote = notes.find(note => note.id === item.id);
+            return currentNote ? { ...item, title: currentNote.title } : item;
           })}
           onHistorySelect={handleNoteSelect}
         />

@@ -347,7 +347,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     editable: !note.isProtected,
     enableInputRules: false,
     enablePasteRules: false,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
+      // Initialization may emit an update without changing the document.
+      // Do not treat opening an example as a user edit.
+      if (!transaction.docChanged) return;
       // Auto-renumber all ordered list items after any change
       // Use setTimeout to avoid dispatch during update
       setTimeout(() => {
@@ -441,16 +444,18 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   // Sync external note changes (switching notes)
   const prevNoteIdRef = React.useRef(note.id);
   const prevSampleContentRef = React.useRef(note.content);
+  const prevSampleTitleRef = React.useRef(note.title);
   React.useEffect(() => {
-    if (editor && (note.id !== prevNoteIdRef.current || (note.sampleKey && note.isProtected && note.content !== prevSampleContentRef.current))) {
+    if (editor && (note.id !== prevNoteIdRef.current || (note.sampleKey && (note.content !== prevSampleContentRef.current || note.title !== prevSampleTitleRef.current)))) {
       const newContent = getInitialContent(note.title, note.content);
       editor.commands.setContent(newContent, { emitUpdate: false });
       contentRef.current = note.content;
       setIsPlainTextMode(false);
       prevNoteIdRef.current = note.id;
       prevSampleContentRef.current = note.content;
+      prevSampleTitleRef.current = note.title;
     }
-  }, [note.id, note.title, note.content, note.sampleKey, note.isProtected, editor, getInitialContent]);
+  }, [note.id, note.title, note.content, note.sampleKey, editor, getInitialContent]);
 
   // Insert NEW ordered list (startFrom=1 で新規リスト)
   // toggleOrderedList は隣接リストをマージするので、直接ノードを操作

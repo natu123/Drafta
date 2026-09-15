@@ -48,6 +48,7 @@ console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th><p>
   },
   {
     id: 'note-3',
+    sampleKey: 'brainstorm',
     title: '(example) Q3 Project Brainstorming',
     icon: '\u{1F4A1}',
     content: `<h2>Project Goals</h2><p>Focus on improving <strong>user engagement</strong> and <strong>retention</strong>.</p><h3>Key Features</h3><ul><li><p>\u{1F3AE} <strong>Gamification</strong> - Points, badges, streaks</p></li><li><p>\u{1F4AC} <strong>Community Forums</strong> - User discussions</p></li><li><p>\u{1F3AF} <strong>Personalized Recommendations</strong> - AI-driven suggestions</p></li></ul><hr /><h3>Data Structure Draft</h3><pre><code class="language-json">{
@@ -70,6 +71,7 @@ console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th><p>
   },
   {
     id: 'note-4',
+    sampleKey: 'groceries',
     title: '(example) Weekly Grocery List',
     icon: '\u{1F6D2}',
     content: `<h3>\u{1F95B} Dairy</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Milk (2L)</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Greek Yogurt</p></div></li><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Cheddar Cheese</p></div></li></ul><h3>\u{1F35E} Bakery</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Whole Wheat Bread</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Croissants (4 pack)</p></div></li></ul><h3>\u{1F34E} Produce</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked="checked"><span></span></label><div><p>Apples</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Bananas</p></div></li><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Spinach</p></div></li></ul><hr /><h3>Budget Planner</h3><table><tbody><tr><th colspan="1" rowspan="1"><p>Category</p></th><th colspan="1" rowspan="1"><p>Est. Cost</p></th></tr><tr><td colspan="1" rowspan="1"><p>Dairy</p></td><td colspan="1" rowspan="1"><p>$15.00</p></td></tr><tr><td colspan="1" rowspan="1"><p>Bakery</p></td><td colspan="1" rowspan="1"><p>$8.50</p></td></tr><tr><td colspan="1" rowspan="1"><p>Produce</p></td><td colspan="1" rowspan="1"><p>$12.00</p></td></tr><tr><td colspan="1" rowspan="1"><p><strong>Total</strong></p></td><td colspan="1" rowspan="1"><p><strong>$35.50</strong></p></td></tr></tbody></table>`,
@@ -82,6 +84,7 @@ console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th><p>
   },
   {
     id: 'note-5',
+    sampleKey: 'meeting',
     title: '(example) Design Team Meeting',
     icon: '\u{1F4BC}',
     content: `<h2>Meeting Notes - Jan 15</h2><p><strong>Attendees:</strong> Alex, Jamie, Sam, Taylor</p><hr /><h3>Agenda</h3><ol><li><p>Review Q4 metrics</p></li><li><p>Discuss new color system</p></li><li><p>Plan user testing sessions</p></li></ol><h3>Deployment Plan</h3><pre><code class="language-bash"># Run tests before deploying
@@ -102,6 +105,7 @@ vercel deploy --prebuilt</code></pre><h3>Action Items</h3><ul data-type="taskLis
   },
   {
     id: 'note-6',
+    sampleKey: 'todo',
     title: 'Submit project proposal',
     icon: '\u{1F525}',
     content: `<p></p>`,
@@ -115,6 +119,7 @@ vercel deploy --prebuilt</code></pre><h3>Action Items</h3><ul data-type="taskLis
   },
   {
     id: 'note-7',
+    sampleKey: 'todo',
     title: 'Review team feedback',
     icon: '\u{1F4BC}',
     content: `<p></p>`,
@@ -127,6 +132,7 @@ vercel deploy --prebuilt</code></pre><h3>Action Items</h3><ul data-type="taskLis
   },
   {
     id: 'note-8',
+    sampleKey: 'todo',
     title: 'Schedule client meeting',
     icon: '\u{1F4DD}',
     content: `<p></p>`,
@@ -139,6 +145,7 @@ vercel deploy --prebuilt</code></pre><h3>Action Items</h3><ul data-type="taskLis
   },
   {
     id: 'note-9',
+    sampleKey: 'todo',
     title: 'Buy groceries',
     icon: '\u{1F6D2}',
     content: `<p></p>`,

@@ -17,7 +17,7 @@ export type Note = {
   children?: Note[];
   isDeleted?: boolean;
   isProtected?: boolean;
-  sampleKey?: 'welcome' | 'reference';
+  sampleKey?: 'welcome' | 'reference' | 'brainstorm' | 'groceries' | 'meeting' | 'todo';
 };
 
 export type Group = {
