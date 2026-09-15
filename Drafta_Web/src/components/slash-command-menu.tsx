@@ -36,7 +36,7 @@ export function SlashCommandMenu({ editor, enabled }: { editor: Editor; enabled:
       { id: 'quote', label: t.commandQuote, aliases: 'quote blockquote', run: chain => chain.toggleBlockquote().run() },
       { id: 'code', label: t.commandCodeBlock, aliases: 'code block', run: chain => chain.setCodeBlock().run() },
       { id: 'divider', label: t.addSeparator, aliases: 'divider horizontal rule hr', run: chain => chain.setHorizontalRule().run() },
-      { id: 'table', label: t.commandTable, aliases: 'table', run: chain => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+      { id: 'table', label: t.commandTable, aliases: 'table tables', run: chain => chain.insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() },
     ];
     const update = () => {
       const { $from, empty } = editor.state.selection;
