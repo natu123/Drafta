@@ -15,7 +15,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
-import { Undo, Redo, Bold, Italic, Strikethrough, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -86,6 +86,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
+  const [shortcutMod, setShortcutMod] = React.useState('Ctrl');
+  React.useEffect(() => {
+    setShortcutMod(/Mac|iPod|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl');
+  }, []);
   const [isWideToolbar, setIsWideToolbar] = React.useState(false);
   const [areToolsOpen, setAreToolsOpen] = React.useState(false);
   const toolsId = React.useId();
@@ -1059,31 +1063,22 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         </div>
 
         {!note.isProtected && (
-          <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }} className="bg-background border rounded-md shadow-lg p-1 flex gap-1">
-            <Button
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
-              size="icon"
-              aria-label="Bold"
-            >
-              <Bold />
-            </Button>
-            <Button
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
-              size="icon"
-              aria-label="Italic"
-            >
-              <Italic />
-            </Button>
-            <Button
-              onClick={() => editor.chain().focus().toggleStrike().run()}
-              variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
-              size="icon"
-              aria-label="Strikethrough"
-            >
-              <Strikethrough />
-            </Button>
+          <BubbleMenu editor={editor} shouldShow={({ from, to }) => !isPlainTextMode && editor.isEditable && from !== to} options={{ placement: 'top', offset: 8 }} className="selection-format-menu bg-background border rounded-md shadow-lg p-1 grid grid-cols-2 sm:grid-cols-4 gap-1 max-w-[calc(100vw-16px)]">
+            {[
+              { mark: 'bold', label: t.formatBold, icon: Bold, key: 'B', run: () => editor.chain().focus().toggleBold().run() },
+              { mark: 'italic', label: t.formatItalic, icon: Italic, key: 'I', run: () => editor.chain().focus().toggleItalic().run() },
+              { mark: 'strike', label: t.formatStrike, icon: Strikethrough, key: 'Shift+X', run: () => editor.chain().focus().toggleStrike().run() },
+              { mark: 'code', label: t.formatCode, icon: Code, key: 'E', run: () => editor.chain().focus().toggleCode().run() },
+            ].map(({ mark, label, icon: Icon, key, run }) => (
+              <Tooltip key={mark}>
+                <TooltipTrigger asChild>
+                  <Button onMouseDown={event => event.preventDefault()} onClick={run} disabled={!editor.can().toggleMark(mark)} variant={editor.isActive(mark) ? 'secondary' : 'ghost'} className="h-auto min-h-11 flex-col gap-1 px-2 py-1" aria-label={label} aria-pressed={editor.isActive(mark)}>
+                    <Icon /><kbd className="text-[10px] font-normal">{shortcutMod}+{key}</kbd>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{label}</TooltipContent>
+              </Tooltip>
+            ))}
           </BubbleMenu>
         )}
 
