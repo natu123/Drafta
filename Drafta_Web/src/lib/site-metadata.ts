@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 
 export function siteMetadata(path: '/' | '/app/'): Metadata {
-  const title = 'Drafta';
-  const description = 'Every thought in one place.';
+  const siteName = 'Drafta';
+  const title = 'Drafta - Every thought in one place.';
+  const description = 'The new memo app that unifies ToDo and Notes.';
   const image = {
     url: '/brand/og.png',
     width: 1200,
@@ -12,6 +13,7 @@ export function siteMetadata(path: '/' | '/app/'): Metadata {
 
   return {
     metadataBase: new URL('https://drafta-memo.com'),
+    applicationName: siteName,
     title,
     description,
     alternates: { canonical: path },
@@ -21,7 +23,7 @@ export function siteMetadata(path: '/' | '/app/'): Metadata {
     },
     openGraph: {
       type: 'website',
-      siteName: title,
+      siteName,
       title,
       description,
       url: path,
