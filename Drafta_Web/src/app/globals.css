@@ -331,7 +331,13 @@
 
 /* BLOCKQUOTE STYLES */
 .ProseMirror.drafta-editor blockquote {
-    border-left: 4px solid hsl(var(--primary)) !important;
+    /* Keep the text geometry while aligning the visible bar to the glyphs. */
+    border-left: 4px solid transparent !important;
+    background-image: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+    background-repeat: no-repeat;
+    background-origin: border-box;
+    background-position: 0 0.2em;
+    background-size: 4px calc(100% - 0.3em);
     padding-left: 1rem !important;
     margin: 0.25rem 0 !important;
     font-style: italic;
