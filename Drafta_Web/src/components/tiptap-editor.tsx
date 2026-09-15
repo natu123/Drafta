@@ -4,17 +4,9 @@ import { DOMSerializer, DOMParser, Node as ProseMirrorNode } from '@tiptap/pm/mo
 import { TextSelection } from '@tiptap/pm/state';
 
 import * as React from 'react';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { all, createLowlight } from 'lowlight';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import StarterKit from '@tiptap/starter-kit';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -22,19 +14,12 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn, removeFormatting, richToPlainMarkdown, plainMarkdownToRich, normalizeOrderedListTags, normalizeOrderedListHtml } from '@/lib/utils';
 import { Separator } from './ui/separator';
 import type { Note } from '@/lib/types';
-import { TitleDocument } from './tiptap-extensions/title-document';
-import { Title } from './tiptap-extensions/title-node';
-import { CustomListItem } from './tiptap-extensions/custom-list-item';
-import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
-import { PreserveBody } from './tiptap-extensions/preserve-body';
+import { documentExtensions } from './tiptap-extensions/document-schema';
 import { RichMarkdownInputRules } from './tiptap-extensions/rich-markdown-input-rules';
 import { SlashCommandMenu } from './slash-command-menu';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
 import { emojis } from './editor-options';
-
-// Create lowlight instance with all languages to ensure markdown support
-const lowlight = createLowlight(all);
 
 interface TiptapEditorProps {
   note: Note;
@@ -55,33 +40,6 @@ const baseColors = [
 // Black for light mode, White for dark mode (both unset color when clicked)
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
-
-const staticExtensions = [
-  TitleDocument,
-  Title,
-  PreserveBody,
-  StarterKit.configure({
-    document: false,
-    heading: { levels: [1, 2, 3] },
-    codeBlock: false,
-    listItem: false,
-    orderedList: false,
-  }),
-  CustomListItem,
-  CustomOrderedList,
-  CodeBlockLowlight.configure({
-    lowlight,
-    defaultLanguage: 'plaintext',
-  }),
-  TextStyle,
-  Color.configure({ types: ['textStyle'] }),
-  TaskList,
-  TaskItem.configure({ nested: true }),
-  Table.configure({ resizable: true }),
-  TableRow,
-  TableCell,
-  TableHeader,
-];
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction }) => {
   const { resolvedTheme } = useTheme();
@@ -113,7 +71,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   // Dynamic extensions including translated Placeholder
   const isPlainTextModeRef = React.useRef(false);
   const extensions = React.useMemo(() => [
-    ...staticExtensions,
+    ...documentExtensions,
     RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
     Placeholder.configure({
       placeholder: ({ node }) => {
