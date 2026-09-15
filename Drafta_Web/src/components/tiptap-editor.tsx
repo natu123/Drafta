@@ -440,15 +440,17 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   // Sync external note changes (switching notes)
   const prevNoteIdRef = React.useRef(note.id);
+  const prevSampleContentRef = React.useRef(note.content);
   React.useEffect(() => {
-    if (editor && note.id !== prevNoteIdRef.current) {
+    if (editor && (note.id !== prevNoteIdRef.current || (note.sampleKey && note.isProtected && note.content !== prevSampleContentRef.current))) {
       const newContent = getInitialContent(note.title, note.content);
       editor.commands.setContent(newContent, { emitUpdate: false });
       contentRef.current = note.content;
       setIsPlainTextMode(false);
       prevNoteIdRef.current = note.id;
+      prevSampleContentRef.current = note.content;
     }
-  }, [note.id, note.title, note.content, editor, getInitialContent]);
+  }, [note.id, note.title, note.content, note.sampleKey, note.isProtected, editor, getInitialContent]);
 
   // Insert NEW ordered list (startFrom=1 で新規リスト)
   // toggleOrderedList は隣接リストをマージするので、直接ノードを操作

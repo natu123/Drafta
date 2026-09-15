@@ -15,6 +15,7 @@ import VerticalTabs from '@/components/vertical-note-tabs';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
+import { localizeSampleNote } from '@/lib/sample-notes';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import SearchDialog from '@/components/search-dialog';
@@ -835,52 +836,17 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 
 export default function Home() {
-  const { t: appT } = useLang();
+  const { t: appT, lang } = useLang();
 
-  const [notes, setNotes] = React.useState<Note[]>(initialNotes);
+  const [sourceNotes, setNotes] = React.useState<Note[]>(initialNotes);
+  const [modKey, setModKey] = React.useState<'Cmd' | 'Ctrl'>('Ctrl');
+  const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
 
-  // Dynamic key replacement for Quick Reference (Cmd/Ctrl)
+  // Sample rendering is separate from user-authored note data.
   React.useEffect(() => {
     const isMac = typeof navigator !== 'undefined' ? /Mac|iPod|iPhone|iPad/.test(navigator.platform) : false;
-    const modKey = isMac ? 'Cmd' : 'Ctrl';
-
-    setNotes(prev => prev.map(note => {
-      const hasPlaceholder = note.content.includes('{{Mod}}') || (note.plainTextContent && note.plainTextContent.includes('{{Mod}}'));
-
-      if (hasPlaceholder) {
-        return {
-          ...note,
-          content: note.content.replace(/{{Mod}}/g, modKey),
-          plainTextContent: note.plainTextContent ? note.plainTextContent.replace(/{{Mod}}/g, modKey) : undefined
-        };
-      }
-      return note;
-    }));
-  }, []);
-
-  // Keep protected seed notes in sync with latest template.
-  // This avoids stale malformed HTML remaining during HMR/dev sessions.
-  React.useEffect(() => {
-    const protectedSeedMap = new Map(
-      initialNotes
-        .filter((n) => n.id === 'note-1' || n.id === 'note-2')
-        .map((n) => [n.id, n])
-    );
-
-    setNotes((prev) =>
-      prev.map((note) => {
-        const seed = protectedSeedMap.get(note.id);
-        if (!seed || !note.isProtected) return note;
-        return {
-          ...note,
-          title: seed.title,
-          icon: seed.icon,
-          content: seed.content,
-          plainTextContent: seed.plainTextContent,
-        };
-      })
-    );
+    setModKey(isMac ? 'Cmd' : 'Ctrl');
   }, []);
 
   // Initialize with 'Welcome to Drafta' note (note-1)
@@ -1364,7 +1330,10 @@ export default function Home() {
           activeView={activeView}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
-          history={history}
+          history={history.map(item => {
+            const sample = notes.find(note => note.id === item.id && note.sampleKey && note.isProtected);
+            return sample ? { ...item, title: sample.title } : item;
+          })}
           onHistorySelect={handleNoteSelect}
         />
 
