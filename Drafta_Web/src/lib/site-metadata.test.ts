@@ -5,6 +5,7 @@ describe('siteMetadata', () => {
   it.each(['/', '/app/'] as const)('keeps the canonical and share URL scoped to %s', (path) => {
     const metadata = siteMetadata(path);
     expect(metadata.metadataBase?.href).toBe('https://drafta-memo.com/');
+    expect(metadata.description).toBe('Every thought in one place.');
     expect(metadata.alternates?.canonical).toBe(path);
     expect(metadata.openGraph).toMatchObject({
       url: path,

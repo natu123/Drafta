@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 
 export function siteMetadata(path: '/' | '/app/'): Metadata {
   const title = 'Drafta';
-  const description = 'Drafta — Minimal design, Quick idea.';
+  const description = 'Every thought in one place.';
   const image = {
     url: '/brand/og.png',
     width: 1200,
     height: 630,
-    alt: 'Drafta — Minimal design, Quick idea.',
+    alt: 'Drafta — Every thought in one place.',
   };
 
   return {
