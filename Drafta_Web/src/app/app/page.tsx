@@ -897,10 +897,10 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
-  const [noteSort, setNoteSort] = React.useState<SortOption>('manual');
+  const [noteSort, setNoteSort] = React.useState<SortOption>('newest');
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
-  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('bottom');
+  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('top');
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
     setScrollDirection(direction);
     setNoteSort(direction === 'top' ? 'newest' : 'oldest');

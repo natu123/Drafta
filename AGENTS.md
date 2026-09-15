@@ -117,7 +117,7 @@ Drafta独自のMarkdown拡張。
 - Layout: 3カラム（左サイドバー / 中央ノートリスト / 右エディタ）、比率 1.8:3.5:6.7
 - Editor Modes: Rich（TipTap）/ Plain（textarea、Markdown）切り替え対応
 - Copy: 選択範囲をブラウザー標準のコピー操作 (Ctrl+Cなど) でコピーする。専用コピーボタンは設置しない。
-- List Style: 設定変更時にメモのソートを同期する (Topはnewest、Bottomはoldest)。Trayは対象外で手動順のみ。新規Trayは末尾へ追加する。
+- List Style: 初期値はAdd to Top (ToDo Style)、メモの初期ソートはnewest。設定変更時にメモのソートを同期する (Topはnewest、Bottomはoldest)。Trayは対象外で手動順のみ。新規Trayは末尾へ追加する。
 - Creation: ヘッダーのNew Noteアイコンは設置しない。Add Tray / Add Memoボタンでタイトル入力なしに作成し、現在の選択と一覧を維持する。作成した項目を選んだときに開く。
 - Memo Touch: 通常のスワイプは一覧スクロール。手動順では350msの長押し後に並べ替えを開始し、待機中に8pxを超えて動いた場合は開始を中止する。自動ソート中は並べ替えない。
 
