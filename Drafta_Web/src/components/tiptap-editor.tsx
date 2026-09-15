@@ -28,6 +28,7 @@ import { CustomListItem } from './tiptap-extensions/custom-list-item';
 import { CustomOrderedList } from './tiptap-extensions/custom-ordered-list';
 import { PreserveBody } from './tiptap-extensions/preserve-body';
 import { RichMarkdownInputRules } from './tiptap-extensions/rich-markdown-input-rules';
+import { SlashCommandMenu } from './slash-command-menu';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
 import { emojis } from './editor-options';
@@ -852,6 +853,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   return (
     <TooltipProvider delayDuration={200} disableHoverableContent>
+      <SlashCommandMenu editor={editor} enabled={!isPlainTextMode && !note.isProtected} />
       {/* ADDED: plain-mode class for CSS targeting */}
       <div ref={observeToolbar} className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")}>
         <div className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
