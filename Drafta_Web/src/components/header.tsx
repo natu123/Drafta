@@ -98,7 +98,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
           <DropdownMenuItem key={item.id} onSelect={() => onHistorySelect(item.id, item.type)}>
             <span className="mr-2 text-lg">{item.icon || '📝'}</span>
             <div className="flex flex-col">
-              <span className="font-medium truncate">{item.title}</span>
+              <span className="font-medium truncate">{item.title || t.untitledMemo}</span>
               <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(item.accessedAt), { addSuffix: true })}
               </span>

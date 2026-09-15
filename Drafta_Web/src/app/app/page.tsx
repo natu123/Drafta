@@ -154,6 +154,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
   item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
   onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange
 }) => {
+  const { t } = useLang();
   const {
     attributes,
     listeners,
@@ -244,7 +245,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         {!isTrash && onToggleComplete && (
           <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             <Checkbox
-              aria-label={stripColorMarkdown(item.title) || 'Untitled'}
+              aria-label={stripColorMarkdown(item.title) || t.untitledMemo}
               checked={item.isCompleted || false}
               onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
               className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
@@ -291,7 +292,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
                 </Popover>
               </div>
               <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
-                {stripColorMarkdown(item.title) || 'Untitled'}
+                {stripColorMarkdown(item.title) || t.untitledMemo}
               </p>
             </div>
           </div>
@@ -308,10 +309,10 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         {/* Restore view actions only - normal delete uses selection mode */}
         {!isSelectionMode && isTrash && (
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || 'Untitled'}`} className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+            <Button variant="ghost" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || t.untitledMemo}`} className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
               <RotateCcw className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" aria-label={`Delete ${stripColorMarkdown(item.title) || 'Untitled'}`} className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+            <Button variant="ghost" size="icon" aria-label={`Delete ${stripColorMarkdown(item.title) || t.untitledMemo}`} className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -685,7 +686,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         {!isTrash && onToggleComplete && (
                           <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
-                              aria-label={stripColorMarkdown(item.title) || 'Untitled'}
+                              aria-label={stripColorMarkdown(item.title) || t.untitledMemo}
                               checked={item.isCompleted || false}
                               onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
                               className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
@@ -698,7 +699,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                               {item.icon || '📝'}
                             </Button>
                             <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground")}>
-                              {stripColorMarkdown(item.title) || 'Untitled'}
+                              {stripColorMarkdown(item.title) || t.untitledMemo}
                             </p>
                           </div>
                           {item.plainTextContent && (
@@ -748,7 +749,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-base pointer-events-none shrink-0">
                           {activeDragItem.icon || '📝'}
                         </Button>
-                        <p className="font-medium truncate">{stripColorMarkdown(activeDragItem.title) || 'Untitled'}</p>
+                        <p className="font-medium truncate">{stripColorMarkdown(activeDragItem.title) || t.untitledMemo}</p>
                       </div>
                     </div>
                   )}
@@ -801,7 +802,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                       {/* Grid View Content */}
                       <div className="absolute top-2 right-2 z-10 flex gap-1">
                         {isTrash && (
-                          <Button variant="secondary" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || 'Untitled'}`} className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                          <Button variant="secondary" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || t.untitledMemo}`} className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
                             <RotateCcw className="w-3.5 h-3.5" />
                           </Button>
                         )}
@@ -819,7 +820,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         </div>
                       </CardContent>
                       <CardFooter className="p-2 border-t bg-card">
-                        <p className="text-sm truncate font-medium">{stripColorMarkdown(item.title) || 'Untitled'}</p>
+                        <p className="text-sm truncate font-medium">{stripColorMarkdown(item.title) || t.untitledMemo}</p>
                       </CardFooter>
                     </Card>
                   )

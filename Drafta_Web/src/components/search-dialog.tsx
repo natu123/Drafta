@@ -140,7 +140,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
                       <span className="text-xl shrink-0">{note.icon || '📝'}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
-                          {stripColorMarkdown(note.title) || 'Untitled'}
+                          {stripColorMarkdown(note.title) || t.untitledMemo}
                         </p>
                         {note.plainTextContent && (
                           <p className="text-xs text-muted-foreground truncate">

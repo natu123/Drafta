@@ -143,7 +143,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                     onDragEnd={resetDragState}
                     role="button"
                     tabIndex={0}
-                    aria-label={item.title || 'Untitled Memo'}
+                    aria-label={item.title || t.untitledMemo}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -164,14 +164,14 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                       "truncate",
                       isExpanded ? 'block' : 'hidden'
                     )}>
-                      {item.title || 'Untitled'}
+                      {item.title || t.untitledMemo}
                     </span>
 
                     {isExpanded && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Close ${item.title || 'Untitled Memo'}`}
+                        aria-label={`Close ${item.title || t.untitledMemo}`}
                         className="h-6 w-6 rounded-full ml-auto shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -185,7 +185,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                 </TooltipTrigger>
                 {!isExpanded && (
                   <TooltipContent side="right" sideOffset={5}>
-                    <p>{item.title || 'Untitled'}</p>
+                    <p>{item.title || t.untitledMemo}</p>
                   </TooltipContent>
                 )}
               </Tooltip>
