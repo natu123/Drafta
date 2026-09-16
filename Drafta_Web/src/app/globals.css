@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keep native touch selection unobstructed, including after input-mode changes. */
+@media (hover: none) and (pointer: coarse) {
+  .selection-format-menu {
+    display: none !important;
+  }
+}
+
 /* Respond to the editor pane, including narrow desktop split views. */
 .editor-shell {
     container-type: inline-size;

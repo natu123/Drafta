@@ -1025,7 +1025,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         </div>
 
         {!note.isProtected && (
-          <BubbleMenu editor={editor} shouldShow={({ from, to }) => !isPlainTextMode && editor.isEditable && from !== to} options={{ placement: 'top', offset: 8 }} className="selection-format-menu bg-background border rounded-md shadow-lg p-1 grid grid-cols-2 sm:grid-cols-4 gap-1 max-w-[calc(100vw-16px)]">
+          <BubbleMenu editor={editor} shouldShow={({ from, to }) => !window.matchMedia('(hover: none) and (pointer: coarse)').matches && !isPlainTextMode && editor.isEditable && from !== to} options={{ placement: 'top', offset: 8 }} className="selection-format-menu bg-background border rounded-md shadow-lg p-1 grid grid-cols-2 sm:grid-cols-4 gap-1 max-w-[calc(100vw-16px)]">
             {[
               { mark: 'bold', label: t.formatBold, icon: Bold, key: 'B', run: () => editor.chain().focus().toggleBold().run() },
               { mark: 'italic', label: t.formatItalic, icon: Italic, key: 'I', run: () => editor.chain().focus().toggleItalic().run() },
