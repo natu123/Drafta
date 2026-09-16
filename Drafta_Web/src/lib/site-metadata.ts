@@ -19,7 +19,7 @@ export function siteMetadata(path: '/' | '/app/'): Metadata {
     alternates: { canonical: path },
     icons: {
       apple: [{ url: '/brand/apple-touch-icon.png', sizes: '180x180' }],
-      icon: [{ url: '/brand/icon-512.png', sizes: '512x512', type: 'image/png' }],
+      icon: [{ url: '/brand/feather.png', sizes: '128x128', type: 'image/png' }],
     },
     openGraph: {
       type: 'website',

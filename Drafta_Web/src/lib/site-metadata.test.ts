@@ -23,6 +23,7 @@ describe('siteMetadata', () => {
       description: metadata.description,
     });
     expect(metadata.icons).toMatchObject({
+      icon: [{ url: '/brand/feather.png', sizes: '128x128', type: 'image/png' }],
       apple: [{ url: '/brand/apple-touch-icon.png', sizes: '180x180' }],
     });
   });
