@@ -6,6 +6,16 @@ import { sampleCopy } from './sample-copy';
 import { localizeSampleNote, getSamplePhrases, applySampleEdit } from './sample-notes';
 
 describe('localized protected samples', () => {
+  it('uses the lighter English closing line while preserving the Japanese copy', () => {
+    const seed = notes.find(note => note.sampleKey === 'welcome')!;
+    for (const [lang, text] of [['en', 'Move forward, feel lighter.'], ['ja', 'ここから、もっと軽やかに！']] as const) {
+      const result = localizeSampleNote(seed, lang, 'Ctrl');
+      expect(result.content).toContain(`<blockquote><p>${text}</p></blockquote>`);
+      expect(result.plainTextContent).toContain(text);
+      expect(result.content).not.toContain("You're accelerating now!");
+    }
+  });
+
   for (const lang of LANGS) {
     it(`provides complete copy and preserves rich structure for ${lang}`, () => {
       for (const seed of notes.slice(0, 2)) {
