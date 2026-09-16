@@ -123,10 +123,10 @@ Drafta独自のMarkdown拡張。
 - Table Defaults: `/table`・`/tables`の挿入は2列3行（見出し1行と本文2行）。Markdown変換では空セルの行を保持し、区切り行だけで空のtable要素を生成しない。
 - Selection Menu: タッチ操作中心の端末 (hover: none / pointer: coarse) では選択時の書式メニューを非表示にする。PCのマウス操作、常設ツール、OS標準の選択メニューは維持する。
 - Copy: 選択範囲をブラウザー標準のコピー操作 (Ctrl+Cなど) でコピーする。専用コピーボタンは設置しない。
-- List Style: 初期値はAdd to Top (ToDo Style)、メモの初期ソートはnewest。設定変更時にメモのソートを同期する (Topはnewest、Bottomはoldest)。Trayは対象外で手動順のみ。新規Trayは末尾へ追加する。
+- List Style: 初期値はAdd to Top (ToDo Style)。新規メモの先頭・末尾への追加だけを制御し、既存順序は変えない。メモ・Trayは手動順のみ。初期サンプルは従来の表示順を維持し、新規Trayは末尾へ追加する。
 - Creation: ヘッダーのNew Noteアイコンは設置しない。Add Tray / Add Memoボタンでタイトル入力なしに作成し、現在の選択と一覧を維持する。作成した項目を選んだときに開く。
 - Unnamed Labels: 未命名のメモ・トレイは空文字を保存し、無題の表示名だけを選択言語に合わせる。手動で付けた名前は、無題の翻訳文と同じ文字列であっても自動変更しない。
-- Memo Touch: 通常のスワイプは一覧スクロール。手動順では350msの長押し後に並べ替えを開始し、待機中に8pxを超えて動いた場合は開始を中止する。自動ソート中は並べ替えない。
+- Memo Touch: 通常のスワイプは一覧スクロール。350msの長押し後に並べ替えを開始し、待機中に8pxを超えて動いた場合は開始を中止する。
 
 ### Color System
 エディタのテキストカラーパレット（`tiptap-editor.tsx`）:

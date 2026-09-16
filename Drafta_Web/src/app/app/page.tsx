@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
-import { Minus, ArrowDownUp, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
+import { Minus, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,7 +32,6 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
 
 
-type SortOption = 'manual' | 'newest' | 'oldest' | 'last-accessed';
 
 const Editor = dynamic(() => import('@/components/editor'), {
   ssr: false,
@@ -79,22 +78,6 @@ const createRestrictToSortableArea = (sortableAreaRef: React.RefObject<HTMLDivEl
 };
 type ViewMode = 'list' | 'grid';
 
-const getSortedItems = (
-  items: Note[],
-  sortOption: SortOption
-): Note[] => {
-  switch (sortOption) {
-    case 'newest':
-      return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    case 'oldest':
-      return [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    case 'last-accessed':
-      return [...items].sort((a, b) => new Date(b.lastAccessedAt || 0).getTime() - new Date(a.lastAccessedAt || 0).getTime());
-    case 'manual':
-    default:
-      return items;
-  }
-};
 
 
 interface HomeSectionProps {
@@ -105,8 +88,6 @@ interface HomeSectionProps {
   activeId?: string | null;
   onReorderNotes: (newOrder: Note[]) => void;
   itemType: 'note';
-  sortOption: SortOption;
-  onSortChange: (sortOption: SortOption) => void;
   viewMode: ViewMode;
   onDeleteItem: (id: string) => void;
   onRestoreItem?: (id: string) => void;
@@ -434,7 +415,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
 
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
-  sortOption, onSortChange, viewMode,
+  viewMode,
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
@@ -449,7 +430,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   // dnd-kit setup
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
-  const canDragNotes = !isSelectionMode && !isTrash && sortOption === 'manual';
+  const canDragNotes = !isSelectionMode && !isTrash;
 
   // SortableContext範囲内に制限するカスタムモディファイア
   const restrictToSortableArea = React.useMemo(
@@ -575,19 +556,6 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   <Minus className="w-4 h-4" />
                 </Button>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Sort memos">
-                    <ArrowDownUp className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={() => onSortChange('manual')}>{t.sortManual}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSortChange('newest')}>{t.sortNewest}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSortChange('oldest')}>{t.sortOldest}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSortChange('last-accessed')}>{t.sortLastAccessed}</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </>
           )}
         </div>
@@ -841,7 +809,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 export default function Home() {
   const { t: appT, lang } = useLang();
 
-  const [sourceNotes, setNotes] = React.useState<Note[]>(initialNotes);
+  // Preserve the former newest-first sample display as the initial manual order.
+  const [sourceNotes, setNotes] = React.useState<Note[]>(() => [...initialNotes].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
   const [modKey, setModKey] = React.useState<'Cmd' | 'Ctrl'>('Ctrl');
   const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
   const [sourceGroups, setGroups] = React.useState<Group[]>(initialGroups);
@@ -867,13 +836,11 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
-  const [noteSort, setNoteSort] = React.useState<SortOption>('newest');
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('top');
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
     setScrollDirection(direction);
-    setNoteSort(direction === 'top' ? 'newest' : 'oldest');
   };
 
   // Column Layout - Desktop keeps the 3-pane ratio. Narrow screens use adaptive navigation.
@@ -1316,14 +1283,14 @@ export default function Home() {
   }, []);
 
   const sortedNotes = React.useMemo(() => {
-    let items = getSortedItems(notes, noteSort);
+    let items = notes;
     if (activeGroupId === 'restore') {
       items = items.filter(note => note.isDeleted);
     } else {
       items = items.filter(note => note.group === activeGroupId && !note.isDeleted);
     }
     return items;
-  }, [notes, noteSort, activeGroupId]);
+  }, [notes, activeGroupId]);
 
 
   return (
@@ -1518,8 +1485,6 @@ export default function Home() {
               activeId={activeTabId}
               onReorderNotes={handleReorderNotes}
               itemType="note"
-              sortOption={noteSort}
-              onSortChange={setNoteSort}
               viewMode={noteViewMode}
               onDeleteItem={handleDeleteNote}
               onToggleComplete={handleToggleComplete}
