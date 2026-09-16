@@ -549,6 +549,15 @@ export function plainMarkdownToRich(text: string): string {
   let codeBlockLang = '';
   let codeBlockContent: string[] = [];
 
+  const closeCodeBlock = () => {
+    const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    result.push(`<pre><code${codeBlockLang ? ` class="language-${escapeHtml(codeBlockLang)}"` : ''}>${escapeHtml(codeBlockContent.join('\n'))}</code></pre>`);
+    inCodeBlock = false;
+    codeBlockContent = [];
+    codeBlockLang = '';
+    codeBlockFence = '';
+  };
+
   const appendToLastOrderedListItem = (htmlLine: string): boolean => {
     for (let i = result.length - 1; i >= 0; i--) {
       if (!result[i].startsWith('<li')) continue;
@@ -611,14 +620,8 @@ export function plainMarkdownToRich(text: string): string {
 
       if (inCodeBlock) {
         // Check for closing fence
-        if (fence.charAt(0) === codeBlockFence.charAt(0)) {
-          const codeHtml = codeBlockContent.join('\n');
-          const escapedHtml = codeHtml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          result.push(`<pre><code${codeBlockLang ? ` class="language-${codeBlockLang}"` : ''}>${escapedHtml}</code></pre>`);
-          inCodeBlock = false;
-          codeBlockContent = [];
-          codeBlockLang = '';
-          codeBlockFence = '';
+        if (fence.charAt(0) === codeBlockFence.charAt(0) && fence.length >= codeBlockFence.length && rest === '') {
+          closeCodeBlock();
           continue;
         }
       } else {
@@ -771,6 +774,8 @@ export function plainMarkdownToRich(text: string): string {
     }
   }
 
+  // An unfinished fence still owns its content through the end of the document.
+  if (inCodeBlock) closeCodeBlock();
   closeTable();
   closeList();
   return result.join('');

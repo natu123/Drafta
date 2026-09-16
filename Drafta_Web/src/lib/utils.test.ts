@@ -13,6 +13,36 @@ import {
   stripColorMarkdown,
 } from './utils';
 
+describe('fenced code preservation', () => {
+  const body = '/* Welcome to Drafta! */\n    .thought {\n      state: brilliant;\n    }';
+  const codeText = (markdown: string) => {
+    const root = document.createElement('div');
+    root.innerHTML = plainMarkdownToRich(markdown);
+    expect(root.querySelectorAll('pre')).toHaveLength(1);
+    return root.querySelector('pre code')!.textContent;
+  };
+  it('keeps a shorter inner fence as literal code', () => {
+    const inner = '```html\n' + body + '\n```';
+    expect(codeText('````css\n' + inner + '\n````')).toBe(inner);
+  });
+  it.each(['```', '~~~'])('keeps unfinished %s content through EOF', fence => {
+    expect(codeText(fence + 'html\n' + body)).toBe(body);
+  });
+  it.each(['```', '````'])('accepts a matching or longer closing fence %s', close => {
+    expect(codeText('```html\n' + body + '\n' + close)).toBe(body);
+  });
+  it('does not close on a different marker or trailing text', () => {
+    const inner = body + '\n~~~\n```html\nstill code';
+    expect(codeText('```\n' + inner + '\n```')).toBe(inner);
+  });
+  it('escapes HTML and preserves code across a Rich/Plain round trip', () => {
+    const inner = '```html\n<div title="x">& value</div>\n```';
+    const html = plainMarkdownToRich('````\n' + inner + '\n````');
+    expect(html).not.toContain('<div');
+    expect(codeText(richToPlainMarkdown(html))).toBe(inner);
+  });
+});
+
 describe('empty Markdown tables', () => {
   it.each([' ', '\u00a0', '\u3000'])('preserves blank rows containing %j', space => {
     const row = `| ${space} | ${space} |`;
