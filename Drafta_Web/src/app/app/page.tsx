@@ -236,8 +236,8 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           </div>
         )}
 
-        <div className="flex-1 min-w-0 min-h-[44px]">
-          <div className="flex items-center justify-between gap-1.5">
+        <div className={cn("flex-1 min-w-0 min-h-[44px] relative", !item.plainTextContent?.trim() && "flex items-center")}>
+          <div className={cn("flex items-center justify-between gap-1.5 w-full", !item.plainTextContent?.trim() && "pr-20")}>
             <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
               <div onClick={(e) => e.stopPropagation()}>
                 <Popover>
@@ -278,7 +278,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
+          <div className={cn("flex justify-between items-center min-w-0 overflow-hidden", item.plainTextContent?.trim() ? "mt-1" : "absolute right-0 bottom-0")}>
             <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
             <span className="memo-date text-[10px] text-muted-foreground shrink-0">
               {new Date(item.updatedAt).toLocaleDateString()}
