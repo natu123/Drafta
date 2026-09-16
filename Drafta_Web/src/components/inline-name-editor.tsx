@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { Check, X, Plus, MoreHorizontal, Pencil } from 'lucide-react';
+import { Check, X, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem } from './ui/dropdown-menu';
@@ -54,13 +54,17 @@ export function InlineCreate({ label, placeholder, onCreate }: { label: string; 
   );
 }
 
-export function RenameMenu({ label, onRename }: { label: string; onRename: () => void }) {
+export function TrayMenu({ label, onRename, onDelete }: { label: string; onRename: () => void; onDelete: () => void }) {
+  const { t } = useLang();
   const chosen = React.useRef(false);
   return <div onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button type="button" size="icon" variant="ghost" className="size-8 shrink-0" aria-label={label}><MoreHorizontal /></Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button type="button" size="icon" variant="ghost" className="tray-menu-trigger size-8 shrink-0" aria-label={label}><MoreHorizontal /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end" onCloseAutoFocus={event => { if (chosen.current) { event.preventDefault(); chosen.current = false; } }}>
-        <DropdownMenuGroup><DropdownMenuItem onSelect={() => { chosen.current = true; onRename(); }}><Pencil />{label}</DropdownMenuItem></DropdownMenuGroup>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={() => { chosen.current = true; onRename(); }}><Pencil />{t.renameTray}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onDelete}><Trash2 />{t.delete}</DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   </div>;

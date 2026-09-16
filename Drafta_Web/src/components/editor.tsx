@@ -11,9 +11,10 @@ interface EditorProps {
   onIconChange: (id: string, icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
+  onDelete?: () => void;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete }) => {
 
   const handleContentUpdate = React.useCallback((updates: Partial<Note>) => {
     onNoteUpdate(updates);
@@ -33,6 +34,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
         onIconChange={handleIconSelect}
         scrollDirection={scrollDirection}
         navigationAction={navigationAction}
+        onDelete={onDelete}
       />
     </div>
   );

@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@media (hover: hover) and (pointer: fine) {
+  .tray-menu-trigger { opacity: 0; }
+  .tray-row:hover .tray-menu-trigger,
+  .tray-row:focus-within .tray-menu-trigger,
+  .tray-menu-trigger[data-state="open"] { opacity: 1; }
+}
+
 /* Keep native touch selection unobstructed, including after input-mode changes. */
 @media (hover: none) and (pointer: coarse) {
   .selection-format-menu {

@@ -6,7 +6,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
 import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
-import { InlineCreate, InlineNameEditor, RenameMenu } from '@/components/inline-name-editor';
+import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
@@ -109,7 +109,6 @@ interface HomeSectionProps {
   groups: Group[]; // For Move Menu
   onAddSeparator?: () => void;
   onQuickAdd?: (title: string) => void;
-  onRenameMemo?: (id: string, title: string) => void;
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
@@ -118,7 +117,6 @@ interface HomeSectionProps {
 
 // Sortable Note Item Component
 interface SortableNoteItemProps {
-  onRenameMemo?: (id: string, title: string) => void;
   item: Note;
   activeId: string | null | undefined;
   isSelectionMode: boolean;
@@ -136,10 +134,9 @@ interface SortableNoteItemProps {
 
 const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
   item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
-  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onRenameMemo
+  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange
 }) => {
   const { t } = useLang();
-  const [editingName, setEditingName] = React.useState(false);
   const {
     attributes,
     listeners,
@@ -149,7 +146,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
     isDragging,
   } = useSortable({
     id: item.id,
-    disabled: !canDrag || item.isProtected || editingName,
+    disabled: !canDrag || item.isProtected,
   });
 
   // dnd-kit標準のtransform使用（モディファイアで軸制限）
@@ -209,7 +206,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
       className="relative mb-2 w-full"
     >
       <div
-        {...(canDrag && !item.isProtected && !editingName ? { ...attributes, ...listeners } : {})}
+        {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
         className={cn(
           "memo-drag-target flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
           activeId === item.id && !isSelectionMode
@@ -220,7 +217,6 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
         )}
         onClick={() => {
-          if (editingName) return;
           if (isSelectionMode) {
             onToggleSelect(item.id);
           } else {
@@ -240,7 +236,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           </div>
         )}
 
-        <div className={cn("flex-1 min-w-0 min-h-[44px]", !item.plainTextContent && "flex items-center")}>
+        <div className="flex-1 min-w-0 min-h-[44px]">
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
               <div onClick={(e) => e.stopPropagation()}>
@@ -277,23 +273,19 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
                   )}
                 </Popover>
               </div>
-              {editingName ? <InlineNameEditor initialValue={item.title} label={t.renameMemo} placeholder={t.untitledMemo} confirmLabel={t.renameMemo}
-                onConfirm={value => { onRenameMemo?.(item.id, value); setEditingName(false); }} onCancel={() => setEditingName(false)} /> : <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
+              <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
                 {stripColorMarkdown(item.title) || t.untitledMemo}
-              </p>}
+              </p>
             </div>
           </div>
-          {item.plainTextContent && (
-            <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
-              <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-              <span className="text-[10px] text-muted-foreground shrink-0">
-                {new Date(item.updatedAt).toLocaleDateString()}
-              </span>
-            </div>
-          )}
+          <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
+            <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
+            <span className="memo-date text-[10px] text-muted-foreground shrink-0">
+              {new Date(item.updatedAt).toLocaleDateString()}
+            </span>
+          </div>
         </div>
 
-        {!editingName && !isSelectionMode && !isTrash && !item.isProtected && onRenameMemo && <RenameMenu label={t.renameMemo} onRename={() => setEditingName(true)} />}
         {/* Restore view actions only - normal delete uses selection mode */}
         {!isSelectionMode && isTrash && (
           <div className="flex items-center gap-1 shrink-0">
@@ -381,14 +373,14 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="relative group/list w-full"
+      className="tray-row relative group/list w-full"
     >
       {editingName ? <InlineNameEditor initialValue={rawName} label={t.renameTray} placeholder={t.untitledTray} confirmLabel={t.renameTray}
         onConfirm={value => { onRename(group.id, value); setEditingName(false); }} onCancel={() => setEditingName(false)} /> : <div {...(group.id !== 'inbox' ? { ...attributes, ...listeners } : {})}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-2 h-9 pr-16",
+            "w-full justify-start gap-2 h-9 pr-10",
             group.id === 'inbox' ?
               cn(
                 activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
@@ -408,19 +400,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
       </div>
 
       }
-      {!editingName && group.id !== 'inbox' && <div className="absolute right-7 top-1/2 -translate-y-1/2"><RenameMenu label={t.renameTray} onRename={() => setEditingName(true)} /></div>}
-      {/* Delete button on hover (except inbox) */}
-      {!editingName && group.id !== 'inbox' && (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Delete ${group.name}`}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/list:opacity-100 transition-opacity"
-          onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
-        >
-          <Trash2 className="w-3 h-3 text-destructive" />
-        </Button>
-      )}
+      {!editingName && group.id !== 'inbox' && <div className="absolute right-1 top-1/2 -translate-y-1/2"><TrayMenu label={`${t.tray}: ${group.name}`} onRename={() => setEditingName(true)} onDelete={() => onDelete(group.id)} /></div>}
     </div>
   );
 };
@@ -432,7 +412,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange, leadingAction, onRenameTray, trayNameValue, onRenameMemo
+  onIconChange, leadingAction, onRenameTray, trayNameValue
 }) => {
   const { t } = useLang();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
@@ -698,7 +678,6 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                           onRestoreItem={onRestoreItem}
                           onPermanentDeleteItem={onPermanentDeleteItem}
                           onIconChange={onIconChange}
-                          onRenameMemo={onRenameMemo}
                         />
                       ))}
                     </SortableContext>
@@ -1211,6 +1190,7 @@ export default function Home() {
     const note = notes.find(n => n.id === id);
     if (note?.isProtected) return; // Protect special notes
     setNotes(prev => prev.map(note => note.id === id ? { ...note, isDeleted: true } : note));
+    setOpenTabs(prev => prev.filter(tab => tab.id !== id));
     if (activeTabId === id) setActiveTabId(null);
   };
   const handleRestoreNote = (id: string) => {
@@ -1501,9 +1481,6 @@ export default function Home() {
               groups={groups}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
-              onRenameMemo={(id, title) => setNotes(prev => prev.map(note => note.id === id && !note.isProtected
-                ? { ...applySampleEdit(note, { title }, lang, modKey), updatedAt: new Date().toISOString() }
-                : note))}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'inbox' && activeGroupId !== 'restore' ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
@@ -1541,6 +1518,11 @@ export default function Home() {
             {activeNote ? (
               <Editor
                 note={activeNote}
+                onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
+                  handleDeleteNote(activeNote.id);
+                  setActiveView('home');
+                  setMobilePane('notes');
+                } : undefined}
                 onNoteUpdate={handleNoteUpdate}
                  onIconChange={(id, icon) => handleIconChange(id, icon)}
                  scrollDirection={scrollDirection}

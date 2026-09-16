@@ -7,7 +7,7 @@ import * as React from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -27,6 +27,7 @@ interface TiptapEditorProps {
   onIconChange: (icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
+  onDelete?: () => void;
 }
 
 const baseColors = [
@@ -41,7 +42,7 @@ const baseColors = [
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete }) => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
@@ -418,16 +419,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       setIsPlainTextMode(false);
       prevNoteIdRef.current = note.id;
       prevSampleContentRef.current = note.content;
-      prevSampleTitleRef.current = note.title;
-    } else if (editor && note.title !== prevSampleTitleRef.current) {
-      // An inline list rename updates only the title, preserving body and Plain mode.
-      const container = document.createElement('div');
-      container.innerHTML = getInitialContent(note.title, '');
-      const nextTitle = DOMParser.fromSchema(editor.schema).parse(container).firstChild;
-      const currentTitle = editor.state.doc.firstChild;
-      if (nextTitle && currentTitle && !nextTitle.eq(currentTitle)) {
-        editor.view.dispatch(editor.state.tr.replaceWith(0, currentTitle.nodeSize, nextTitle));
-      }
       prevSampleTitleRef.current = note.title;
     }
   }, [note.id, note.title, note.content, note.sampleKey, editor, getInitialContent]);
@@ -829,6 +820,14 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         <div className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
           <div className="flex items-center shrink-0 h-14">
           {navigationAction}
+          {onDelete && !note.isProtected && !note.isDeleted && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-10 shrink-0" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
+              </TooltipTrigger>
+              <TooltipContent>{t.delete}</TooltipContent>
+            </Tooltip>
+          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>

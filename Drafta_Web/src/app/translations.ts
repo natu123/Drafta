@@ -68,7 +68,6 @@ export interface AppT {
   noActiveMemo: string;
   noActiveMemoDesc: string;
   renameTray: string;
-  renameMemo: string;
   // Editor toolbar
   untitledMemo: string;
   formatBold: string;
@@ -153,7 +152,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'No active memo',
     noActiveMemoDesc: 'Select a memo from the list or create a new one to start writing.',
     renameTray: 'Rename tray',
-    renameMemo: 'Rename memo',
     untitledMemo: 'Untitled Memo',
     formatBold: "Bold",
     formatItalic: "Italic",
@@ -230,7 +228,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'メモが選択されていません',
     noActiveMemoDesc: 'リストからメモを選ぶか、新しいメモを作成してください。',
     renameTray: 'トレイ名を変更',
-    renameMemo: 'メモ名を変更',
     untitledMemo: '無題のメモ',
     formatBold: "太字",
     formatItalic: "斜体",
@@ -307,7 +304,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: '未选择备忘录',
     noActiveMemoDesc: '从列表中选择备忘录或新建一个开始写作。',
     renameTray: '重命名托盘',
-    renameMemo: '重命名备忘录',
     untitledMemo: '无标题备忘录',
     formatBold: "粗体",
     formatItalic: "斜体",
@@ -384,7 +380,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'Sin nota activa',
     noActiveMemoDesc: 'Selecciona una nota de la lista o crea una nueva para comenzar.',
     renameTray: 'Renombrar bandeja',
-    renameMemo: 'Renombrar nota',
     untitledMemo: 'Nota sin título',
     formatBold: "Negrita",
     formatItalic: "Cursiva",
@@ -461,7 +456,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: '선택된 메모 없음',
     noActiveMemoDesc: '목록에서 메모를 선택하거나 새 메모를 만들어 글을 시작하세요.',
     renameTray: '트레이 이름 변경',
-    renameMemo: '메모 이름 변경',
     untitledMemo: '제목 없는 메모',
     formatBold: "굵게",
     formatItalic: "기울임꼴",
@@ -538,7 +532,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'Aucune note active',
     noActiveMemoDesc: "Sélectionnez une note dans la liste ou créez-en une nouvelle pour commencer à écrire.",
     renameTray: 'Renommer le bac',
-    renameMemo: 'Renommer la note',
     untitledMemo: 'Note sans titre',
     formatBold: "Gras",
     formatItalic: "Italique",
@@ -615,7 +608,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'Nenhuma nota ativa',
     noActiveMemoDesc: 'Selecione uma nota da lista ou crie uma nova para começar a escrever.',
     renameTray: 'Renomear bandeja',
-    renameMemo: 'Renomear nota',
     untitledMemo: 'Nota sem título',
     formatBold: "Negrito",
     formatItalic: "Itálico",
@@ -692,7 +684,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'कोई सक्रिय नोट नहीं',
     noActiveMemoDesc: 'सूची से नोट चुनें या लिखना शुरू करने के लिए नया बनाएं।',
     renameTray: 'ट्रे का नाम बदलें',
-    renameMemo: 'नोट का नाम बदलें',
     untitledMemo: 'शीर्षकहीन नोट',
     formatBold: "बोल्ड",
     formatItalic: "इटैलिक",
@@ -769,7 +760,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'لا توجد ملاحظة نشطة',
     noActiveMemoDesc: 'حدد ملاحظة من القائمة أو أنشئ واحدة جديدة للبدء في الكتابة.',
     renameTray: 'إعادة تسمية الدرج',
-    renameMemo: 'إعادة تسمية الملاحظة',
     untitledMemo: 'ملاحظة بلا عنوان',
     formatBold: "عريض",
     formatItalic: "مائل",
@@ -846,7 +836,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'Нет активной заметки',
     noActiveMemoDesc: 'Выберите заметку из списка или создайте новую, чтобы начать писать.',
     renameTray: 'Переименовать лоток',
-    renameMemo: 'Переименовать заметку',
     untitledMemo: 'Заметка без названия',
     formatBold: "Жирный",
     formatItalic: "Курсив",
@@ -923,7 +912,6 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'Tidak ada catatan aktif',
     noActiveMemoDesc: 'Pilih catatan dari daftar atau buat yang baru untuk mulai menulis.',
     renameTray: 'Ubah nama baki',
-    renameMemo: 'Ganti nama catatan',
     untitledMemo: 'Catatan tanpa judul',
     formatBold: "Tebal",
     formatItalic: "Miring",
