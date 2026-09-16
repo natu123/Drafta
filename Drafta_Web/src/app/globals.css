@@ -23,6 +23,17 @@
 .editor-toolbar {
     position: relative;
 }
+.editor-delete-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+.editor-toolbar[data-has-delete="true"] .editor-tools {
+    padding-inline-end: 88px;
+}
+.editor-toolbar[data-has-delete="true"] .editor-tools-toggle {
+    inset-inline-end: 52px;
+}
 .editor-tools {
     display: flex;
     flex-wrap: wrap;
@@ -52,6 +63,9 @@
     display: none;
 }
 @container (min-width: 720px) {
+    .editor-toolbar[data-has-delete="true"] .editor-tools {
+        padding-inline-end: 44px;
+    }
     .editor-tools-toggle {
         display: none;
     }

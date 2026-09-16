@@ -817,17 +817,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       <SlashCommandMenu editor={editor} enabled={!isPlainTextMode && !note.isProtected} />
       {/* ADDED: plain-mode class for CSS targeting */}
       <div ref={observeToolbar} className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")}>
-        <div className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
+        <div data-has-delete={Boolean(onDelete && !note.isProtected && !note.isDeleted)} className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
           <div className="flex items-center shrink-0 h-14">
           {navigationAction}
-          {onDelete && !note.isProtected && !note.isDeleted && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-10 shrink-0" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
-              </TooltipTrigger>
-              <TooltipContent>{t.delete}</TooltipContent>
-            </Tooltip>
-          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>
@@ -1031,6 +1023,14 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </div>
             </div>
           </div>
+          {onDelete && !note.isProtected && !note.isDeleted && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="editor-delete-button size-10 shrink-0" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
+              </TooltipTrigger>
+              <TooltipContent>{t.delete}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {!note.isProtected && (
