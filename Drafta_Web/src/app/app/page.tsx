@@ -5,9 +5,8 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
-import { Minus, Inbox, Trash2, RotateCcw, Plus, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
+import { InlineCreate, InlineNameEditor, RenameMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/header';
@@ -109,7 +108,8 @@ interface HomeSectionProps {
 
   groups: Group[]; // For Move Menu
   onAddSeparator?: () => void;
-  onQuickAdd?: () => void;
+  onQuickAdd?: (title: string) => void;
+  onRenameMemo?: (id: string, title: string) => void;
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
@@ -118,6 +118,7 @@ interface HomeSectionProps {
 
 // Sortable Note Item Component
 interface SortableNoteItemProps {
+  onRenameMemo?: (id: string, title: string) => void;
   item: Note;
   activeId: string | null | undefined;
   isSelectionMode: boolean;
@@ -135,9 +136,10 @@ interface SortableNoteItemProps {
 
 const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
   item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
-  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange
+  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onRenameMemo
 }) => {
   const { t } = useLang();
+  const [editingName, setEditingName] = React.useState(false);
   const {
     attributes,
     listeners,
@@ -147,7 +149,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
     isDragging,
   } = useSortable({
     id: item.id,
-    disabled: !canDrag || item.isProtected,
+    disabled: !canDrag || item.isProtected || editingName,
   });
 
   // dnd-kit標準のtransform使用（モディファイアで軸制限）
@@ -207,7 +209,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
       className="relative mb-2 w-full"
     >
       <div
-        {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
+        {...(canDrag && !item.isProtected && !editingName ? { ...attributes, ...listeners } : {})}
         className={cn(
           "memo-drag-target flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
           activeId === item.id && !isSelectionMode
@@ -218,6 +220,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
         )}
         onClick={() => {
+          if (editingName) return;
           if (isSelectionMode) {
             onToggleSelect(item.id);
           } else {
@@ -274,9 +277,10 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
                   )}
                 </Popover>
               </div>
-              <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
+              {editingName ? <InlineNameEditor initialValue={item.title} label={t.renameMemo} placeholder={t.untitledMemo} confirmLabel={t.renameMemo}
+                onConfirm={value => { onRenameMemo?.(item.id, value); setEditingName(false); }} onCancel={() => setEditingName(false)} /> : <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
                 {stripColorMarkdown(item.title) || t.untitledMemo}
-              </p>
+              </p>}
             </div>
           </div>
           {item.plainTextContent && (
@@ -289,6 +293,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           )}
         </div>
 
+        {!editingName && !isSelectionMode && !isTrash && !item.isProtected && onRenameMemo && <RenameMenu label={t.renameMemo} onRename={() => setEditingName(true)} />}
         {/* Restore view actions only - normal delete uses selection mode */}
         {!isSelectionMode && isTrash && (
           <div className="flex items-center gap-1 shrink-0">
@@ -309,6 +314,8 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
 
 // Sortable Group Item Component for Left Sidebar
 interface SortableGroupItemProps {
+  onRename: (id: string, name: string) => void;
+  rawName: string;
   group: Group;
   activeGroupId: string;
   hasNotes: boolean;
@@ -317,8 +324,10 @@ interface SortableGroupItemProps {
 }
 
 const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
-  group, activeGroupId, hasNotes, onSelect, onDelete
+  group, activeGroupId, hasNotes, onSelect, onDelete, onRename, rawName
 }) => {
+  const { t } = useLang();
+  const [editingName, setEditingName] = React.useState(false);
   const {
     attributes,
     listeners,
@@ -328,7 +337,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
     isDragging,
   } = useSortable({
     id: group.id,
-    disabled: group.id === 'inbox', // Inbox cannot be dragged
+    disabled: group.id === 'inbox' || editingName, // Inbox cannot be dragged
   });
 
   // dnd-kit標準のtransform使用（モディファイアで軸制限）
@@ -374,11 +383,12 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
       style={style}
       className="relative group/list w-full"
     >
-      <div {...(group.id !== 'inbox' ? { ...attributes, ...listeners } : {})}>
+      {editingName ? <InlineNameEditor initialValue={rawName} label={t.renameTray} placeholder={t.untitledTray} confirmLabel={t.renameTray}
+        onConfirm={value => { onRename(group.id, value); setEditingName(false); }} onCancel={() => setEditingName(false)} /> : <div {...(group.id !== 'inbox' ? { ...attributes, ...listeners } : {})}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-2 h-9 pr-8",
+            "w-full justify-start gap-2 h-9 pr-16",
             group.id === 'inbox' ?
               cn(
                 activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
@@ -397,8 +407,10 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
         </Button>
       </div>
 
+      }
+      {!editingName && group.id !== 'inbox' && <div className="absolute right-7 top-1/2 -translate-y-1/2"><RenameMenu label={t.renameTray} onRename={() => setEditingName(true)} /></div>}
       {/* Delete button on hover (except inbox) */}
-      {group.id !== 'inbox' && (
+      {!editingName && group.id !== 'inbox' && (
         <Button
           variant="ghost"
           size="icon"
@@ -420,12 +432,11 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange, leadingAction, onRenameTray, trayNameValue
+  onIconChange, leadingAction, onRenameTray, trayNameValue, onRenameMemo
 }) => {
   const { t } = useLang();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const [isRenamingTray, setIsRenamingTray] = React.useState(false);
-  const [trayName, setTrayName] = React.useState('');
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // dnd-kit setup
@@ -501,8 +512,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         <CardTitle className="text-lg flex items-center gap-2 min-w-0">
           {leadingAction}
           <Icon className="w-5 h-5 text-primary" />
-          {onRenameTray ? (
-            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => { setTrayName(trayNameValue ?? title); setIsRenamingTray(true); }}>
+          {onRenameTray && isRenamingTray ? <InlineNameEditor label={t.renameTray} initialValue={trayNameValue ?? ''} placeholder={t.untitledTray} confirmLabel={t.renameTray}
+            onConfirm={value => { onRenameTray(value); setIsRenamingTray(false); }} onCancel={() => setIsRenamingTray(false)} /> : onRenameTray ? (
+            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => setIsRenamingTray(true)}>
               <span className="truncate">{title}</span><Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
             </button>
           ) : <span className="truncate">{title}</span>}
@@ -560,31 +572,12 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           )}
         </div>
       </CardHeader>
-      <Dialog open={isRenamingTray} onOpenChange={setIsRenamingTray}>
-        <DialogContent aria-describedby={undefined}>
-          <DialogHeader><DialogTitle>{t.renameTray}</DialogTitle></DialogHeader>
-          <form onSubmit={(event) => {
-            event.preventDefault();
-            if (!trayName.trim()) return;
-            onRenameTray?.(trayName.trim());
-            setIsRenamingTray(false);
-          }}>
-            <Input aria-label={t.renameTray} placeholder={t.untitledTray} value={trayName} onChange={event => setTrayName(event.target.value)} autoFocus />
-            <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setIsRenamingTray(false)}>{t.cancel}</Button>
-              <Button type="submit" disabled={!trayName.trim()}>{t.renameTray}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <div className="flex flex-col border-b z-10 sticky top-[57px]">
-        {/* Create without prompting for a title or leaving the list. */}
+        {/* Keep the draft local until the inline form is confirmed. */}
         {onQuickAdd && !isTrash && (
           <div className="px-2 py-1.5 shrink-0 border-b" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-            <Button variant="outline" className="w-full justify-start h-10" onClick={onQuickAdd}>
-              <Plus className="h-4 w-4" />{t.addMemo}
-            </Button>
+            <InlineCreate label={t.addMemo} placeholder={t.untitledMemo} onCreate={onQuickAdd} />
           </div>
         )}
 
@@ -705,6 +698,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                           onRestoreItem={onRestoreItem}
                           onPermanentDeleteItem={onPermanentDeleteItem}
                           onIconChange={onIconChange}
+                          onRenameMemo={onRenameMemo}
                         />
                       ))}
                     </SortableContext>
@@ -1136,10 +1130,10 @@ export default function Home() {
     });
   };
 
-  const handleQuickCreateNote = () => {
+  const handleQuickCreateNote = (title: string) => {
     const newNote: Note = {
       id: `note-${crypto.randomUUID()}`,
-      title: '',
+      title,
       icon: '📝',
       content: '',
       plainTextContent: '',
@@ -1247,8 +1241,8 @@ export default function Home() {
       return [...prev, newSeparator];
     });
   };
-  const handleCreateGroup = () => {
-    const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name: '', type: 'group' };
+  const handleCreateGroup = (name: string) => {
+    const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name, type: 'group' };
     setGroups(prev => [...prev, newGroup]);
   };
 
@@ -1373,9 +1367,7 @@ export default function Home() {
 
               {/* Create a tray while retaining the current selection and pane. */}
               <div className="px-2 py-1.5 border-b shrink-0" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-                <Button variant="outline" className="w-full justify-start h-10" onClick={handleCreateGroup}>
-                  <Plus className="h-4 w-4" />{appT.addTray}
-                </Button>
+                <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
               </div>
 
               {/* Inbox - fixed at top, outside ScrollArea */}
@@ -1425,6 +1417,8 @@ export default function Home() {
                                 hasNotes={hasNotes}
                                 onSelect={handleGroupSelect}
                                 onDelete={handleDeleteGroup}
+                                rawName={sourceGroups.find(item => item.id === group.id)?.name ?? ''}
+                                onRename={(id, name) => setGroups(prev => prev.map(item => item.id === id ? { ...item, name } : item))}
                               />
                             );
                           })}
@@ -1478,6 +1472,7 @@ export default function Home() {
           >
 
             <HomeSection
+              key={activeGroupId}
               title={activeGroupId === 'restore' ? appT.restore : groups.find(g => g.id === activeGroupId)?.name || appT.inbox}
               icon={activeGroupId === 'restore' ? RotateCcw : Inbox}
               items={sortedNotes}
@@ -1506,6 +1501,9 @@ export default function Home() {
               groups={groups}
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
+              onRenameMemo={(id, title) => setNotes(prev => prev.map(note => note.id === id && !note.isProtected
+                ? { ...applySampleEdit(note, { title }, lang, modKey), updatedAt: new Date().toISOString() }
+                : note))}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'inbox' && activeGroupId !== 'restore' ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
@@ -1567,14 +1565,11 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-medium text-foreground mb-2">{appT.noActiveMemo}</h3>
                 <p className="max-w-xs">{appT.noActiveMemoDesc}</p>
-                <Button variant="outline" className="mt-6" onClick={() => {
-                  handleQuickCreateNote();
+                <div className="mt-6 w-full max-w-sm"><InlineCreate label={appT.addMemo} placeholder={appT.untitledMemo} onCreate={title => {
+                  handleQuickCreateNote(title);
                   setActiveView('home');
                   setMobilePane('notes');
-                }}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  {appT.addMemo}
-                </Button>
+                }} /></div>
               </div>
             )}
           </div>

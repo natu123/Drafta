@@ -89,7 +89,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   // Color Markdown → HTML変換（タイトル表示用）
   const titleToHtml = React.useCallback((title: string): string => {
-    return title.replace(
+    return title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(
       /\{color:(#[0-9A-Fa-f]{3,6})\}(.+?)\{\/color\}/gi,
       '<span style="color: $1">$2</span>'
     );
@@ -418,6 +418,16 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       setIsPlainTextMode(false);
       prevNoteIdRef.current = note.id;
       prevSampleContentRef.current = note.content;
+      prevSampleTitleRef.current = note.title;
+    } else if (editor && note.title !== prevSampleTitleRef.current) {
+      // An inline list rename updates only the title, preserving body and Plain mode.
+      const container = document.createElement('div');
+      container.innerHTML = getInitialContent(note.title, '');
+      const nextTitle = DOMParser.fromSchema(editor.schema).parse(container).firstChild;
+      const currentTitle = editor.state.doc.firstChild;
+      if (nextTitle && currentTitle && !nextTitle.eq(currentTitle)) {
+        editor.view.dispatch(editor.state.tr.replaceWith(0, currentTitle.nodeSize, nextTitle));
+      }
       prevSampleTitleRef.current = note.title;
     }
   }, [note.id, note.title, note.content, note.sampleKey, editor, getInitialContent]);
