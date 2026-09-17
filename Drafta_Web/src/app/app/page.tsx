@@ -630,7 +630,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         <SortableContext items={section.list.map(item => item.id)} strategy={verticalListSortingStrategy}>
                           {section.list.map(item => <SortableNoteItem key={item.id} item={item} activeId={activeId}
                             isSelectionMode={isSelectionMode} selectedIds={selectedIds} isTrash={isTrash}
-                            canDrag={canDragNotes} onToggleSelect={onToggleSelect}
+                            canDrag={canDragNotes && !(section.pinned && pinsCollapsed)} onToggleSelect={onToggleSelect}
                             onItemSelect={id => onItemSelect(id, itemType)} onToggleComplete={onToggleComplete}
                             onDeleteItem={onDeleteItem} onRestoreItem={onRestoreItem}
                             onPermanentDeleteItem={onPermanentDeleteItem} onIconChange={onIconChange} onTogglePin={onTogglePin} />)}
