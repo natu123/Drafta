@@ -7,7 +7,9 @@ import * as React from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Menu, Trash2 } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search } from 'lucide-react';
+import { NoteSearch } from './tiptap-extensions/note-search';
+import { NoteFind } from './note-find';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -47,22 +49,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
   const [shortcutMod, setShortcutMod] = React.useState('Ctrl');
+  const [findOpen, setFindOpen] = React.useState(false);
   React.useEffect(() => {
     setShortcutMod(/Mac|iPod|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl');
   }, []);
-  const [isWideToolbar, setIsWideToolbar] = React.useState(false);
-  const [areToolsOpen, setAreToolsOpen] = React.useState(false);
-  const toolsId = React.useId();
-  const toolbarObserver = React.useRef<ResizeObserver | null>(null);
-  const observeToolbar = React.useCallback((element: HTMLDivElement | null) => {
-    toolbarObserver.current?.disconnect();
-    if (!element) return;
-    toolbarObserver.current = new ResizeObserver(([entry]) => {
-      setIsWideToolbar(entry.contentRect.width >= 720);
-    });
-    toolbarObserver.current.observe(element);
-  }, []);
-
   // Build colors array with theme-appropriate default color
   const colors = React.useMemo(() => {
     const defaultColor = isDarkMode ? darkModeDefaultColor : lightModeDefaultColor;
@@ -73,6 +63,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const isPlainTextModeRef = React.useRef(false);
   const extensions = React.useMemo(() => [
     ...documentExtensions,
+    NoteSearch,
     RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
     Placeholder.configure({
       placeholder: ({ node }) => {
@@ -816,40 +807,18 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     <TooltipProvider delayDuration={200} disableHoverableContent>
       <SlashCommandMenu editor={editor} enabled={!isPlainTextMode && !note.isProtected} />
       {/* ADDED: plain-mode class for CSS targeting */}
-      <div ref={observeToolbar} className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")}>
-        <div data-has-delete={Boolean(onDelete && !note.isProtected && !note.isDeleted)} className="editor-toolbar px-2 border-b flex items-start gap-1 shrink-0 min-h-[57px] bg-background">
-          <div className="flex items-center shrink-0 h-14">
+      <div className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")} onKeyDownCapture={event => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+          event.preventDefault(); setFindOpen(true);
+          const shell = event.currentTarget;
+          requestAnimationFrame(() => shell.querySelector<HTMLInputElement>('.note-find input')?.focus());
+        }
+      }}>
+        <div className="editor-toolbar border-b bg-background px-2 py-1">
+          <div className="editor-tools">
+            <div className="editor-tools-content">
           {navigationAction}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>
-                {note.icon || '📝'}
-              </Button>
-            </PopoverTrigger>
-            {!note.isProtected && (
-              <PopoverContent className="w-auto p-2">
-                <div className="grid grid-cols-5 gap-2">
-                  {emojis.map((emoji) => (
-                    <Button
-                      key={emoji}
-                      variant="ghost"
-                      size="icon"
-                      className={cn("text-xl rounded-md", note.icon === emoji && "bg-primary/20")}
-                      onClick={() => onIconChange(emoji)}
-                    >
-                      {emoji}
-                    </Button>
-                  ))}
-                </div>
-              </PopoverContent>
-            )}
-          </Popover>
-          </div>
-          <div data-open={isWideToolbar || areToolsOpen} className="editor-tools flex-1 min-w-0">
-            <button type="button" aria-label={t.editorTools} aria-expanded={isWideToolbar || areToolsOpen} aria-controls={toolsId} onClick={() => setAreToolsOpen(open => !open)} className="editor-tools-toggle cursor-pointer rounded-md h-10 w-10 items-center justify-center hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Menu className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <div id={toolsId} className="editor-tools-content">
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label={t.findInMemo} onClick={() => setFindOpen(open => !open)}><Search /></Button></TooltipTrigger><TooltipContent>{t.findInMemo}</TooltipContent></Tooltip>
           <Tooltip>
             {/* Logic unchanged */}
             <TooltipTrigger asChild>
@@ -1023,16 +992,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </div>
             </div>
           </div>
-          {onDelete && !note.isProtected && !note.isDeleted && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="editor-delete-button size-10 shrink-0" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
-              </TooltipTrigger>
-              <TooltipContent>{t.delete}</TooltipContent>
-            </Tooltip>
-          )}
+
         </div>
 
+        {findOpen && <NoteFind editor={editor} onClose={() => setFindOpen(false)} />}
         {!note.isProtected && (
           <BubbleMenu editor={editor} shouldShow={({ from, to }) => !window.matchMedia('(hover: none) and (pointer: coarse)').matches && !isPlainTextMode && editor.isEditable && from !== to} options={{ placement: 'top', offset: 8 }} className="selection-format-menu bg-background border rounded-md shadow-lg p-1 grid grid-cols-2 sm:grid-cols-4 gap-1 max-w-[calc(100vw-16px)]">
             {[
@@ -1070,7 +1033,43 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             }
           }}
         >
+          <div className="editor-document relative">
+          <div className="editor-title-icon">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>
+                {note.icon || '📝'}
+              </Button>
+            </PopoverTrigger>
+            {!note.isProtected && (
+              <PopoverContent className="w-auto p-2">
+                <div className="grid grid-cols-5 gap-2">
+                  {emojis.map((emoji) => (
+                    <Button
+                      key={emoji}
+                      variant="ghost"
+                      size="icon"
+                      className={cn("text-xl rounded-md", note.icon === emoji && "bg-primary/20")}
+                      onClick={() => onIconChange(emoji)}
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            )}
+          </Popover>
+          </div>
+          {onDelete && !note.isProtected && !note.isDeleted && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="editor-delete-button size-10 shrink-0" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
+              </TooltipTrigger>
+              <TooltipContent>{t.delete}</TooltipContent>
+            </Tooltip>
+          )}
           <EditorContent editor={editor} dir="auto" />
+          </div>
         </div>
       </div>
     </TooltipProvider >
