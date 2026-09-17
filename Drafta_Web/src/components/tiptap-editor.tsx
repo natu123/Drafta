@@ -7,7 +7,7 @@ import * as React from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search, Menu } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
 import { NoteFind } from './note-find';
 import { Button } from './ui/button';
@@ -50,6 +50,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const { t } = useLang();
   const [shortcutMod, setShortcutMod] = React.useState('Ctrl');
   const [findOpen, setFindOpen] = React.useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = React.useState(false);
+  const mobileToolsId = React.useId();
   React.useEffect(() => {
     setShortcutMod(/Mac|iPod|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl');
   }, []);
@@ -815,9 +817,40 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         }
       }}>
         <div className="editor-toolbar border-b bg-background px-2 py-1">
-          <div className="editor-tools">
-            <div className="editor-tools-content">
-          {navigationAction}
+          <div className="editor-tools" data-expanded={mobileToolsOpen}>
+            {navigationAction && <div className="editor-toolbar-navigation">{navigationAction}</div>}
+          <div className="editor-palette">
+            {colors.map(color => {
+              // Black/White are default colors - show as active when no color is set
+              const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
+              const isActive = isDefaultColor
+                ? !editor.isActive('textStyle', { color: /./ }) // Active when no color is set
+                : editor.isActive('textStyle', { color: color.value });
+              return (
+                <Tooltip key={color.name}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "w-8 h-10 rounded-md p-1 transition-opacity"
+                      )}
+                      aria-pressed={isActive}
+                      disabled={note.isProtected || isPlainTextMode}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSetColor(color.value)}
+                    >
+                      <span aria-hidden="true" className={cn("block h-5 w-5 rounded-full border", isActive && "ring-2 ring-primary ring-offset-2")} style={{ backgroundColor: color.value }} />
+                      <span className="sr-only">{color.name}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{color.name}</p></TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+            <Button className="editor-mobile-tools-toggle" variant="ghost" size="icon" aria-label={t.editorTools} aria-expanded={mobileToolsOpen} aria-controls={mobileToolsId} onClick={() => setMobileToolsOpen(open => !open)}><Menu /></Button>
+            <div id={mobileToolsId} className="editor-tools-content">
           <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label={t.findInMemo} onClick={() => setFindOpen(open => !open)}><Search /></Button></TooltipTrigger><TooltipContent>{t.findInMemo}</TooltipContent></Tooltip>
           <Tooltip>
             {/* Logic unchanged */}
@@ -960,36 +993,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             <TooltipContent><p>{t.removeFormatting}</p></TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="h-6 mx-2" />
-          <div className="flex flex-wrap gap-0 px-1">
-            {colors.map(color => {
-              // Black/White are default colors - show as active when no color is set
-              const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
-              const isActive = isDefaultColor
-                ? !editor.isActive('textStyle', { color: /./ }) // Active when no color is set
-                : editor.isActive('textStyle', { color: color.value });
-              return (
-                <Tooltip key={color.name}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "w-8 h-10 rounded-md p-1 transition-opacity"
-                      )}
-                      aria-pressed={isActive}
-                      disabled={note.isProtected || isPlainTextMode}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleSetColor(color.value)}
-                    >
-                      <span aria-hidden="true" className={cn("block h-5 w-5 rounded-full border", isActive && "ring-2 ring-primary ring-offset-2")} style={{ backgroundColor: color.value }} />
-                      <span className="sr-only">{color.name}</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>{color.name}</p></TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
+
             </div>
           </div>
 
