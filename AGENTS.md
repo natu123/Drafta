@@ -65,6 +65,8 @@ Drafta独自のMarkdown拡張。
 - 番号付きリスト `{ol:N}...{/ol}`
 
 ## Tech Stack
+- Node.js 24系LTS（検証基準24.21.0）、npm 12.0.2。Currentへの移行は事前確認する。
+- 依存更新の互換構成とブラウザー対応は`specs/08_dependency_maintenance.md`を参照する。
 - Next.js (App Router), Port: 9002
 - TypeScript
 - TipTap (ProseMirror) Editor
