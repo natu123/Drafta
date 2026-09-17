@@ -22,12 +22,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.21.0
           cache: npm
           cache-dependency-path: Drafta_Web/package-lock.json
 
-      - name: Install npm 11.6.2
-        run: npm install --global npm@11.6.2
+      - name: Install npm 12.0.2
+        run: npm install --global npm@12.0.2
 
       - name: Clean install dependencies
         run: npm ci
