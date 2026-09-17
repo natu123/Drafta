@@ -184,7 +184,6 @@ function validate(value: unknown): asserts value is WorkspaceBackup {
     for (const key of ['isPinned', 'isCompleted', 'isDeleted', 'isProtected']) if (note[key] !== undefined) requireValue(typeof note[key] === 'boolean', `${path}.${key}`, 'Expected a boolean');
     if (note.parentId !== undefined) id(note.parentId, `${path}.parentId`);
     if (note.sampleKey !== undefined) requireValue(Object.hasOwn(samples, note.id) && samples[note.id] === note.sampleKey && note.type !== 'separator', path, 'Invalid sample identity');
-    if (note.id === 'note-1' || note.id === 'note-2') requireValue(note.isProtected === true && !note.isDeleted && note.type !== 'separator', path, 'Invalid protected sample state');
     documentValue(note.document, `${path}.document`, budget);
     notes.set(note.id, note);
   });

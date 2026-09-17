@@ -27,7 +27,7 @@ export const notes: Note[] = [
     updatedAt: new Date().toISOString(),
     lastAccessedAt: new Date().toISOString(),
     thumbnailUrl: 'https://picsum.photos/seed/1/600/400',
-    isProtected: true
+    isProtected: false
   },
   {
     id: 'note-2',
@@ -44,7 +44,7 @@ console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th><p>
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     parentId: 'note-1',
     thumbnailUrl: 'https://picsum.photos/seed/2/600/400',
-    isProtected: true
+    isProtected: false
   },
   {
     id: 'note-3',

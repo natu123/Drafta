@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
-import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil } from 'lucide-react';
+import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown } from 'lucide-react';
 import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { localizeSampleNote, applySampleEdit } from '@/lib/sample-notes';
 import { localizeUntitledGroup } from '@/lib/group-display';
+import { pinnedNotes, regularNotes, reorderPinSection } from '@/lib/pin-order';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import SearchDialog from '@/components/search-dialog';
@@ -80,6 +81,9 @@ type ViewMode = 'list' | 'grid';
 
 
 interface HomeSectionProps {
+  pinsCollapsed: boolean;
+  onTogglePins: () => void;
+  onTogglePin: (id: string) => void;
   title: string;
   icon: React.ElementType;
   items: Note[];
@@ -117,6 +121,7 @@ interface HomeSectionProps {
 
 // Sortable Note Item Component
 interface SortableNoteItemProps {
+  onTogglePin?: (id: string) => void;
   item: Note;
   activeId: string | null | undefined;
   isSelectionMode: boolean;
@@ -134,7 +139,7 @@ interface SortableNoteItemProps {
 
 const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
   item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
-  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange
+  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin
 }) => {
   const { t } = useLang();
   const {
@@ -203,7 +208,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="relative mb-2 w-full"
+      className="memo-item relative mb-2 w-full"
     >
       <div
         {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
@@ -237,7 +242,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         )}
 
         <div className={cn("flex-1 min-w-0 min-h-[44px] relative", !item.plainTextContent?.trim() && "flex items-center")}>
-          <div className={cn("flex items-center justify-between gap-1.5 w-full", !item.plainTextContent?.trim() && "pr-20")}>
+          <div className={cn("flex items-center justify-between gap-1.5 w-full pr-8", !item.plainTextContent?.trim() && "pr-20")}>
             <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
               <div onClick={(e) => e.stopPropagation()}>
                 <Popover>
@@ -286,6 +291,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
           </div>
         </div>
 
+        {!isTrash && onTogglePin && <Button variant="ghost" size="icon" className={cn("memo-pin absolute right-1 top-1 size-7", item.isPinned && "text-[#C49547]")} aria-label={item.isPinned ? t.unpinMemo : t.pinMemo} aria-pressed={Boolean(item.isPinned)} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onTogglePin(item.id); }}><Pin className={item.isPinned ? 'fill-current' : ''} /></Button>}
         {/* Restore view actions only - normal delete uses selection mode */}
         {!isSelectionMode && isTrash && (
           <div className="flex items-center gap-1 shrink-0">
@@ -407,7 +413,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
 
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
-  viewMode,
+  viewMode, pinsCollapsed, onTogglePins, onTogglePin,
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
@@ -458,7 +464,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const newOrder = arrayMove(items, oldIndex, newIndex);
+    const newOrder = reorderPinSection(items, String(active.id), String(over.id));
     onReorderNotes(newOrder);
   };
 
@@ -614,73 +620,23 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                     </div>
                   )}
 
-                  {/* Protected notes - always at top, not sortable */}
-                  {items.filter(item => item.isProtected).map((item) => (
-                    <div key={item.id} className="relative mb-2 w-full">
-                      <div
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
-                          activeId === item.id && !isSelectionMode
-                            ? "bg-primary/10 border-primary/50 shadow-sm"
-                            : "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
-                        )}
-                        onClick={() => onItemSelect(item.id, itemType)}
-                      >
-                        {!isTrash && onToggleComplete && (
-                          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              aria-label={stripColorMarkdown(item.title) || t.untitledMemo}
-                              checked={item.isCompleted || false}
-                              onCheckedChange={(checked) => onToggleComplete(item.id, checked as boolean)}
-                              className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-muted-foreground/50"
-                            />
-                          </div>
-                        )}
-                        <div className={cn("flex-1 min-w-0 min-h-[44px]", !item.plainTextContent && "flex items-center")}>
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1 translate-x-[-4px]">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-base pointer-events-none shrink-0">
-                              {item.icon || '📝'}
-                            </Button>
-                            <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground")}>
-                              {stripColorMarkdown(item.title) || t.untitledMemo}
-                            </p>
-                          </div>
-                          {item.plainTextContent && (
-                            <div className="flex justify-between items-center mt-1 min-w-0 overflow-hidden">
-                              <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
-                              <span className="text-[10px] text-muted-foreground shrink-0">{new Date(item.updatedAt).toLocaleDateString()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Non-protected notes - sortable */}
                   <div ref={sortableAreaRef}>
-                    <SortableContext
-                      items={items.filter(item => !item.isProtected).map(item => item.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {items.filter(item => !item.isProtected).map((item) => (
-                        <SortableNoteItem
-                          key={item.id}
-                          item={item}
-                          activeId={activeId}
-                          isSelectionMode={isSelectionMode}
-                          selectedIds={selectedIds}
-                          isTrash={isTrash}
-                          canDrag={canDragNotes}
-                          onToggleSelect={onToggleSelect}
-                          onItemSelect={(id) => onItemSelect(id, itemType)}
-                          onToggleComplete={onToggleComplete}
-                          onDeleteItem={onDeleteItem}
-                          onRestoreItem={onRestoreItem}
-                          onPermanentDeleteItem={onPermanentDeleteItem}
-                          onIconChange={onIconChange}
-                        />
-                      ))}
-                    </SortableContext>
+                    {(isTrash ? [{ pinned: false, list: items }] : [
+                      { pinned: true, list: pinnedNotes(items) },
+                      { pinned: false, list: regularNotes(items) },
+                    ]).map(section => <React.Fragment key={String(section.pinned)}>
+                      {section.pinned && section.list.length > 0 && <Button variant="ghost" className="pinned-summary w-full justify-start h-9 mb-2" aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
+                      <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
+                        <SortableContext items={section.list.map(item => item.id)} strategy={verticalListSortingStrategy}>
+                          {section.list.map(item => <SortableNoteItem key={item.id} item={item} activeId={activeId}
+                            isSelectionMode={isSelectionMode} selectedIds={selectedIds} isTrash={isTrash}
+                            canDrag={canDragNotes} onToggleSelect={onToggleSelect}
+                            onItemSelect={id => onItemSelect(id, itemType)} onToggleComplete={onToggleComplete}
+                            onDeleteItem={onDeleteItem} onRestoreItem={onRestoreItem}
+                            onPermanentDeleteItem={onPermanentDeleteItem} onIconChange={onIconChange} onTogglePin={onTogglePin} />)}
+                        </SortableContext>
+                      </div>
+                    </React.Fragment>)}
                   </div>
                 </div>
                 {/* Note: min-h-[44px]はSortableNoteItemの元カードと高さを揃えるため必要
@@ -810,6 +766,7 @@ export default function Home() {
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
   const [noteViewMode] = React.useState<ViewMode>('list');
+  const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('top');
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
@@ -1204,7 +1161,7 @@ export default function Home() {
   const handlePermanentDeleteNote = (id: string) => {
     const note = notes.find(n => n.id === id);
     if (note?.isProtected) return; // Protect special notes
-    setNotes(prev => prev.filter(note => note.id !== id));
+    setNotes(prev => prev.filter(note => note.id !== id).map(note => note.parentId === id ? { ...note, parentId: undefined } : note));
     if (activeTabId === id) setActiveTabId(null);
     closeTab(id);
   };
@@ -1458,6 +1415,9 @@ export default function Home() {
 
             <HomeSection
               key={activeGroupId}
+              pinsCollapsed={Boolean(collapsedPins[activeGroupId])}
+              onTogglePins={() => setCollapsedPins(prev => ({ ...prev, [activeGroupId]: !prev[activeGroupId] }))}
+              onTogglePin={id => setNotes(prev => prev.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note))}
               title={activeGroupId === 'restore' ? appT.restore : groups.find(g => g.id === activeGroupId)?.name || appT.inbox}
               icon={activeGroupId === 'restore' ? RotateCcw : Inbox}
               items={sortedNotes}

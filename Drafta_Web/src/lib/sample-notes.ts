@@ -14,7 +14,6 @@ const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '
 
 export function localizeSampleNote(note: Note, lang: Lang, modKey: 'Cmd' | 'Ctrl'): Note {
   if (!note.sampleKey) return note;
-  if ((note.sampleKey === 'welcome' || note.sampleKey === 'reference') && !note.isProtected) return note;
   const template = templates.get(note.id);
   if (!template || template.sampleKey !== note.sampleKey) return note;
   const source = getSamplePhrases(note.sampleKey, 'en');

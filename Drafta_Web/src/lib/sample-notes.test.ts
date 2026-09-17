@@ -29,7 +29,7 @@ describe('localized protected samples', () => {
         expect(result.icon).toBe(seed.icon);
         expect(result.createdAt).toBe(seed.createdAt);
         expect(result.updatedAt).toBe(seed.updatedAt);
-        expect(result.isProtected).toBe(true);
+        expect(result.isProtected).toBe(false);
         expect(result.content.match(/<[^>]+>/g)).toEqual(seed.content.match(/<[^>]+>/g));
         expect(result.content).not.toContain('{{Mod}}');
         expect(result.plainTextContent?.startsWith(sampleCopy[lang][key][1])).toBe(true);
@@ -60,7 +60,7 @@ describe('localized protected samples', () => {
   it('keeps ordinary and user-edited unprotected notes untouched', () => {
     const ordinary = { ...notes[0], id: 'user-note', sampleKey: undefined, title: 'My own title', content: '{{Mod}} <p>My text</p>' };
     expect(localizeSampleNote(ordinary, 'ja', 'Cmd')).toBe(ordinary);
-    const editable = { ...notes[0], isProtected: false };
+    const editable = { ...notes[0], isProtected: false, sampleKey: undefined };
     expect(localizeSampleNote(editable, 'ja', 'Cmd')).toBe(editable);
     for (const note of notes.slice(2)) {
       const detached = { ...note, sampleKey: undefined };

@@ -79,7 +79,6 @@ describe('workspace backup', () => {
     rejected(value => { value.groups.push(value.groups[0]); }, 'Duplicate');
     rejected(value => { value.notes.push(value.notes[0]); }, 'Duplicate');
     rejected(value => { value.notes[0].group = 'missing'; }, 'parent group');
-    rejected(value => { value.notes[0].isProtected = false; }, 'protected');
     rejected(value => { value.notes[2].sampleKey = 'welcome'; }, 'sample');
     rejected(value => { value.notes[2].parentId = 'missing'; }, 'parent note');
     rejected(value => { value.notes[2].parentId = 'note-5'; }, 'Cyclic');
