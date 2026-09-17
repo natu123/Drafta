@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { pinnedNotes, regularNotes, reorderPinSection } from './pin-order';
-import { notes } from './data';
+import { notes, groups } from './data';
 import { applySampleEdit, localizeSampleNote } from './sample-notes';
 
 describe('pin sections', () => {
+  it('starts Inbox pinned and lets trays reorder within either section', () => {
+    expect(groups.find(group => group.id === 'inbox')?.isPinned).toBe(true);
+    const trays = [{ id: 'inbox', isPinned: false }, { id: 'work', isPinned: true }, { id: 'personal', isPinned: false }];
+    expect(reorderPinSection(trays, 'inbox', 'personal').map(group => group.id)).toEqual(['personal', 'work', 'inbox']);
+    expect(reorderPinSection(trays, 'inbox', 'work')).toBe(trays);
+    expect(trays[0].id).toBe('inbox');
+  });
   it('starts Welcome and Quick Reference pinned but editable', () => {
     for (const id of ['note-1', 'note-2']) {
       expect(notes.find(note => note.id === id)).toMatchObject({ isPinned: true, isProtected: false });

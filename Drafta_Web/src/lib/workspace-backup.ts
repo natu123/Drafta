@@ -158,15 +158,14 @@ function validate(value: unknown): asserts value is WorkspaceBackup {
   requireValue(['manual', 'newest', 'oldest', 'last-accessed'].includes(settings.noteSort as string), 'settings.noteSort', 'Unknown sort');
   const groups = new Map<string, RecordValue>();
   data.groups.forEach((raw, index) => {
-    const path = `groups[${index}]`;const group = record(raw, path, ['id', 'name', 'type', 'isDeleted']);
+    const path = `groups[${index}]`;const group = record(raw, path, ['id', 'name', 'type', 'isDeleted', 'isPinned']);
+    if (group.isPinned !== undefined) requireValue(typeof group.isPinned === 'boolean', `${path}.isPinned`, 'Expected a boolean');
     id(group.id, `${path}.id`);string(group.name, `${path}.name`, 10000);
     requireValue(!groups.has(group.id), path, 'Duplicate group ID');
     requireValue(group.type === undefined || group.type === 'group' || group.type === 'separator', path, 'Unknown group type');
     if (group.isDeleted !== undefined) requireValue(typeof group.isDeleted === 'boolean', path, 'Invalid deletion state');
     groups.set(group.id, group);
   });
-  const inbox = groups.get('inbox');
-  requireValue(inbox && inbox.type !== 'separator' && !inbox.isDeleted, 'groups', 'An active Inbox is required by the current app');
   const notes = new Map<string, RecordValue>();
   const budget = { nodes: 0, tableSlots: 0 };
   const samples: Record<string, string> = { 'note-1': 'welcome', 'note-2': 'reference', 'note-3': 'brainstorm', 'note-4': 'groceries', 'note-5': 'meeting', 'note-6': 'todo', 'note-7': 'todo', 'note-8': 'todo', 'note-9': 'todo' };

@@ -27,7 +27,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
 import { DndContext, closestCenter, KeyboardSensor, MouseSensor, TouchSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
@@ -313,6 +313,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
 
 // Sortable Group Item Component for Left Sidebar
 interface SortableGroupItemProps {
+  onTogglePin: (id: string) => void;
   onRename: (id: string, name: string) => void;
   rawName: string;
   group: Group;
@@ -323,7 +324,7 @@ interface SortableGroupItemProps {
 }
 
 const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
-  group, activeGroupId, hasNotes, onSelect, onDelete, onRename, rawName
+  group, activeGroupId, hasNotes, onSelect, onDelete, onRename, rawName, onTogglePin
 }) => {
   const { t } = useLang();
   const [editingName, setEditingName] = React.useState(false);
@@ -336,7 +337,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
     isDragging,
   } = useSortable({
     id: group.id,
-    disabled: group.id === 'inbox' || editingName, // Inbox cannot be dragged
+    disabled: editingName,
   });
 
   // dnd-kit標準のtransform使用（モディファイアで軸制限）
@@ -383,15 +384,11 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
       className="tray-row relative group/list w-full"
     >
       {editingName ? <InlineNameEditor initialValue={rawName} label={t.renameTray} placeholder={t.untitledTray} confirmLabel={t.renameTray}
-        onConfirm={value => { onRename(group.id, value); setEditingName(false); }} onCancel={() => setEditingName(false)} /> : <div {...(group.id !== 'inbox' ? { ...attributes, ...listeners } : {})}>
+        onConfirm={value => { onRename(group.id, value); setEditingName(false); }} onCancel={() => setEditingName(false)} /> : <div {...attributes} {...listeners}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-2 h-9 pr-10",
-            group.id === 'inbox' ?
-              cn(
-                activeGroupId === group.id ? "bg-primary/15 text-foreground font-medium hover:bg-primary/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
-              ) :
+            "w-full justify-start gap-2 h-9 pr-16",
               activeGroupId === group.id
                 ? cn(
                   "bg-primary/15 hover:bg-primary/20",
@@ -407,7 +404,10 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
       </div>
 
       }
-      {!editingName && group.id !== 'inbox' && <div className="absolute right-1 top-1/2 -translate-y-1/2"><TrayMenu label={`${t.tray}: ${group.name}`} onRename={() => setEditingName(true)} onDelete={() => onDelete(group.id)} /></div>}
+      {!editingName && <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+        <Button variant="ghost" size="icon" className={cn('size-7', group.isPinned && 'text-[#C49547]')} aria-label={`${group.isPinned ? t.unpinTray : t.pinTray}: ${group.name}`} aria-pressed={Boolean(group.isPinned)} onPointerDown={event => event.stopPropagation()} onClick={() => onTogglePin(group.id)}><Pin className={group.isPinned ? 'fill-current' : ''} /></Button>
+        <TrayMenu label={`${t.tray}: ${group.name}`} onRename={() => setEditingName(true)} onDelete={() => onDelete(group.id)} />
+      </div>}
     </div>
   );
 };
@@ -524,8 +524,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                     <DropdownMenuSubTrigger>{t.moveTo}</DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onSelect={() => onBulkMove('inbox')}>{t.inbox}</DropdownMenuItem>
-                        {groups.filter(g => g.id !== 'inbox' && !g.isDeleted).map(g => (
+                        {groups.filter(g => g.type !== 'separator' && !g.isDeleted).map(g => (
                           <DropdownMenuItem key={g.id} onSelect={() => onBulkMove(g.id)}>{g.name}</DropdownMenuItem>
                         ))}
                       </DropdownMenuSubContent>
@@ -765,6 +764,7 @@ export default function Home() {
 
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
+  const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
   const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('top');
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
@@ -930,7 +930,6 @@ export default function Home() {
 
   const handleGroupDragStart = (event: DragStartEvent) => {
     const id = event.active.id as string;
-    if (id === 'inbox') return; // Inbox cannot be dragged
     setActiveDragGroupId(id);
   };
 
@@ -939,16 +938,8 @@ export default function Home() {
     setActiveDragGroupId(null);
 
     if (!over || active.id === over.id) return;
-    if (active.id === 'inbox') return; // Inbox cannot be moved
 
-    setGroups(prev => {
-      const oldIndex = prev.findIndex(g => g.id === active.id);
-      const newIndex = prev.findIndex(g => g.id === over.id);
-
-      if (oldIndex === -1 || newIndex === -1) return prev;
-
-      return arrayMove(prev, oldIndex, newIndex);
-    });
+    setGroups(prev => reorderPinSection(prev, String(active.id), String(over.id)));
   };
 
   const activeDragGroup = activeDragGroupId ? groups.find(g => g.id === activeDragGroupId) : null;
@@ -1045,6 +1036,7 @@ export default function Home() {
   };
 
   const handleAddSeparator = () => {
+    if (!groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator')) return;
     const newSeparator: Note = {
       id: `sep-${Date.now()}`,
       type: 'separator',
@@ -1072,6 +1064,7 @@ export default function Home() {
   };
 
   const handleQuickCreateNote = (title: string) => {
+    if (!groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator')) return;
     const newNote: Note = {
       id: `note-${crypto.randomUUID()}`,
       title,
@@ -1172,7 +1165,7 @@ export default function Home() {
       // If there's an active group, insert after it
       // Note: activeGroupId could be 'inbox', 'trash' etc. We only insert relative to actual groups in the array
       // But typically we want to insert after the *selected* one if it exists in the list.
-      if (activeGroupId && activeGroupId !== 'inbox' && activeGroupId !== 'starred' && activeGroupId !== 'trash') {
+      if (activeGroupId && activeGroupId !== 'restore') {
         const index = prev.findIndex(g => g.id === activeGroupId);
         if (index !== -1) {
           const newGroups = [...prev];
@@ -1186,23 +1179,16 @@ export default function Home() {
   const handleCreateGroup = (name: string) => {
     const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name, type: 'group' };
     setGroups(prev => [...prev, newGroup]);
+    if (!groups.some(group => !group.isDeleted && group.type !== 'separator')) setActiveGroupId(newGroup.id);
   };
 
   const filteredGroups = React.useMemo(() => {
-    const items = groups.filter(g => !g.isDeleted);
-
-    // Separate Inbox from other groups
-    const inbox = items.find(g => g.id === 'inbox');
-    const others = items.filter(g => g.id !== 'inbox');
-
-    // Always keep Inbox at top
-    return inbox ? [inbox, ...others] : others;
+    return groups.filter(g => !g.isDeleted);
   }, [groups]);
 
   const handleDeleteGroup = (id: string) => {
-    if (id === 'inbox') return;
     setGroups(prev => prev.map(g => g.id === id ? { ...g, isDeleted: true } : g));
-    if (activeGroupId === id) setActiveGroupId('inbox');
+    if (activeGroupId === id) setActiveGroupId(groups.find(group => group.id !== id && !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
   };
   const handleRestoreGroup = (id: string) => setGroups(prev => prev.map(g => g.id === id ? { ...g, isDeleted: false } : g));
   const handlePermanentDeleteGroup = (id: string) => {
@@ -1312,25 +1298,6 @@ export default function Home() {
                 <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
               </div>
 
-              {/* Inbox - fixed at top, outside ScrollArea */}
-              <div className="px-4 pt-2 shrink-0">
-                {filteredGroups.filter(g => g.id === 'inbox').map(group => (
-                  <div key={group.id} className="relative group/list w-full">
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start gap-2 h-9 pr-8",
-                        activeGroupId === group.id ? "bg-primary/15 text-foreground font-medium hover:bg-primary/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
-                      )}
-                      onClick={() => handleGroupSelect(group.id)}
-                    >
-                      <Inbox className="w-4 h-4" />
-                      <span className="truncate">{group.name}</span>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
               <ScrollArea className="flex-1 px-4">
                 <div className="w-full max-w-full overflow-hidden">
                   <DndContext
@@ -1343,13 +1310,18 @@ export default function Home() {
                     onDragCancel={() => setActiveDragGroupId(null)}
                   >
                     <div className="flex flex-col gap-0 pb-2">
-                      {/* Other groups - sortable */}
                       <div ref={groupSortableAreaRef}>
+                        {[true, false].map(pinned => {
+                          const section = filteredGroups.filter(group => Boolean(group.isPinned) === pinned);
+                          if (!section.length) return null;
+                          return <React.Fragment key={String(pinned)}>
+                          {pinned && <Button variant="ghost" className="pinned-summary w-full justify-start h-9" aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
+                          {!(pinned && trayPinsCollapsed) && <div id={pinned ? 'pinned-trays' : undefined}>
                         <SortableContext
-                          items={filteredGroups.filter(g => g.id !== 'inbox').map(g => g.id)}
+                          items={section.map(g => g.id)}
                           strategy={verticalListSortingStrategy}
                         >
-                          {filteredGroups.filter(g => g.id !== 'inbox').map(group => {
+                          {section.map(group => {
                             const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
                             return (
                               <SortableGroupItem
@@ -1359,12 +1331,16 @@ export default function Home() {
                                 hasNotes={hasNotes}
                                 onSelect={handleGroupSelect}
                                 onDelete={handleDeleteGroup}
+                                onTogglePin={id => setGroups(prev => prev.map(item => item.id === id ? { ...item, isPinned: !item.isPinned } : item))}
                                 rawName={sourceGroups.find(item => item.id === group.id)?.name ?? ''}
                                 onRename={(id, name) => setGroups(prev => prev.map(item => item.id === id ? { ...item, name } : item))}
                               />
                             );
                           })}
                         </SortableContext>
+                          </div>}
+                          </React.Fragment>;
+                        })}
                       </div>
 
                       <div className="pt-2 mt-2 border-t">
@@ -1447,7 +1423,7 @@ export default function Home() {
               onAddSeparator={handleAddSeparator}
               onQuickAdd={handleQuickCreateNote}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
-              onRenameTray={activeGroupId !== 'inbox' && activeGroupId !== 'restore' ? (name) => {
+              onRenameTray={activeGroupId !== 'restore' ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
               } : undefined}
               onIconChange={handleIconChange}

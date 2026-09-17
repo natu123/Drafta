@@ -15,6 +15,18 @@ const rejected = (mutate: (backup: WorkspaceBackup) => void, message?: string) =
 };
 
 describe('workspace backup', () => {
+  it('preserves tray pins and permits deleted or absent Inbox and empty workspaces', () => {
+    const backup = fresh();
+    backup.groups[0].isDeleted = true;
+    expect(parseWorkspaceBackup(JSON.stringify(backup)).groups[0]).toMatchObject({ isDeleted: true, isPinned: true });
+    delete backup.groups[0].isPinned;
+    expect(parseWorkspaceBackup(JSON.stringify(backup)).groups[0].isPinned).toBeUndefined();
+    backup.notes = backup.notes.filter(note => note.group !== 'inbox');
+    backup.groups = backup.groups.filter(group => group.id !== 'inbox');
+    expect(parseWorkspaceBackup(JSON.stringify(backup))).toEqual(backup);
+    backup.notes = []; backup.groups = [];
+    expect(parseWorkspaceBackup(JSON.stringify(backup))).toEqual(backup);
+  });
   it.each(LANGS)('round-trips the entire sample workspace in %s', language => {
     const source = { notes: notes.map(note => localizeSampleNote(note, language, 'Ctrl')), groups, settings: { ...settings, language } };
     const before = JSON.stringify(source);
@@ -82,7 +94,7 @@ describe('workspace backup', () => {
     rejected(value => { value.notes[2].sampleKey = 'welcome'; }, 'sample');
     rejected(value => { value.notes[2].parentId = 'missing'; }, 'parent note');
     rejected(value => { value.notes[2].parentId = 'note-5'; }, 'Cyclic');
-    rejected(value => { value.groups[0].isDeleted = true; }, 'Inbox');
+    rejected(value => { Object.assign(value.groups[0], { isPinned: 'true' }); }, 'boolean');
   });
 
   it.each(['javascript:alert(1)', 'data:text/html,test', 'vbscript:test', ' javaScript:alert(1)', 'https://user:pass@example.com/'])('rejects unsafe link URL %s', href => {

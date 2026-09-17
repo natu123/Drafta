@@ -2,7 +2,7 @@
 import type { Note, Group } from './types';
 
 export const groups: Group[] = [
-  { id: 'inbox', name: 'Inbox' },
+  { id: 'inbox', name: 'Inbox', isPinned: true },
   { id: 'todo', name: 'ToDo' },
   { id: 'work', name: 'Work' },
   { id: 'personal', name: 'Personal' },

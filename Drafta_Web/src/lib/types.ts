@@ -22,6 +22,7 @@ export type Note = {
 
 export type Group = {
   id: string;
+  isPinned?: boolean;
   type?: 'group' | 'separator';
   name: string;
   isDeleted?: boolean;
