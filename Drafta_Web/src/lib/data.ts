@@ -39,6 +39,7 @@ console.log(drafta);</code></pre><p></p><h4>Tables</h4><table><tbody><tr><th><p>
     plainTextContent: `Drafta supports standard Markdown syntax and powerful rich text features. Text Styling Bold Italic Strikethrough Inline Code Color Tags Green Blue Purple Rose Gold Grey Lists & Structure Bullet List Item A Item B Numbered List Define your goal Break it into steps Execute daily Review & iterate Task List Todo item Done item Quote Advanced Code Blocks Tables Feature Status Markdown Done Rich Text Done Drafta Power Tips List Style Organization Focus Mode Shortcuts`,
     group: 'inbox',
     stars: 2,
+    isPinned: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     lastAccessedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),

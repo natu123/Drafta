@@ -4,6 +4,11 @@ import { notes } from './data';
 import { applySampleEdit, localizeSampleNote } from './sample-notes';
 
 describe('pin sections', () => {
+  it('starts Welcome and Quick Reference pinned but editable', () => {
+    for (const id of ['note-1', 'note-2']) {
+      expect(notes.find(note => note.id === id)).toMatchObject({ isPinned: true, isProtected: false });
+    }
+  });
   const items = ['a', 'b', 'c', 'd'].map((id, i) => ({ ...notes[0], id, isPinned: i % 2 === 0 }));
   it('partitions without changing stored order', () => {
     expect(pinnedNotes(items).map(n => n.id)).toEqual(['a', 'c']);
