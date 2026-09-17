@@ -210,7 +210,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         className={cn(
           "memo-drag-target flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
           activeId === item.id && !isSelectionMode
-            ? "bg-[#E7A1B0]/10 border-[#E7A1B0]/50 shadow-sm"
+            ? "bg-primary/10 border-primary/50 shadow-sm"
             : item.isProtected
               ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
               : "bg-card border-border/60 hover:border-primary/30",
@@ -383,11 +383,11 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
             "w-full justify-start gap-2 h-9 pr-10",
             group.id === 'inbox' ?
               cn(
-                activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
+                activeGroupId === group.id ? "bg-primary/15 text-foreground font-medium hover:bg-primary/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
               ) :
               activeGroupId === group.id
                 ? cn(
-                  "bg-[#E7A1B0]/15 hover:bg-[#E7A1B0]/20",
+                  "bg-primary/15 hover:bg-primary/20",
                   hasNotes ? "text-foreground font-medium" : "text-muted-foreground font-normal opacity-70"
                 )
                 : (!hasNotes && "text-muted-foreground font-normal opacity-70 hover:text-muted-foreground hover:opacity-70")
@@ -621,7 +621,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         className={cn(
                           "flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
                           activeId === item.id && !isSelectionMode
-                            ? "bg-[#E7A1B0]/10 border-[#E7A1B0]/50 shadow-sm"
+                            ? "bg-primary/10 border-primary/50 shadow-sm"
                             : "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
                         )}
                         onClick={() => onItemSelect(item.id, itemType)}
@@ -999,6 +999,11 @@ export default function Home() {
 
 
   const activeNote = activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
+  React.useEffect(() => {
+    document.title = activeNote && !activeNote.isDeleted
+      ? `${stripColorMarkdown(activeNote.title) || appT.untitledMemo} - Drafta`
+      : 'Drafta';
+  }, [activeNote?.id, activeNote?.title, activeNote?.isDeleted, appT.untitledMemo]);
 
   const openTabDetails = React.useMemo(() => {
     return openTabs
@@ -1358,7 +1363,7 @@ export default function Home() {
                       variant="ghost"
                       className={cn(
                         "w-full justify-start gap-2 h-9 pr-8",
-                        activeGroupId === group.id ? "bg-[#E7A1B0]/15 text-foreground font-medium hover:bg-[#E7A1B0]/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
+                        activeGroupId === group.id ? "bg-primary/15 text-foreground font-medium hover:bg-primary/20" : "bg-[#64A364]/10 text-foreground hover:bg-[#64A364]/15"
                       )}
                       onClick={() => handleGroupSelect(group.id)}
                     >
