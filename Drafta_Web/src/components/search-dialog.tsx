@@ -148,6 +148,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
                           </p>
                         )}
                       </div>
+                      <time className="search-result-date text-xs text-muted-foreground whitespace-nowrap shrink-0" dateTime={note.updatedAt}>{new Date(note.updatedAt).toLocaleDateString()}</time>
                     </button>
                   ))}
                 </div>
