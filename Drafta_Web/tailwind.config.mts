@@ -1,9 +1,10 @@
 import type { Config } from 'tailwindcss';
+// Explicit ESM keeps Node's config loading deterministic.
 import typography from '@tailwindcss/typography';
 import tailwindcssAnimate from 'tailwindcss-animate';
 
 export default {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',

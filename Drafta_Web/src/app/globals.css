@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.mts";
 
 @media (hover: hover) and (pointer: fine) {
   .tray-menu-trigger { opacity: 0; }
@@ -152,7 +151,7 @@
 }
 
 .ProseMirror.drafta-editor.ProseMirror-focused {
-    @apply outline-none;
+    @apply outline-hidden;
 }
 
 /* Placeholder style - Title H1 (first-child) only */

@@ -216,7 +216,7 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
         className={cn(
           "memo-drag-target flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
           activeId === item.id && !isSelectionMode
-            ? "bg-primary/10 border-primary/50 shadow-sm"
+            ? "bg-primary/10 border-primary/50 shadow-xs"
             : item.isProtected
               ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
               : "bg-card border-border/60 hover:border-primary/30",
@@ -503,7 +503,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
           <Icon className="w-5 h-5 text-primary" />
           {onRenameTray && isRenamingTray ? <InlineNameEditor label={t.renameTray} initialValue={trayNameValue ?? ''} placeholder={t.untitledTray} confirmLabel={t.renameTray}
             onConfirm={value => { onRenameTray(value); setIsRenamingTray(false); }} onCancel={() => setIsRenamingTray(false)} /> : onRenameTray ? (
-            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => setIsRenamingTray(true)}>
+            <button className="flex min-w-0 items-center gap-1 rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" aria-label={t.renameTray} onClick={() => setIsRenamingTray(true)}>
               <span className="truncate">{title}</span><Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
             </button>
           ) : <span className="truncate">{title}</span>}

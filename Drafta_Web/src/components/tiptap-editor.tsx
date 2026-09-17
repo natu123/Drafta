@@ -319,7 +319,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     },
     editorProps: {
       attributes: {
-        class: 'drafta-editor max-w-none focus:outline-none min-h-[calc(100vh-150px)]',
+        class: 'drafta-editor max-w-none focus:outline-hidden min-h-[calc(100vh-150px)]',
       },
       clipboardTextSerializer: (slice, view) => {
         try {
