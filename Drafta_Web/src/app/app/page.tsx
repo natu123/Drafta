@@ -1003,7 +1003,7 @@ export default function Home() {
     document.title = activeNote && !activeNote.isDeleted
       ? `${stripColorMarkdown(activeNote.title) || appT.untitledMemo} - Drafta`
       : 'Drafta';
-  }, [activeNote?.id, activeNote?.title, activeNote?.isDeleted, appT.untitledMemo]);
+  }, [activeNote, appT.untitledMemo]);
 
   const openTabDetails = React.useMemo(() => {
     return openTabs
