@@ -22,7 +22,7 @@ interface SearchDialogProps {
   onGroupSelect: (id: string) => void;
 }
 
-const SearchDialog: React.FC<SearchDialogProps> = ({
+const SearchDialogContent: React.FC<SearchDialogProps> = ({
   open,
   onOpenChange,
   notes,
@@ -35,10 +35,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (open) {
-      setSearchTerm('');
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
+    if (!open) return;
+    const focusTimer = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(focusTimer);
   }, [open]);
 
   const filteredNotes = React.useMemo(() => {
@@ -161,4 +160,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
   );
 };
 
-export default SearchDialog;
+export default function SearchDialog(props: SearchDialogProps) {
+  return props.open ? <SearchDialogContent {...props} /> : null;
+}

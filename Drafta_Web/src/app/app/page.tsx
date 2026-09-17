@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useLang } from '@/contexts/lang-context';
+import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
 import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown } from 'lucide-react';
 import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -431,6 +432,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   // SortableContext範囲内に制限するカスタムモディファイア
   const restrictToSortableArea = React.useMemo(
+    // The factory only reads this ref later, inside dnd-kit's drag callback.
+    // eslint-disable-next-line react-hooks/refs
     () => createRestrictToSortableArea(sortableAreaRef),
     []
   );
@@ -740,16 +743,11 @@ export default function Home() {
 
   // Preserve the former newest-first sample display as the initial manual order.
   const [sourceNotes, setNotes] = React.useState<Note[]>(() => [...initialNotes].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
-  const [modKey, setModKey] = React.useState<'Cmd' | 'Ctrl'>('Ctrl');
+  const modKey = useShortcutMod();
   const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
   const [sourceGroups, setGroups] = React.useState<Group[]>(initialGroups);
   const groups = React.useMemo(() => sourceGroups.map(group => localizeUntitledGroup(group, appT.untitledTray)), [sourceGroups, appT.untitledTray]);
 
-  // Sample rendering is separate from user-authored note data.
-  React.useEffect(() => {
-    const isMac = typeof navigator !== 'undefined' ? /Mac|iPod|iPhone|iPad/.test(navigator.platform) : false;
-    setModKey(isMac ? 'Cmd' : 'Ctrl');
-  }, []);
 
   // Initialize with 'Welcome to Drafta' note (note-1)
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
@@ -907,12 +905,14 @@ export default function Home() {
 
   // Group DnD State (dnd-kit)
   const [activeDragGroupId, setActiveDragGroupId] = React.useState<string | null>(null);
-  const [groupOverlayContainer, setGroupOverlayContainer] = React.useState<HTMLElement | null>(null);
-  React.useEffect(() => setGroupOverlayContainer(document.body), []);
+  const clientReady = useClientReady();
+  const groupOverlayContainer = clientReady ? document.body : null;
   const groupSortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // SortableContext範囲内に制限するカスタムモディファイア（グループ用）
   const restrictToGroupSortableArea = React.useMemo(
+    // The factory only reads this ref later, inside dnd-kit's drag callback.
+    // eslint-disable-next-line react-hooks/refs
     () => createRestrictToSortableArea(groupSortableAreaRef),
     []
   );

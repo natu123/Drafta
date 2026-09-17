@@ -147,6 +147,10 @@
 
 /* Tiptap styles - No min-height restriction to let content flow naturally */
 
+.ProseMirror.drafta-editor {
+    white-space: pre-wrap;
+}
+
 .ProseMirror.drafta-editor.ProseMirror-focused {
     @apply outline-none;
 }

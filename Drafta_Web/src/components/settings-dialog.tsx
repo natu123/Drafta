@@ -12,6 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useLang } from '@/contexts/lang-context';
+import { useClientReady } from '@/hooks/use-client-ready';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -24,8 +25,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
   const { theme, setTheme } = useTheme();
   const { t } = useLang();
 
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useClientReady();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

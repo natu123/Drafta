@@ -21,6 +21,7 @@ import { RichMarkdownInputRules } from './tiptap-extensions/rich-markdown-input-
 import { SlashCommandMenu } from './slash-command-menu';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
+import { useShortcutMod } from '@/hooks/use-client-ready';
 import { emojis } from './editor-options';
 
 interface TiptapEditorProps {
@@ -48,13 +49,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
-  const [shortcutMod, setShortcutMod] = React.useState('Ctrl');
+  const shortcutMod = useShortcutMod();
   const [findOpen, setFindOpen] = React.useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = React.useState(false);
   const mobileToolsId = React.useId();
-  React.useEffect(() => {
-    setShortcutMod(/Mac|iPod|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl');
-  }, []);
   // Build colors array with theme-appropriate default color
   const colors = React.useMemo(() => {
     const defaultColor = isDarkMode ? darkModeDefaultColor : lightModeDefaultColor;
@@ -66,6 +64,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   const extensions = React.useMemo(() => [
     ...documentExtensions,
     NoteSearch,
+    // TipTap stores this callback and evaluates it during input events, not render.
+    // eslint-disable-next-line react-hooks/refs
     RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
     Placeholder.configure({
       placeholder: ({ node }) => {

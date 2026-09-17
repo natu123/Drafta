@@ -53,6 +53,8 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
 
     const preferences = navigator.languages?.length ? navigator.languages : [navigator.language];
     const initialLang = isLang(storedLang) ? storedLang : detectBrowserLanguage(preferences);
+    // The server cannot read browser storage. Apply the initial locale before paint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLangState(initialLang);
     syncDocumentLanguage(initialLang);
   }, []);
