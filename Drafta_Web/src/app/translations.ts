@@ -169,7 +169,7 @@ export const appTranslations: Record<Lang, AppT> = {
     unpinTray: 'Unpin tray',
     pinnedTrays: 'Pinned trays',
     unpinMemo: 'Unpin memo',
-    pinnedMemos: 'Pinned',
+    pinnedMemos: 'Pinned memos',
     untitledMemo: 'Untitled Memo',
     formatBold: "Bold",
     formatItalic: "Italic",
