@@ -405,8 +405,8 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
 
       }
       {!editingName && <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
-        <Button variant="ghost" size="icon" className={cn('size-7', group.isPinned && 'text-[#C49547]')} aria-label={`${group.isPinned ? t.unpinTray : t.pinTray}: ${group.name}`} aria-pressed={Boolean(group.isPinned)} onPointerDown={event => event.stopPropagation()} onClick={() => onTogglePin(group.id)}><Pin className={group.isPinned ? 'fill-current' : ''} /></Button>
         <TrayMenu label={`${t.tray}: ${group.name}`} onRename={() => setEditingName(true)} onDelete={() => onDelete(group.id)} />
+        <Button variant="ghost" size="icon" className={cn('size-7', group.isPinned && 'text-[#C49547]')} aria-label={`${group.isPinned ? t.unpinTray : t.pinTray}: ${group.name}`} aria-pressed={Boolean(group.isPinned)} onPointerDown={event => event.stopPropagation()} onClick={() => onTogglePin(group.id)}><Pin className={group.isPinned ? 'fill-current' : ''} /></Button>
       </div>}
     </div>
   );
