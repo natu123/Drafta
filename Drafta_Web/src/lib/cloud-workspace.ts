@@ -1,4 +1,4 @@
-import { collection, doc, getDocFromServer, getDocsFromServer, limit, query, runTransaction, serverTimestamp, type Firestore } from 'firebase/firestore';
+import { collection, doc, getDocFromServer, getDocsFromServer, limit, query, runTransaction, serverTimestamp, startAfter, type Firestore } from 'firebase/firestore';
 import { BACKUP_LIMITS, parseWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
 
 export class WorkspaceConflictError extends Error {
@@ -44,9 +44,13 @@ export function cloudWorkspace(db: Firestore, uid: string) {
           !Array.isArray(metadata.noteOrder) || metadata.noteOrder.length > BACKUP_LIMITS.notes ||
           metadata.noteOrder.some((id: unknown) => typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) ||
           new Set(metadata.noteOrder).size !== metadata.noteOrder.length) throw new WorkspaceStorageError('Invalid note order');
-      const records = await getDocsFromServer(query(notesCollection, limit(BACKUP_LIMITS.notes + 1)));
+      const records = await getDocsFromServer(query(notesCollection, limit(BACKUP_LIMITS.notes)));
+      // Production caps a query at 10,000. Probe overflow in a separate page.
+      const overflow = records.size === BACKUP_LIMITS.notes
+        ? await getDocsFromServer(query(notesCollection, startAfter(records.docs[records.size - 1]), limit(1))) : null;
       const finish = await getDocFromServer(root);
       if (!finish.exists() || revisionOf(finish.data()) !== revision) continue;
+      if (overflow && !overflow.empty) throw new WorkspaceStorageError('Workspace has too many memos');
       if (records.size !== metadata.noteOrder.length) throw new WorkspaceStorageError('Incomplete server workspace');
       let total = bytes(text);
       const notes = new Map(records.docs.map(record => {

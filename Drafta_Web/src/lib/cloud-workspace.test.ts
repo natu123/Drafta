@@ -1,9 +1,18 @@
 import { readFileSync } from 'node:fs';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { cloudWorkspace, WorkspaceConflictError } from './cloud-workspace';
 import type { WorkspaceBackup } from './workspace-backup';
+
+// The local emulator does not enforce this production query constraint.
+vi.mock('firebase/firestore', async importOriginal => {
+  const actual = await importOriginal<typeof import('firebase/firestore')>();
+  return { ...actual, limit: (count: number) => {
+    if (count > 10000) throw new Error('Production query limit exceeded');
+    return actual.limit(count);
+  } };
+});
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (host && host !== '127.0.0.1:8080') throw new Error('Local emulator required');
