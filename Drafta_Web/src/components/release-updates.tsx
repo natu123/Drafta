@@ -19,7 +19,7 @@ export function ReleaseUpdates({ full = false }: { full?: boolean }) {
           <span className="text-sm text-muted-foreground">{t.preview}</span>
         </div>
         <p className="leading-relaxed">{t[release.copyKey]}</p>
-        <p className="text-sm text-muted-foreground">{t.warning}</p>
+        <p className="text-sm text-muted-foreground">{release.copyKey === 'release020' ? t.warning : t.legacyWarning}</p>
       </article>)}
       {full ? (
         <section aria-labelledby="implementation-history" className="flex flex-col gap-5">

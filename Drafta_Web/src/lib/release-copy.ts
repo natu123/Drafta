@@ -1,6 +1,9 @@
 import type { Lang } from '@/app/languages';
+import { persistenceReleaseCopy } from './persistence-release-copy';
 
 export interface ReleaseCopy {
+  release020: string;
+  legacyWarning: string;
   release011: string;
   historyRich: string;
   historyInput: string;
@@ -27,7 +30,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-export const releaseCopy: Record<Lang, ReleaseCopy> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'legacyWarning'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -315,3 +318,11 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "Direncanakan"
   }
 };
+
+export const releaseCopy = Object.fromEntries(
+  Object.entries(previousReleaseCopy).map(([language, previous]) => [language, {
+    ...previous,
+    legacyWarning: previous.warning,
+    ...persistenceReleaseCopy[language as Lang],
+  }]),
+) as Record<Lang, ReleaseCopy>;
