@@ -152,8 +152,9 @@ UI 状態カラー:
 - H3: text-lg
 
 ## Project Documentation
+- 現状・今後の方針・次の作業は `specs/02_development_plan.md` を正本とし、作業の節目にこの順で報告する。保存・運用の詳細は `specs/05_service_launch_plan.md` を参照する。未実装の計画を完了扱いしない。
 - `specs/01_tech_stack.md` - 技術スタック（Firebase, Expo, Tauri）
-- `specs/02_development_plan.md` - 開発フェーズ（Phase 1-5）
+- `specs/02_development_plan.md` - 承認済みロードマップ・現状・次の作業
 - `specs/03_specification.md` - 詳細仕様（プラン、同期、データ設計）
 ※ 詳細が必要になったら、specsをロードする。
 
