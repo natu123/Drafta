@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
-import type { WorkspaceState } from '@/lib/workspace-state';
+import type { WorkspaceState, WorkspaceUpdate } from '@/lib/workspace-state';
 
 export type WorkspaceViewProps = {
+  remoteUpdate?: WorkspaceUpdate;
   initialState?: WorkspaceState;
   accountMenu?: React.ReactNode;
   onWorkspaceChange?: (state: WorkspaceState) => void;
@@ -751,7 +752,7 @@ export default function Page() {
     ? <CloudSession Workspace={Home} /> : <Home />;
 }
 
-function Home({ initialState, accountMenu, onWorkspaceChange }: WorkspaceViewProps) {
+function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
 
@@ -782,9 +783,35 @@ function Home({ initialState, accountMenu, onWorkspaceChange }: WorkspaceViewPro
   const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
   const [activeGroupId, setActiveGroupId] = React.useState<string>(() => initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox');
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? 'top');
-  React.useEffect(() => {
+  const appliedRemote = React.useRef<WorkspaceUpdate | undefined>(undefined);
+  const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
+  const [editorSyncRevision, setEditorSyncRevision] = React.useState(0);
+  const [editorContinuity, setEditorContinuity] = React.useState<{ noteId: string; key: string } | null>(null);
+  /* eslint-disable react-hooks/set-state-in-effect -- Apply a validated external snapshot before paint without remounting the editor. */
+  React.useLayoutEffect(() => {
+    if (remoteUpdate && appliedRemote.current !== remoteUpdate) {
+      appliedRemote.current = remoteUpdate;
+      const next = remoteUpdate.state;
+      const copy = remoteUpdate.copies.find(item => item.originalId === activeTabId);
+      const nextId = copy?.copyId ?? activeTabId;
+      const before = sourceNotes.find(note => note.id === activeTabId);
+      const after = next.notes.find(note => note.id === nextId && !note.isDeleted && next.groups.some(group => group.id === note.group && !group.isDeleted));
+      if (copy && activeTabId) {
+        setEditorContinuity(previous => ({ noteId: copy.copyId, key: previous?.noteId === activeTabId ? previous.key : activeTabId }));
+        setActiveTabId(copy.copyId);
+      } else if (activeTabId && !after) setActiveTabId(null);
+      const remap = (id: string) => remoteUpdate.copies.find(item => item.originalId === id)?.copyId ?? id;
+      const visibleIds = new Set(next.notes.filter(note => !note.isDeleted).map(note => note.id));
+      setOpenTabs(previous => previous.map(tab => ({ ...tab, id: remap(tab.id) })).filter(tab => visibleIds.has(tab.id)));
+      setSelectedNoteIds(previous => new Set([...previous].map(remap).filter(id => visibleIds.has(id))));
+      if (copy || before?.title !== after?.title || before?.content !== after?.content) setEditorSyncRevision(value => value + 1);
+      setNotes(next.notes); setGroups(next.groups); setScrollDirection(next.settings.listStyle);
+      setActiveGroupId(previous => after && before?.group === previous ? after.group : next.groups.some(group => group.id === previous && !group.isDeleted) ? previous : next.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
+      return;
+    }
     onWorkspaceChange?.({ notes: sourceNotes, groups: sourceGroups, settings: { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } });
-  }, [sourceNotes, sourceGroups, languagePreference, theme, scrollDirection, onWorkspaceChange]);
+  }, [sourceNotes, sourceGroups, languagePreference, theme, scrollDirection, onWorkspaceChange, remoteUpdate, activeTabId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
     setScrollDirection(direction);
   };
@@ -859,7 +886,6 @@ function Home({ initialState, accountMenu, onWorkspaceChange }: WorkspaceViewPro
 
   // Selection Mode State
   const [isSelectionMode, setIsSelectionMode] = React.useState(false);
-  const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
 
   // Permanent Delete Confirmation State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
@@ -1477,6 +1503,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange }: WorkspaceViewPro
           >
             {activeNote ? (
               <Editor
+                externalRevision={editorSyncRevision}
+                continuityKey={editorContinuity?.noteId === activeNote.id ? editorContinuity.key : undefined}
                 note={activeNote}
                 onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
                   handleDeleteNote(activeNote.id);

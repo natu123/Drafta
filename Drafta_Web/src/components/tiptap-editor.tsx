@@ -25,6 +25,7 @@ import { useShortcutMod } from '@/hooks/use-client-ready';
 import { emojis } from './editor-options';
 
 interface TiptapEditorProps {
+  externalRevision?: number;
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (icon: string) => void;
@@ -45,7 +46,7 @@ const baseColors = [
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, externalRevision = 0 }) => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
@@ -387,9 +388,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   }, [editor, note.isProtected]);
 
   // Scroll based on scrollDirection (on mount and note switch)
+  const previousExternalRevision = React.useRef(externalRevision);
   React.useEffect(() => {
+    if (previousExternalRevision.current !== externalRevision) return;
     // Use setTimeout to ensure content is rendered
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (scrollContainerRef.current) {
         if (scrollDirection === 'bottom') {
           scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -398,23 +401,37 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         }
       }
     }, 50);
-  }, [scrollDirection, note.id]);
+    return () => clearTimeout(timer);
+  }, [scrollDirection, note.id, externalRevision]);
 
   // Sync external note changes (switching notes)
   const prevNoteIdRef = React.useRef(note.id);
   const prevSampleContentRef = React.useRef(note.content);
   const prevSampleTitleRef = React.useRef(note.title);
   React.useEffect(() => {
-    if (editor && (note.id !== prevNoteIdRef.current || (note.sampleKey && (note.content !== prevSampleContentRef.current || note.title !== prevSampleTitleRef.current)))) {
-      const newContent = getInitialContent(note.title, note.content);
+    const external = previousExternalRevision.current !== externalRevision;
+    if (editor && (external || note.id !== prevNoteIdRef.current || (note.sampleKey && (note.content !== prevSampleContentRef.current || note.title !== prevSampleTitleRef.current)))) {
+      const selection = editor.state.selection;
+      const scrollTop = scrollContainerRef.current?.scrollTop;
+      const oldTitleSize = editor.state.doc.firstChild?.nodeSize ?? 0;
+      const keepPlain = external && isPlainTextModeRef.current;
+      const body = keepPlain ? richToPlainMarkdown(note.content).split('\n').map(line => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '<br>'}</p>`).join('') : note.content;
+      const newContent = getInitialContent(note.title, body);
       editor.commands.setContent(newContent, { emitUpdate: false });
       contentRef.current = note.content;
-      setIsPlainTextMode(false);
+      if (!external) setIsPlainTextMode(false);
+      if (external) {
+        const delta = (editor.state.doc.firstChild?.nodeSize ?? 0) - oldTitleSize;
+        const position = (value: number) => Math.max(1, Math.min(editor.state.doc.content.size - 1, value + (value >= oldTitleSize ? delta : 0)));
+        editor.commands.setTextSelection({ from: position(selection.from), to: position(selection.to) });
+        if (scrollContainerRef.current && scrollTop !== undefined) scrollContainerRef.current.scrollTop = scrollTop;
+      }
+      previousExternalRevision.current = externalRevision;
       prevNoteIdRef.current = note.id;
       prevSampleContentRef.current = note.content;
       prevSampleTitleRef.current = note.title;
     }
-  }, [note.id, note.title, note.content, note.sampleKey, editor, getInitialContent]);
+  }, [note.id, note.title, note.content, note.sampleKey, editor, getInitialContent, externalRevision]);
 
   // Insert NEW ordered list (startFrom=1 で新規リスト)
   // toggleOrderedList は隣接リストをマージするので、直接ノードを操作

@@ -6,6 +6,8 @@ import TiptapEditor from './tiptap-editor';
 
 
 interface EditorProps {
+  externalRevision?: number;
+  continuityKey?: string;
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
   onIconChange: (id: string, icon: string) => void;
@@ -14,7 +16,7 @@ interface EditorProps {
   onDelete?: () => void;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete, externalRevision, continuityKey }) => {
 
   const handleContentUpdate = React.useCallback((updates: Partial<Note>) => {
     onNoteUpdate(updates);
@@ -28,7 +30,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
   return (
     <div className="flex flex-col h-full w-full">
       <TiptapEditor
-        key={note.id}
+        key={continuityKey ?? note.id}
+        externalRevision={externalRevision}
         note={note}
         onNoteUpdate={handleContentUpdate}
         onIconChange={handleIconSelect}

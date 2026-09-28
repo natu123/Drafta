@@ -4,6 +4,7 @@ import { editorDocumentToHtml } from './document-codec';
 import { BackupValidationError, parseWorkspaceBackup, serializeWorkspaceBackup, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
 
 export type WorkspaceState = { groups: Group[]; notes: Note[]; settings: BackupSettings };
+export type WorkspaceUpdate = { sequence: number; state: WorkspaceState; copies: { originalId: string; copyId: string }[] };
 
 function titleText(node: JSONContent): string {
   return (node.content ?? []).map(child => {
