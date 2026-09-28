@@ -50,6 +50,7 @@ export interface AppT {
   search: string;
   writingMode: string;
   editorTools: string;
+  colorPalette: string;
   homeMode: string;
   settings: string;
   // Sidebar
@@ -146,6 +147,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'Search',
     writingMode: 'Writing Mode',
     editorTools: 'Editing tools',
+    colorPalette: 'Color palette',
     homeMode: 'Home',
     settings: 'Settings',
     trays: 'Trays',
@@ -231,6 +233,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: '検索',
     writingMode: 'ライティングモード',
     editorTools: '編集ツール',
+    colorPalette: 'カラーパレット',
     homeMode: 'ホーム',
     settings: '設定',
     trays: 'トレイ',
@@ -316,6 +319,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: '搜索',
     writingMode: '写作模式',
     editorTools: '编辑工具',
+    colorPalette: '调色板',
     homeMode: '主页',
     settings: '设置',
     trays: '托盘',
@@ -401,6 +405,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'Buscar',
     writingMode: 'Modo escritura',
     editorTools: 'Herramientas de edición',
+    colorPalette: 'Paleta de colores',
     homeMode: 'Inicio',
     settings: 'Configuración',
     trays: 'Bandejas',
@@ -486,6 +491,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: '검색',
     writingMode: '쓰기 모드',
     editorTools: '편집 도구',
+    colorPalette: '색상 팔레트',
     homeMode: '홈',
     settings: '설정',
     trays: '트레이',
@@ -571,6 +577,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'Rechercher',
     writingMode: 'Mode écriture',
     editorTools: 'Outils d’édition',
+    colorPalette: 'Palette de couleurs',
     homeMode: 'Accueil',
     settings: 'Paramètres',
     trays: 'Bacs',
@@ -656,6 +663,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'Pesquisar',
     writingMode: 'Modo escrita',
     editorTools: 'Ferramentas de edição',
+    colorPalette: 'Paleta de cores',
     homeMode: 'Início',
     settings: 'Configurações',
     trays: 'Bandejas',
@@ -741,6 +749,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'खोजें',
     writingMode: 'लेखन मोड',
     editorTools: 'संपादन उपकरण',
+    colorPalette: 'रंग पैलेट',
     homeMode: 'होम',
     settings: 'सेटिंग्स',
     trays: 'ट्रे',
@@ -826,6 +835,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'بحث',
     writingMode: 'وضع الكتابة',
     editorTools: 'أدوات التحرير',
+    colorPalette: 'لوحة الألوان',
     homeMode: 'الرئيسية',
     settings: 'الإعدادات',
     trays: 'الأدراج',
@@ -911,6 +921,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'Поиск',
     writingMode: 'Режим письма',
     editorTools: 'Инструменты редактирования',
+    colorPalette: 'Цветовая палитра',
     homeMode: 'Главная',
     settings: 'Настройки',
     trays: 'Лотки',
@@ -996,6 +1007,7 @@ export const appTranslations: Record<Lang, AppT> = {
     search: 'Cari',
     writingMode: 'Mode penulisan',
     editorTools: 'Alat penyuntingan',
+    colorPalette: 'Palet warna',
     homeMode: 'Beranda',
     settings: 'Pengaturan',
     trays: 'Nampan',
