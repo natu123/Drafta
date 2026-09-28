@@ -9,6 +9,8 @@
 - 承認後にFirestore APIを有効化し, 本番の(default) DBをasia-northeast1 (東京)へ作成しました. STANDARD･FIRESTORE_NATIVE･freeTier=true･誤削除防止有効･PITR無効をCLIで確認しました. 所有者別ルールの本番公開も成功しました. HostingのDeployと課金設定変更は行っていません.
 - Firebase AuthenticationのGoogleプロバイダーを有効化しました. 公開名Draftaと承認済みのサポートメールを登録し, コンソールの「Google: 有効」を確認しました. メールアドレスは公開Repositoryへ転記していません. 実際のアプリでの本番ログイン･保存はまだ未検証です.
 - Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`を指定したローカル開発環境のみ画面から接続します. 未指定の公開版は従来のプレビューのままです.
+- 本番接続用のコードを追加しました. `NEXT_PUBLIC_FIREBASE_MODE=production`と`NEXT_PUBLIC_FIREBASE_PROJECT_ID`･`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`･`NEXT_PUBLIC_FIREBASE_APP_ID`･`NEXT_PUBLIC_FIREBASE_API_KEY`の全設定を明示した場合のみ接続します. 登録済みDraftaアプリと異なる設定を拒否し, Emulatorとは別インスタンスにします. 実際の本番モード起動とHostingのDeployは未実施です.
+- Authenticationの承認済みドメインにはlocalhost･標準Firebaseドメイン2件があります. 独自ドメインdrafta-memo.comは未登録で, OAuth許可リストへの追加確認待ちです.
 - ローカルのAuthentication･Firestoreエミュレーターで, 所有者分離等の4テストが成功しました. 実際のGoogleログインや本番での保存成功を意味しません.
 
 ## ローカル検証
