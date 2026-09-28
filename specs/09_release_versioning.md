@@ -17,6 +17,10 @@
 
 ## 公開時の確認
 
+### Version 0.2.1 (2026-09-28公開)
+
+ログイン失敗時のRetryとプレビュー保持, 画面内のログイン確認を修正しました. 本番接続Build後, 明示承認を得てHostingへDeployしました. 3ページのHTMLとJS/CSS 16件の一致, Chromeの公開アプリで再読み込み後の保存済み表示を確認しました. 課金設定は変更していません.
+
 ### Version 0.2.0 (2026-09-28公開)
 
 明示承認後に`firebase deploy --only hosting --project drafta-memo --non-interactive`が成功しました. 公開トップ･アプリ･更新履歴のHTTP 200とローカル生成HTMLの一致を確認しました. 公開アプリにAccountとGoogleログインの導線があります. 公開ドメインでの実認証完了は引き続き確認します.
