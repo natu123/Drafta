@@ -7,6 +7,8 @@ import { useLang } from '@/contexts/lang-context';
 import { getFirebaseClient, type FirebaseClient } from '@/lib/firebase-client';
 import { cloudWorkspace } from '@/lib/cloud-workspace';
 import { createWorkspaceBackup } from '@/lib/workspace-backup';
+import type { WorkspaceBackup } from '@/lib/workspace-backup';
+import { requiresImmediateSave } from '@/lib/workspace-change';
 import { workspaceToState, type WorkspaceState } from '@/lib/workspace-state';
 import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
 import { AccountMenu, type SaveStatus } from './account-menu';
@@ -27,6 +29,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const generation = React.useRef(0);
   const guest = React.useRef<WorkspaceState | undefined>(undefined);
   const lastState = React.useRef('');
+  const lastBackup = React.useRef<WorkspaceBackup | null>(null);
   const invalidState = React.useRef<WorkspaceState | null>(null);
   const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState } | null>(null);
   const [status, setStatus] = React.useState<SaveStatus>('loading');
@@ -49,8 +52,12 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       guest.current = undefined;
       if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
       lastState.current = seed ? stateFingerprint(seed) : '';
+      lastBackup.current = stored?.backup ?? null;
       queue.current = new WorkspaceSaveQueue(stored, repository.save, next => { if (id === generation.current) setStatus(invalidState.current ? 'error' : next); });
-      if (!stored && seed) queue.current.enqueue(createWorkspaceBackup(seed, document));
+      if (!stored && seed) {
+        lastBackup.current = createWorkspaceBackup(seed, document);
+        queue.current.enqueue(lastBackup.current, true);
+      }
       setStatus(stored ? 'saved' : 'pending');
       setSession({ key: id, user, seed });
     } catch {
@@ -100,7 +107,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     try {
       const backup = createWorkspaceBackup(state, document);
       invalidState.current = null;
-      queue.current?.enqueue(backup);
+      queue.current?.enqueue(backup, requiresImmediateSave(lastBackup.current, backup));
+      lastBackup.current = backup;
       lastState.current = fingerprint;
     } catch { invalidState.current = state; setStatus('error'); }
   }, [sessionKey, uid]);

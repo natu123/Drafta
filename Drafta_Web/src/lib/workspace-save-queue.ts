@@ -26,19 +26,24 @@ export class WorkspaceSaveQueue {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => { void this.flush(); }, delay);
   }
-  enqueue(value: WorkspaceBackup) {
+  enqueue(value: WorkspaceBackup, immediate = false) {
     if (this.disposed) return;
     // Detach from caller-owned state before any async boundary.
     this.pending = structuredClone(value);
     if (this.stopped) return;
     this.emit('pending');
-    this.schedule(800);
+    if (immediate) void this.flush();
+    else this.schedule(800);
   }
   flush(): Promise<void> {
     clearTimeout(this.timer);
     if (this.disposed || this.stopped) return Promise.resolve();
     if (this.running) return this.running;
-    this.running = this.drain().finally(() => { this.running = null; });
+    this.running = this.drain().finally(() => {
+      this.running = null;
+      // A blur may start an empty flush just before React enqueues a new edit.
+      if (this.pending && !this.disposed && !this.stopped && this.state === 'pending') this.schedule(0);
+    });
     return this.running;
   }
   private async drain() {

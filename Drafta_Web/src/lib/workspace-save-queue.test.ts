@@ -8,6 +8,16 @@ const saved = (backup: WorkspaceBackup, revision = 1): SavedWorkspace => ({ uid:
 afterEach(() => vi.useRealTimers());
 
 describe('workspace autosave queue', () => {
+  it('saves an immediate edit queued while an empty flush is settling', async () => {
+    vi.useFakeTimers();
+    const save = vi.fn(async (input: WorkspaceBackup) => saved(input));
+    const queue = new WorkspaceSaveQueue(null, save, vi.fn());
+    const empty = queue.flush();
+    queue.enqueue(value(), true);
+    await empty; await vi.advanceTimersByTimeAsync(0);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(queue.status).toBe('saved'); queue.dispose();
+  });
   it('debounces edits and reports saved only after acknowledgement', async () => {
     vi.useFakeTimers();
     const report = vi.fn();
