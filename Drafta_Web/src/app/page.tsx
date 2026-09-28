@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, ChevronDown } from 'lucide-react';
 import { BrandIcon } from '@/components/brand-icon';
+import { LandingRoadmap, ReleaseUpdates } from '@/components/release-updates';
+import { releaseCopy } from '@/lib/release-copy';
+import { PUBLIC_VERSION } from '@/lib/release-info';
 import { LANGS, LANG_LABEL, translations } from './translations';
 import { useLang } from '@/contexts/lang-context';
 import {
@@ -16,6 +19,7 @@ import {
 export default function LandingPage() {
   const { lang, setLang } = useLang();
   const t = translations[lang];
+  const release = releaseCopy[lang];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E7A1B0]/10 via-background to-[#C49547]/10">
@@ -64,7 +68,7 @@ export default function LandingPage() {
           <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#E7A1B0]/15 border border-[#E7A1B0]/30 text-sm">
               <span className="w-2 h-2 rounded-full bg-[#E7A1B0] animate-pulse" />
-              <span className="text-foreground/80">{t.statusBadge}</span>
+              <span className="text-foreground/80">{release.preview} · <bdi>Version {PUBLIC_VERSION}</bdi></span>
             </div>
           </div>
 
@@ -124,8 +128,8 @@ export default function LandingPage() {
           <div className="max-w-md mx-auto p-4 rounded-xl bg-muted/50 border border-border/50 text-center">
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{t.noticeTitle}</span><br />
-              {t.noticeBody}<br />
-              {t.noticeFooter}
+              {release.warning}<br />
+              <Link href="#roadmap" className="underline underline-offset-4">{release.roadmapTitle}</Link>
             </p>
           </div>
         </div>
@@ -156,6 +160,15 @@ export default function LandingPage() {
         </div>
       </div>
 
+      <LandingRoadmap />
+
+      <section id="updates" aria-labelledby="updates-title" data-nosnippet="" className="border-t border-border/50">
+        <div className="mx-auto max-w-5xl px-6 py-12" dir={lang === 'ar' ? 'rtl' : undefined}>
+          <h2 id="updates-title" className="mb-6 text-2xl font-semibold">{release.updates}</h2>
+          <ReleaseUpdates />
+        </div>
+      </section>
+
       {/* Platform Section */}
       <div className="max-w-5xl mx-auto px-6 pt-10 pb-20 border-t border-border/50">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
@@ -166,12 +179,12 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-6 md:gap-12">
-          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Web" status="beta" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
-          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
-          <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
-          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
-          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
-          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" status="coming" betaLabel={t.platformBeta} comingLabel={t.platformComing} />
+          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Web" status="beta" betaLabel={release.preview} comingLabel={release.planned} />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
+          <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
+          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
+          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
         </div>
       </div>
 
@@ -179,6 +192,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-5xl mx-auto px-6 text-center text-sm text-muted-foreground">
           <p>&copy; 2026 Drafta</p>
+          <Link href="/updates/" className="mt-2 inline-block underline underline-offset-4"><bdi>Version {PUBLIC_VERSION}</bdi> · {release.updates}</Link>
         </div>
       </footer>
     </div>

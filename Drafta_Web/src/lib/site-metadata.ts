@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-export function siteMetadata(path: '/' | '/app/'): Metadata {
+export function siteMetadata(path: '/' | '/app/' | '/updates/'): Metadata {
   const siteName = 'Drafta';
   const title = 'Drafta - Every thought in one place.';
   const description = 'The new memo app that unifies ToDo and Notes.';

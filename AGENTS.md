@@ -152,6 +152,7 @@ UI 状態カラー:
 - H3: text-lg
 
 ## Project Documentation
+- 公開バージョンは `Drafta_Web/package.json` を正本とし、履歴と運用方針は `specs/09_release_versioning.md` を参照する。過去の版番号を後付けしない。
 - 現状・今後の方針・次の作業は `specs/02_development_plan.md` を正本とし、作業の節目にこの順で報告する。保存・運用の詳細は `specs/05_service_launch_plan.md` を参照する。未実装の計画を完了扱いしない。
 - `specs/01_tech_stack.md` - 技術スタック（Firebase, Expo, Tauri）
 - `specs/02_development_plan.md` - 承認済みロードマップ・現状・次の作業
