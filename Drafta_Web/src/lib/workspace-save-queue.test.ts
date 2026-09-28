@@ -8,6 +8,41 @@ const saved = (backup: WorkspaceBackup, revision = 1): SavedWorkspace => ({ uid:
 afterEach(() => vi.useRealTimers());
 
 describe('workspace autosave queue', () => {
+  it('rebases pending edits onto a remote revision before saving', async () => {
+    vi.useFakeTimers();
+    const base = saved(value());
+    const remote = saved(value(), 2);
+    const combined = value(); combined.settings.theme = 'dark'; combined.settings.language = 'ja';
+    const apply = vi.fn();
+    const merge = vi.fn(() => ({ kind: 'merged' as const, backup: combined, copies: [] }));
+    const save = vi.fn(async (input: WorkspaceBackup) => saved(input, 3));
+    const queue = new WorkspaceSaveQueue(base, save, vi.fn(), { load: async () => remote, merge, apply, review: vi.fn() });
+    const edited = value(); edited.settings.theme = 'dark'; queue.enqueue(edited);
+    queue.acceptRemote(remote); await vi.advanceTimersByTimeAsync(0);
+    expect(merge).toHaveBeenCalledWith(base.backup, edited, remote.backup);
+    expect(save).toHaveBeenCalledWith(combined, remote);
+    expect(apply).toHaveBeenCalledWith(combined, []); queue.dispose();
+  });
+  it('recovers a transaction conflict through three-way merge', async () => {
+    const base = saved(value()), remote = saved(value(), 2);
+    const save = vi.fn().mockRejectedValueOnce(new WorkspaceConflictError()).mockImplementationOnce(async input => saved(input, 3));
+    const queue = new WorkspaceSaveQueue(base, save, vi.fn(), {
+      load: async () => remote, merge: (_base, local) => ({ kind: 'merged', backup: local, copies: [] }), apply: vi.fn(), review: vi.fn(),
+    });
+    queue.enqueue(value()); await queue.flush();
+    expect(save).toHaveBeenCalledTimes(2); expect(save.mock.calls[1][1]).toEqual(remote);
+    expect(queue.status).toBe('saved'); queue.dispose();
+  });
+  it('does not write when structural conflicts require review', async () => {
+    vi.useFakeTimers();
+    const remote = saved(value(), 2), save = vi.fn(), review = vi.fn();
+    const queue = new WorkspaceSaveQueue(saved(value()), save, vi.fn(), {
+      load: async () => remote, merge: () => ({ kind: 'review', reasons: ['order-conflict'] }), apply: vi.fn(), review,
+    });
+    queue.enqueue(value()); queue.acceptRemote(remote); await vi.advanceTimersByTimeAsync(1000);
+    expect(save).not.toHaveBeenCalled(); expect(review).toHaveBeenCalledWith(remote);
+    expect(queue.dirty).toBe(true); expect(queue.status).toBe('conflict'); queue.dispose();
+  });
   it('saves an immediate edit queued while an empty flush is settling', async () => {
     vi.useFakeTimers();
     const save = vi.fn(async (input: WorkspaceBackup) => saved(input));

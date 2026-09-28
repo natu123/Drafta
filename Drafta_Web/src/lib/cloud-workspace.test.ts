@@ -4,6 +4,7 @@ import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/
 import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { cloudWorkspace, WorkspaceConflictError } from './cloud-workspace';
 import type { WorkspaceBackup } from './workspace-backup';
+import { watchCloudWorkspace } from './cloud-workspace-watch';
 
 // The local emulator does not enforce this production query constraint.
 vi.mock('firebase/firestore', async importOriginal => {
@@ -25,6 +26,24 @@ const fresh = (): WorkspaceBackup => ({
 const repository = (uid: string) => cloudWorkspace(env.authenticatedContext(uid).firestore() as unknown as Firestore, uid);
 
 describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
+  it('publishes coherent remote updates and preserves owner boundaries', async () => {
+    const owner = repository('alice');
+    const first = await owner.save(fresh(), null);
+    const updates: number[] = [];
+    const errors: unknown[] = [];
+    const db = env.authenticatedContext('alice').firestore() as unknown as Firestore;
+    const stop = watchCloudWorkspace(db, 'alice', result => updates.push(result.revision), error => errors.push(error));
+    try {
+      await vi.waitFor(() => expect(updates).toContain(1));
+      const changed = fresh(); changed.groups[0].name = 'Remote tray';
+      await owner.save(changed, first);
+      await vi.waitFor(() => expect(updates).toContain(2));
+      expect(errors).toEqual([]);
+    } finally { stop(); }
+    const denied: unknown[] = [];
+    const stopOther = watchCloudWorkspace(env.authenticatedContext('bob').firestore() as unknown as Firestore, 'alice', () => { throw new Error('Cross-account update'); }, error => denied.push(error));
+    try { await vi.waitFor(() => expect(denied.length).toBeGreaterThan(0)); } finally { stopOther(); }
+  });
   beforeAll(async () => {
     env = await initializeTestEnvironment({ projectId: 'demo-drafta-storage', firestore: { host: '127.0.0.1', port: 8080, rules: readFileSync('firestore.rules', 'utf8') } });
   });
