@@ -6,7 +6,8 @@
 
 - 既存Firebaseプロジェクト `drafta-memo` にWebアプリ `Drafta Web` を登録しました. アプリIDは `1:642102711632:web:e1e1f3a8ba7d00eec00855` で, 登録状態はACTIVEです.
 - SDK接続設定を取得しました. APIキーを文書･公開Repositoryへ記載していません. アプリ登録だけではログイン･保存･同期は動作しません.
-- 本番のFirestore作成, Google認証の有効化, 課金設定変更, 本番へのルール公開は実施していません.
+- 承認後にFirestore APIを有効化し, 本番の(default) DBをasia-northeast1 (東京)へ作成しました. STANDARD･FIRESTORE_NATIVE･freeTier=true･誤削除防止有効･PITR無効をCLIで確認しました. 所有者別ルールの本番公開も成功しました. HostingのDeployと課金設定変更は行っていません.
+- Firebase Authenticationの初期設定を開始しました. Google有効化の保存には公開サポートメールの指定が必要なため, 連絡先の確認待ちです. Googleプロバイダー設定はまだ保存していません.
 - Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`を指定したローカル開発環境のみ画面から接続します. 未指定の公開版は従来のプレビューのままです.
 - ローカルのAuthentication･Firestoreエミュレーターで, 所有者分離等の4テストが成功しました. 実際のGoogleログインや本番での保存成功を意味しません.
 
