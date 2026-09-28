@@ -59,7 +59,7 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "roadmapNote": "計画は変更される場合があります. 公開日は未定です. 有料化は無料βの検証後に判断します.",
     "updates": "更新情報",
     "allUpdates": "すべての更新履歴",
-    "releaseSummary": "0.1.0から公開バージョンの運用を開始します. 実装計画と更新履歴を確認できるようになりました.",
+    "releaseSummary": "Version 0.1.0から バージョン番号の公開を開始します. 今後の実装計画と 更新履歴も確認できるようになりました.",
     "historyTitle": "これまでの主な実装",
     "historyNote": "バージョン運用前の主な変更を実装日ごとに掲載しています. 過去の番号は後付けしていません.",
     "historyLatest": "編集ツールバーをコンパクト化し, Undo / Redoを先頭へ, カラーパレットを開閉式へ変更しました.",
