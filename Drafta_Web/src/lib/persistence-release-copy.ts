@@ -1,6 +1,19 @@
 import type { Lang } from '@/app/languages';
 
 type Copy = { release020: string; warning: string; nextBody: string; laterBody: string };
+export const authRetryReleaseCopy: Record<Lang, string> = {
+  en: 'Fixed sign-in retries after a blocked or closed popup. Retry now restarts Google sign-in without clearing guest memos. Sign-in confirmation now appears inside the app.',
+  ja: 'ログイン用ポップアップがブロックされた場合などの再試行を修正しました. 未ログインのメモを残したままGoogle認証をやり直せます. ログイン前の確認も画面内へ移しました.',
+  'zh-CN': '修复了登录弹窗被拦截或关闭后的重试。现在重试会重新启动Google登录，不会清除访客备忘录。登录确认改为在应用内显示。',
+  ko: '로그인 팝업이 차단되거나 닫힌 후의 재시도를 수정했습니다. 이제 게스트 메모를 지우지 않고 Google 로그인을 다시 시작합니다. 로그인 확인도 앱 안에 표시합니다.',
+  es: 'Corregimos el reintento tras bloquear o cerrar la ventana de acceso. Ahora reinicia el acceso con Google sin borrar las notas de invitado. La confirmación aparece dentro de la app.',
+  fr: 'Correction de la nouvelle tentative après le blocage ou la fermeture de la fenêtre de connexion. Elle relance la connexion Google sans effacer les notes invitées. La confirmation s’affiche dans l’application.',
+  'pt-BR': 'Corrigimos a nova tentativa após um pop-up de login ser bloqueado ou fechado. Ela reinicia o login Google sem apagar as notas de visitante. A confirmação agora aparece no aplicativo.',
+  hi: 'लॉगिन पॉपअप ब्लॉक या बंद होने के बाद दोबारा कोशिश करने की समस्या ठीक की गई। अब अतिथि मेमो मिटाए बिना Google साइन-इन फिर शुरू होता है। पुष्टि ऐप के अंदर दिखाई देती है।',
+  ar: 'أُصلحت إعادة المحاولة بعد حظر نافذة تسجيل الدخول أو إغلاقها. تبدأ الآن تسجيل الدخول باستخدام Google مجددًا دون مسح ملاحظات الضيف. يظهر التأكيد داخل التطبيق.',
+  ru: 'Исправлен повторный вход после блокировки или закрытия всплывающего окна. Повтор запускает вход через Google, не удаляя гостевые заметки. Подтверждение теперь отображается в приложении.',
+  id: 'Memperbaiki percobaan ulang setelah pop-up login diblokir atau ditutup. Kini login Google dimulai ulang tanpa menghapus memo tamu. Konfirmasi ditampilkan di dalam aplikasi.',
+};
 function copy(release020: string, warning: string, nextBody: string, laterBody: string): Copy {
   return { release020, warning, nextBody, laterBody };
 }
