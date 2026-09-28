@@ -14,6 +14,7 @@ import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
 import { AccountMenu, type SaveStatus } from './account-menu';
 import { cloudCopy } from '@/lib/cloud-copy';
 import { Button } from './ui/button';
+import { DeleteConfirmDialog } from './delete-confirm-dialog';
 
 type ViewProps = { initialState?: WorkspaceState; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
@@ -35,6 +36,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
+  const [loginOpen, setLoginOpen] = React.useState(false);
 
   const load = React.useCallback(async (user: User | null) => {
     const id = ++generation.current;
@@ -131,8 +133,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     } finally { setBusy(false); }
   };
   const login = () => {
-    if (!window.confirm(labels.loginConfirm)) return;
-    void act(() => client.current!.login());
+    if (!busy) setLoginOpen(true);
   };
   const logout = () => { void act(async () => {
     if (invalidState.current) { setStatus('error'); return; }
@@ -145,11 +146,13 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     void load(client.current?.auth.currentUser ?? null);
   };
   const retry = () => {
+    if (client.current && !client.current.auth.currentUser) { login(); return; }
     if (invalidState.current) changed(invalidState.current);
     if (invalidState.current) return;
     if (queue.current) void queue.current.retry(); else reload();
   };
   const menu = <AccountMenu labels={labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
-  if (!session) return <main className="flex min-h-screen flex-col items-center justify-center gap-4"><p role="status">{labels.status[status]}</p>{errorCode && <p role="alert">{errorCode}</p>}{status === 'error' && <Button onClick={retry}>{labels.retry}</Button>}</main>;
-  return <Workspace key={session.key} initialState={session.seed} accountMenu={menu} onWorkspaceChange={changed} />;
+  const loginDialog = <DeleteConfirmDialog open={loginOpen} onOpenChange={setLoginOpen} title={labels.login} description={labels.loginConfirm} confirmText={labels.login} variant="default" onConfirm={() => { void act(() => client.current!.login()); }} />;
+  if (!session) return <><main className="flex min-h-screen flex-col items-center justify-center gap-4"><p role="status">{labels.status[status]}</p>{errorCode && <p role="alert">{errorCode}</p>}{status === 'error' && <Button onClick={retry}>{labels.retry}</Button>}</main>{loginDialog}</>;
+  return <><Workspace key={session.key} initialState={session.seed} accountMenu={menu} onWorkspaceChange={changed} />{loginDialog}</>;
 }
