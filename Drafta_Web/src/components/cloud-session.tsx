@@ -34,11 +34,13 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState } | null>(null);
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
+  const [errorCode, setErrorCode] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (user: User | null) => {
     const id = ++generation.current;
     queue.current?.dispose(); queue.current = null;
     invalidState.current = null;
+    setErrorCode(null);
     setSession(null); setStatus('loading');
     if (!user) {
       guest.current = undefined;
@@ -60,8 +62,13 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       }
       setStatus(stored ? 'saved' : 'pending');
       setSession({ key: id, user, seed });
-    } catch {
-      if (id === generation.current) setStatus('error');
+    } catch (error) {
+      if (id === generation.current) {
+        const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+        const name = error instanceof Error ? error.name : 'load-failed';
+        setErrorCode(/^[a-z/-]+$/.test(code) && code ? code : /^[A-Za-z]+Error$/.test(name) ? name : 'load-failed');
+        setStatus('error');
+      }
     }
   }, [restoreLanguage]);
 
@@ -116,7 +123,12 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const act = async (action: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true);
-    try { await action(); } catch { setStatus('error'); } finally { setBusy(false); }
+    setErrorCode(null);
+    try { await action(); } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+      setErrorCode(/^(auth|firestore)\/[a-z-]+$/.test(code) ? code : 'operation-failed');
+      setStatus('error');
+    } finally { setBusy(false); }
   };
   const login = () => {
     if (!window.confirm(labels.loginConfirm)) return;
@@ -137,7 +149,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (invalidState.current) return;
     if (queue.current) void queue.current.retry(); else reload();
   };
-  const menu = <AccountMenu labels={labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
-  if (!session) return <main className="flex min-h-screen flex-col items-center justify-center gap-4"><p role="status">{labels.status[status]}</p>{status === 'error' && <Button onClick={retry}>{labels.retry}</Button>}</main>;
+  const menu = <AccountMenu labels={labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
+  if (!session) return <main className="flex min-h-screen flex-col items-center justify-center gap-4"><p role="status">{labels.status[status]}</p>{errorCode && <p role="alert">{errorCode}</p>}{status === 'error' && <Button onClick={retry}>{labels.retry}</Button>}</main>;
   return <Workspace key={session.key} initialState={session.seed} accountMenu={menu} onWorkspaceChange={changed} />;
 }

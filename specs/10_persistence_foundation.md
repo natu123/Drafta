@@ -7,10 +7,13 @@
 - 既存Firebaseプロジェクト `drafta-memo` にWebアプリ `Drafta Web` を登録しました. アプリIDは `1:642102711632:web:e1e1f3a8ba7d00eec00855` で, 登録状態はACTIVEです.
 - SDK接続設定を取得しました. APIキーを文書･公開Repositoryへ記載していません. アプリ登録だけではログイン･保存･同期は動作しません.
 - 承認後にFirestore APIを有効化し, 本番の(default) DBをasia-northeast1 (東京)へ作成しました. STANDARD･FIRESTORE_NATIVE･freeTier=true･誤削除防止有効･PITR無効をCLIで確認しました. 所有者別ルールの本番公開も成功しました. HostingのDeployと課金設定変更は行っていません.
-- Firebase AuthenticationのGoogleプロバイダーを有効化しました. 公開名Draftaと承認済みのサポートメールを登録し, コンソールの「Google: 有効」を確認しました. メールアドレスは公開Repositoryへ転記していません. 実際のアプリでの本番ログイン･保存はまだ未検証です.
-- Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`を指定したローカル開発環境のみ画面から接続します. 未指定の公開版は従来のプレビューのままです.
-- 本番接続用のコードを追加しました. `NEXT_PUBLIC_FIREBASE_MODE=production`と`NEXT_PUBLIC_FIREBASE_PROJECT_ID`･`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`･`NEXT_PUBLIC_FIREBASE_APP_ID`･`NEXT_PUBLIC_FIREBASE_API_KEY`の全設定を明示した場合のみ接続します. 登録済みDraftaアプリと異なる設定を拒否し, Emulatorとは別インスタンスにします. 実際の本番モード起動とHostingのDeployは未実施です.
-- Authenticationの承認済みドメインにはlocalhost･標準Firebaseドメイン2件があります. 独自ドメインdrafta-memo.comは未登録で, OAuth許可リストへの追加確認待ちです.
+- Firebase AuthenticationのGoogleプロバイダーを有効化しました. 公開名Draftaと承認済みのサポートメールを登録し, コンソールの「Google: 有効」を確認しました. メールアドレスは公開Repositoryへ転記していません. Chromeのローカル画面から実Googleログイン･本番DBへの保存･再読み込み後の復元を確認しました.
+- Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`ではローカル模擬DBへ接続します. 未指定の公開版は従来のプレビューのままです.
+- 本番接続用のコードを追加しました. `NEXT_PUBLIC_FIREBASE_MODE=production`と`NEXT_PUBLIC_FIREBASE_PROJECT_ID`･`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`･`NEXT_PUBLIC_FIREBASE_APP_ID`･`NEXT_PUBLIC_FIREBASE_API_KEY`の全設定を明示した場合のみ接続します. 登録済みDraftaアプリと異なる設定を拒否し, Emulatorとは別インスタンスにします. 本番モードはローカルで起動済みですが, HostingのDeployは未実施です.
+- Authenticationの承認済みドメインにはlocalhost･標準Firebaseドメイン2件と, 承認後に追加したdrafta-memo.comがあります. コンソール上のCustom登録を確認しました.
+- 本番SDK設定をCLIから取得し, ファイルへ保存せず開発サーバーのプロセス環境だけへ渡してlocalhost:9002を起動しました. ユーザーによるChromeログイン後に保存済みを確認し, 再読み込み後も保存済みとサンプルMemo･Trayの復元を確認しました.
+- 本番で10001件の取得要求が拒否されたため, 10000件の取得と次ページ1件の超過確認へ分割しました. ローカル模擬DBが検出しなかった上限を回帰テストへ追加しました.
+- Codex内蔵ブラウザーではauth/popup-closed-by-userとなり, Chromeでは成功しました. 内蔵ブラウザーの根本原因は未確定です. 認証･読込エラーは秘密情報を含むメッセージ全文ではなくコードだけ表示します.
 - ローカルのAuthentication･Firestoreエミュレーターで, 所有者分離等の4テストが成功しました. 実際のGoogleログインや本番での保存成功を意味しません.
 
 ## ローカル検証

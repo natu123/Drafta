@@ -14,6 +14,7 @@ export type AccountMenuProps = {
   name: string | null;
   status: SaveStatus;
   busy: boolean;
+  errorCode?: string | null;
   onLogin: () => void;
   onLogout: () => void;
   onRetry: () => void;
@@ -21,7 +22,7 @@ export type AccountMenuProps = {
 };
 
 /** Parent owns authentication, error handling and unsaved-change confirmation. */
-export function AccountMenu({ labels, name, status, busy, onLogin, onLogout, onRetry, onReload }: AccountMenuProps) {
+export function AccountMenu({ labels, name, status, busy, errorCode, onLogin, onLogout, onRetry, onReload }: AccountMenuProps) {
   const statusLabel = labels.status[status];
   const StatusIcon = status === 'saved' ? CloudCheck : status === 'loading' || status === 'saving' ? LoaderCircle : CloudOff;
   return (
@@ -40,6 +41,7 @@ export function AccountMenu({ labels, name, status, busy, onLogin, onLogout, onR
           <DropdownMenuGroup>
             <DropdownMenuLabel className="max-w-64 truncate">{name || labels.account}</DropdownMenuLabel>
             <DropdownMenuLabel>{statusLabel}</DropdownMenuLabel>
+            {errorCode && <DropdownMenuLabel><span role="alert">{errorCode}</span></DropdownMenuLabel>}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
