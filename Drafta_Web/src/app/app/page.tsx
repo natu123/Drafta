@@ -4,6 +4,14 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { useTheme } from 'next-themes';
+import type { WorkspaceState } from '@/lib/workspace-state';
+
+export type WorkspaceViewProps = {
+  initialState?: WorkspaceState;
+  accountMenu?: React.ReactNode;
+  onWorkspaceChange?: (state: WorkspaceState) => void;
+};
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
 import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown } from 'lucide-react';
@@ -737,26 +745,33 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 };
 
 
-export default function Home() {
-  const { t: appT, lang } = useLang();
+const CloudSession = dynamic(() => import('@/components/cloud-session'), { ssr: false });
+export default function Page() {
+  return process.env.NEXT_PUBLIC_FIREBASE_MODE === 'emulator'
+    ? <CloudSession Workspace={Home} /> : <Home />;
+}
+
+function Home({ initialState, accountMenu, onWorkspaceChange }: WorkspaceViewProps) {
+  const { t: appT, lang, languagePreference } = useLang();
+  const { theme } = useTheme();
 
   // Preserve the former newest-first sample display as the initial manual order.
-  const [sourceNotes, setNotes] = React.useState<Note[]>(() => [...initialNotes].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
+  const [sourceNotes, setNotes] = React.useState<Note[]>(() => initialState?.notes ?? [...initialNotes].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
   const modKey = useShortcutMod();
   const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
-  const [sourceGroups, setGroups] = React.useState<Group[]>(initialGroups);
+  const [sourceGroups, setGroups] = React.useState<Group[]>(() => initialState?.groups ?? initialGroups);
   const groups = React.useMemo(() => sourceGroups.map(group => localizeUntitledGroup(group, appT.untitledTray)), [sourceGroups, appT.untitledTray]);
 
 
   // Initialize with 'Welcome to Drafta' note (note-1)
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
-    initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
+    initialState ? [] : initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
   );
 
   const [activeView, setActiveView] = React.useState<'home' | 'editor'>('home');
 
   const [activeTabId, setActiveTabId] = React.useState<string | null>(
-    initialNotes.length > 0 ? initialNotes[0].id : null
+    initialState ? null : initialNotes.length > 0 ? initialNotes[0].id : null
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -765,8 +780,11 @@ export default function Home() {
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
   const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
-  const [activeGroupId, setActiveGroupId] = React.useState<string>('inbox');
-  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>('top');
+  const [activeGroupId, setActiveGroupId] = React.useState<string>(() => initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox');
+  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? 'top');
+  React.useEffect(() => {
+    onWorkspaceChange?.({ notes: sourceNotes, groups: sourceGroups, settings: { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } });
+  }, [sourceNotes, sourceGroups, languagePreference, theme, scrollDirection, onWorkspaceChange]);
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
     setScrollDirection(direction);
   };
@@ -1219,6 +1237,7 @@ export default function Home() {
     <>
       <div className="flex h-screen flex-col bg-background text-foreground overflow-hidden">
         <Header
+          accountMenu={accountMenu}
           onToggleView={handleToggleView}
           activeView={activeView}
           onOpenSettings={() => setIsSettingsOpen(true)}

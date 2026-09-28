@@ -113,6 +113,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 
 
 interface HeaderProps {
+  accountMenu?: React.ReactNode;
   onToggleView: () => void;
   activeView: 'home' | 'editor';
   onOpenSettings: () => void;
@@ -128,6 +129,7 @@ const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   history,
   onHistorySelect,
+  accountMenu,
 }) => {
   const { lang, setLang, t } = useLang();
 
@@ -175,6 +177,7 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Right: Util Actions Section */}
       <div className="flex-1 min-w-0 flex items-center justify-end gap-0.5 sm:gap-1">
+        {accountMenu}
         <div className="hidden sm:block">
           <HistoryNav history={history} onHistorySelect={onHistorySelect} />
         </div>

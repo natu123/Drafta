@@ -12,12 +12,16 @@ import {
 } from '@/app/translations';
 
 interface LangContextValue {
+  languagePreference: Lang | null;
+  restoreLanguage: (language: Lang | null) => void;
   lang: Lang;
   setLang: (lang: Lang) => void;
   t: AppT;
 }
 
 export const LangContext = React.createContext<LangContextValue>({
+  languagePreference: null,
+  restoreLanguage: () => {},
   lang: 'en',
   setLang: () => {},
   t: appTranslations['en'],
@@ -30,8 +34,10 @@ function syncDocumentLanguage(lang: Lang): void {
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = React.useState<Lang>('en');
+  const [languagePreference, setLanguagePreference] = React.useState<Lang | null>(null);
 
   const setLang = React.useCallback((nextLang: Lang) => {
+    setLanguagePreference(nextLang);
     setLangState(nextLang);
     syncDocumentLanguage(nextLang);
 
@@ -40,6 +46,18 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Language selection still works when browser storage is unavailable.
     }
+  }, []);
+
+  const restoreLanguage = React.useCallback((preference: Lang | null) => {
+    const preferences = navigator.languages?.length ? navigator.languages : [navigator.language];
+    const next = preference ?? detectBrowserLanguage(preferences);
+    setLanguagePreference(preference);
+    setLangState(next);
+    syncDocumentLanguage(next);
+    try {
+      if (preference) window.localStorage.setItem(LANG_STORAGE_KEY, preference);
+      else window.localStorage.removeItem(LANG_STORAGE_KEY);
+    } catch { /* The in-memory preference still applies. */ }
   }, []);
 
   React.useLayoutEffect(() => {
@@ -56,12 +74,13 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     // The server cannot read browser storage. Apply the initial locale before paint.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLangState(initialLang);
+    setLanguagePreference(isLang(storedLang) ? storedLang : null);
     syncDocumentLanguage(initialLang);
   }, []);
 
   const value = React.useMemo(
-    () => ({ lang, setLang, t: appTranslations[lang] }),
-    [lang, setLang],
+    () => ({ lang, setLang, languagePreference, restoreLanguage, t: appTranslations[lang] }),
+    [lang, setLang, languagePreference, restoreLanguage],
   );
 
   return React.createElement(LangContext.Provider, { value }, children);

@@ -1,0 +1,135 @@
+'use client';
+
+import * as React from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { useTheme } from 'next-themes';
+import { useLang } from '@/contexts/lang-context';
+import { getFirebaseClient, type FirebaseClient } from '@/lib/firebase-client';
+import { cloudWorkspace } from '@/lib/cloud-workspace';
+import { createWorkspaceBackup } from '@/lib/workspace-backup';
+import { workspaceToState, type WorkspaceState } from '@/lib/workspace-state';
+import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
+import { AccountMenu, type SaveStatus } from './account-menu';
+import { cloudCopy } from '@/lib/cloud-copy';
+import { Button } from './ui/button';
+
+type ViewProps = { initialState?: WorkspaceState; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void };
+const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
+
+export default function CloudSession({ Workspace }: { Workspace: React.ComponentType<ViewProps> }) {
+  const { lang, restoreLanguage } = useLang();
+  const labels = cloudCopy[lang];
+  const { setTheme } = useTheme();
+  const themeSetter = React.useRef(setTheme);
+  React.useEffect(() => { themeSetter.current = setTheme; }, [setTheme]);
+  const client = React.useRef<FirebaseClient | null>(null);
+  const queue = React.useRef<WorkspaceSaveQueue | null>(null);
+  const generation = React.useRef(0);
+  const guest = React.useRef<WorkspaceState | undefined>(undefined);
+  const lastState = React.useRef('');
+  const invalidState = React.useRef<WorkspaceState | null>(null);
+  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState } | null>(null);
+  const [status, setStatus] = React.useState<SaveStatus>('loading');
+  const [busy, setBusy] = React.useState(false);
+
+  const load = React.useCallback(async (user: User | null) => {
+    const id = ++generation.current;
+    queue.current?.dispose(); queue.current = null;
+    invalidState.current = null;
+    setSession(null); setStatus('loading');
+    if (!user) {
+      guest.current = undefined;
+      setSession({ key: id, user: null }); setStatus('guest'); return;
+    }
+    try {
+      const repository = cloudWorkspace(client.current!.db, user.uid);
+      const stored = await repository.load();
+      if (id !== generation.current) return;
+      const seed = stored ? workspaceToState(stored.backup, document) : guest.current;
+      guest.current = undefined;
+      if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
+      lastState.current = seed ? stateFingerprint(seed) : '';
+      queue.current = new WorkspaceSaveQueue(stored, repository.save, next => { if (id === generation.current) setStatus(invalidState.current ? 'error' : next); });
+      if (!stored && seed) queue.current.enqueue(createWorkspaceBackup(seed, document));
+      setStatus(stored ? 'saved' : 'pending');
+      setSession({ key: id, user, seed });
+    } catch {
+      if (id === generation.current) setStatus('error');
+    }
+  }, [restoreLanguage]);
+
+  React.useEffect(() => {
+    const lifecycle = generation;
+    let unsubscribe = () => {};
+    try {
+      client.current = getFirebaseClient();
+      if (!client.current) throw new Error('Firebase unavailable');
+      unsubscribe = onAuthStateChanged(client.current.auth, user => { void load(user); }, () => setStatus('error'));
+    } catch { setStatus('error'); }
+    return () => { unsubscribe(); lifecycle.current++; queue.current?.dispose(); };
+  }, [load]);
+
+  React.useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (queue.current?.dirty || invalidState.current) { event.preventDefault(); event.returnValue = ''; }
+    };
+    const flush = () => { void queue.current?.flush(); };
+    const visibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    const saveShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); flush(); }
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    window.addEventListener('blur', flush);
+    document.addEventListener('focusout', flush);
+    window.addEventListener('keydown', saveShortcut);
+    document.addEventListener('visibilitychange', visibility);
+    return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flush); window.removeEventListener('keydown', saveShortcut); };
+  }, []);
+
+  const sessionKey = session?.key;
+  const uid = session?.user?.uid;
+  const changed = React.useCallback((state: WorkspaceState) => {
+    if (sessionKey !== generation.current) return;
+    if (!uid) { guest.current = state; return; }
+    if (client.current?.auth.currentUser?.uid !== uid) return;
+    const fingerprint = stateFingerprint(state);
+    if (fingerprint === lastState.current) {
+      if (invalidState.current) { invalidState.current = null; setStatus(queue.current?.status ?? 'pending'); }
+      return;
+    }
+    try {
+      const backup = createWorkspaceBackup(state, document);
+      invalidState.current = null;
+      queue.current?.enqueue(backup);
+      lastState.current = fingerprint;
+    } catch { invalidState.current = state; setStatus('error'); }
+  }, [sessionKey, uid]);
+
+  const act = async (action: () => Promise<unknown>) => {
+    if (busy) return;
+    setBusy(true);
+    try { await action(); } catch { setStatus('error'); } finally { setBusy(false); }
+  };
+  const login = () => {
+    if (!window.confirm(labels.loginConfirm)) return;
+    void act(() => client.current!.login());
+  };
+  const logout = () => { void act(async () => {
+    if (invalidState.current) { setStatus('error'); return; }
+    await queue.current?.flush();
+    if (queue.current?.dirty) { setStatus(queue.current.status); return; }
+    await client.current!.logout();
+  }); };
+  const reload = () => {
+    if ((queue.current?.dirty || invalidState.current) && !window.confirm(labels.discardConfirm)) return;
+    void load(client.current?.auth.currentUser ?? null);
+  };
+  const retry = () => {
+    if (invalidState.current) changed(invalidState.current);
+    if (invalidState.current) return;
+    if (queue.current) void queue.current.retry(); else reload();
+  };
+  const menu = <AccountMenu labels={labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
+  if (!session) return <main className="flex min-h-screen flex-col items-center justify-center gap-4"><p role="status">{labels.status[status]}</p>{status === 'error' && <Button onClick={retry}>{labels.retry}</Button>}</main>;
+  return <Workspace key={session.key} initialState={session.seed} accountMenu={menu} onWorkspaceChange={changed} />;
+}
