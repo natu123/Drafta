@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    match /users/{uid}/workspaces/{workspaceId} {
+      allow read: if owns(uid) && workspaceId == 'default';
+      function validWorkspace() {
+        return owns(uid) && workspaceId == 'default'
+        && request.resource.data.keys().hasOnly(['schemaVersion', 'revision', 'metadataJson', 'updatedAt'])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.revision is int
+        && request.resource.data.metadataJson is string
+        && request.resource.data.metadataJson.size() < 500000
+        && request.resource.data.updatedAt == request.time;
+      }
+      allow create: if validWorkspace() && request.resource.data.revision == 1;
+      allow update: if validWorkspace() && request.resource.data.revision == resource.data.revision + 1;
+      match /notes/{noteId} {
+        allow read: if owns(uid) && workspaceId == 'default';
+        allow create, update: if owns(uid) && workspaceId == 'default'
+          && noteId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && request.resource.data.keys().hasOnly(['schemaVersion', 'payloadJson', 'updatedAt'])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.payloadJson is string
+          && request.resource.data.payloadJson.size() < 500000
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if owns(uid) && workspaceId == 'default';
+      }
+    }
+    // No client access to billing, plans, other profiles, or unrecognized paths.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
