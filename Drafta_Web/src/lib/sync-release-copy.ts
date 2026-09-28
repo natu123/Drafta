@@ -1,0 +1,16 @@
+import type { Lang } from '@/app/languages';
+type Copy = { release030: string; nextBody: string };
+const copy = (release030: string, nextBody: string): Copy => ({ release030, nextBody });
+export const syncReleaseCopy: Record<Lang, Copy> = {
+  en: copy('Changes now sync across devices signed into the same account. Edits to different memos merge automatically; conflicting edits to one memo are kept as copies. Overlapping tray, order or deletion changes require confirmation.', 'Strengthen failure recovery, saved history and reliability.'),
+  ja: copy('同じアカウントでログインした端末間の自動同期に対応しました. 別Memoへの編集は自動で統合し, 同じMemoへの競合した編集はコピーとして残します. Tray･順序･削除などの変更が衝突した場合は確認してから反映します.', '障害からの復旧, 保存履歴, 運用の安定性を強化します.'),
+  'zh-CN': copy('同一账户的设备之间现在可自动同步更改。不同备忘录的编辑会自动合并；同一备忘录的冲突编辑会保留为副本。托盘、顺序或删除操作发生冲突时，需要确认后再应用。', '加强故障恢复、保存历史和运行稳定性。'),
+  ko: copy('같은 계정으로 로그인한 기기 간 자동 동기화를 지원합니다. 서로 다른 메모의 편집은 자동으로 합치고, 같은 메모의 충돌한 편집은 사본으로 보존합니다. 트레이, 순서 또는 삭제 변경의 충돌은 확인 후 반영합니다.', '장애 복구, 저장 이력과 운영 안정성을 강화합니다.'),
+  es: copy('Los cambios se sincronizan entre dispositivos con la misma cuenta. Las ediciones de notas distintas se combinan automáticamente; los conflictos en una nota se conservan como copias. Los conflictos de bandejas, orden o eliminaciones requieren confirmación.', 'Reforzar la recuperación ante fallos, el historial guardado y la estabilidad.'),
+  fr: copy('Les modifications se synchronisent entre appareils connectés au même compte. Les éditions de notes différentes sont fusionnées ; celles en conflit sont conservées en copies. Les conflits de plateaux, d’ordre ou de suppression nécessitent une confirmation.', 'Renforcer la récupération après incident, l’historique enregistré et la fiabilité.'),
+  'pt-BR': copy('As alterações são sincronizadas entre dispositivos com a mesma conta. Edições de notas diferentes são combinadas; conflitos na mesma nota são preservados em cópias. Conflitos de bandejas, ordem ou exclusão exigem confirmação.', 'Reforçar a recuperação de falhas, o histórico salvo e a estabilidade.'),
+  hi: copy('एक ही खाते वाले डिवाइसों के बीच बदलाव अब अपने आप सिंक होते हैं। अलग मेमो के संपादन मिलाए जाते हैं; एक ही मेमो के टकराने वाले संपादन प्रतियों में रखे जाते हैं। ट्रे, क्रम या हटाने के टकराव के लिए पुष्टि आवश्यक है।', 'विफलता से पुनर्प्राप्ति, सहेजे इतिहास और विश्वसनीयता को मजबूत करना।'),
+  ar: copy('تُزامن التغييرات الآن بين الأجهزة المسجّلة بالحساب نفسه. تُدمج تعديلات الملاحظات المختلفة تلقائيًا، وتُحفظ التعديلات المتعارضة على الملاحظة نفسها كنسخ. تتطلب تعارضات الأدراج أو الترتيب أو الحذف تأكيدًا.', 'تعزيز التعافي من الأعطال وسجل الحفظ والموثوقية.'),
+  ru: copy('Изменения синхронизируются между устройствами с одним аккаунтом. Правки разных заметок объединяются автоматически, а конфликтующие правки одной заметки сохраняются как копии. Конфликты лотков, порядка или удаления требуют подтверждения.', 'Улучшить восстановление после сбоев, историю сохранений и надёжность.'),
+  id: copy('Perubahan kini disinkronkan antarperangkat dengan akun yang sama. Suntingan memo berbeda digabung otomatis; konflik pada memo yang sama disimpan sebagai salinan. Konflik baki, urutan, atau penghapusan memerlukan konfirmasi.', 'Meningkatkan pemulihan gangguan, riwayat penyimpanan, dan keandalan.'),
+};
