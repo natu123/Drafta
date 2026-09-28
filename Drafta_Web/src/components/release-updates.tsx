@@ -4,12 +4,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useLang } from '@/contexts/lang-context';
 import { releaseCopy } from '@/lib/release-copy';
-import { HISTORY_DATES, RELEASES } from '@/lib/release-info';
+import { IMPLEMENTATION_HISTORY, RELEASES } from '@/lib/release-info';
 
 export function ReleaseUpdates({ full = false }: { full?: boolean }) {
   const { lang } = useLang();
   const t = releaseCopy[lang];
-  const history = [t.historyLatest, t.historyPins, t.historyCreation];
 
   return (
     <div className="flex flex-col gap-6" dir={lang === 'ar' ? 'rtl' : undefined}>
@@ -29,10 +28,10 @@ export function ReleaseUpdates({ full = false }: { full?: boolean }) {
             <p className="mt-2 text-sm text-muted-foreground">{t.historyNote}</p>
           </div>
           <ol className="flex flex-col gap-5">
-            {HISTORY_DATES.map((date, index) => (
-              <li key={date} className="flex flex-col gap-1 border-s-2 border-border ps-4">
+            {IMPLEMENTATION_HISTORY.map(({ date, copyKey }) => (
+              <li key={copyKey} className="flex flex-col gap-1 border-s-2 border-border ps-4">
                 <time dateTime={date} className="text-sm text-muted-foreground">{date}</time>
-                <p className="leading-relaxed">{history[index]}</p>
+                <p className="leading-relaxed">{t[copyKey]}</p>
               </li>
             ))}
           </ol>

@@ -1,6 +1,10 @@
 import type { Lang } from '@/app/languages';
 
 export interface ReleaseCopy {
+  release011: string;
+  historyRich: string;
+  historyInput: string;
+  historyLanguages: string;
   preview: string;
   warning: string;
   roadmapTitle: string;
@@ -25,6 +29,10 @@ export interface ReleaseCopy {
 
 export const releaseCopy: Record<Lang, ReleaseCopy> = {
   "en": {
+    "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
+    "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
+    "historyInput": "Expanded input assistance with automatic Markdown conversion and slash commands, alongside Drafta-MD color text and numbered lists.",
+    "historyLanguages": "Added 11-language sample notes, complementing the multilingual interface.",
     "preview": "Web Preview",
     "warning": "Data is not saved yet. Reloading may lose your memos.",
     "roadmapTitle": "What’s next",
@@ -47,6 +55,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "Planned"
   },
   "ja": {
+    "release011": "実装履歴に Rich / Markdown, 入力支援, 11言語対応を追加しました. 今回の機能追加ではなく, 既存機能の紹介を補足しています.",
+    "historyRich": "Rich表示とMarkdownを切り替える編集機能の往復互換性を改善しました.",
+    "historyInput": "Drafta-MDの色付きテキスト･番号付きリストに加え, 記法の自動変換とスラッシュコマンドで入力支援を拡充しました.",
+    "historyLanguages": "操作画面に加えて サンプルノートも11言語に対応しました.",
     "preview": "Web試験公開",
     "warning": "データ保存は未対応です. 再読み込みでメモが失われる場合があります.",
     "roadmapTitle": "今後の実装計画",
@@ -69,6 +81,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "予定"
   },
   "zh-CN": {
+    "release011": "实现历史中新增了Rich / Markdown、输入辅助和11种语言支持的记录。这些是已有功能，并非本次新增功能。",
+    "historyRich": "改进了富文本与Markdown之间的切换和往返转换兼容性。",
+    "historyInput": "在Drafta-MD彩色文本和编号列表的基础上，加入Markdown自动转换和斜杠命令以扩展输入辅助。",
+    "historyLanguages": "在多语言界面之外，示例笔记也支持11种语言。",
     "preview": "Web预览版",
     "warning": "尚不支持数据保存。重新加载可能导致备忘录丢失。",
     "roadmapTitle": "后续计划",
@@ -91,6 +107,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "计划中"
   },
   "ko": {
+    "release011": "구현 기록에 Rich / Markdown, 입력 지원과 11개 언어 지원을 추가했습니다. 이번에 새로 구현한 기능이 아니라 기존 기능의 소개입니다.",
+    "historyRich": "리치 텍스트와 Markdown 간 전환 및 왕복 변환 호환성을 개선했습니다.",
+    "historyInput": "Drafta-MD의 색상 텍스트와 번호 목록에 더해 Markdown 자동 변환과 슬래시 명령으로 입력 지원을 확장했습니다.",
+    "historyLanguages": "다국어 화면에 더해 샘플 노트도 11개 언어를 지원합니다.",
     "preview": "웹 미리보기",
     "warning": "아직 데이터가 저장되지 않습니다. 새로고침하면 메모가 사라질 수 있습니다.",
     "roadmapTitle": "개발 계획",
@@ -113,6 +133,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "예정"
   },
   "es": {
+    "release011": "Añadimos Rich / Markdown, asistencia de escritura y compatibilidad con 11 idiomas al historial. Son funciones existentes, no novedades de esta actualización.",
+    "historyRich": "Mejoramos el cambio y la compatibilidad de ida y vuelta entre texto enriquecido y Markdown.",
+    "historyInput": "Ampliamos la asistencia con conversión automática de Markdown y comandos de barra, junto al texto de color y las listas numeradas de Drafta-MD.",
+    "historyLanguages": "Añadimos notas de ejemplo en 11 idiomas, complementando la interfaz multilingüe.",
     "preview": "Vista previa web",
     "warning": "Los datos aún no se guardan. Al recargar podrías perder tus notas.",
     "roadmapTitle": "Próximos pasos",
@@ -135,6 +159,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "Previsto"
   },
   "fr": {
+    "release011": "Ajout de Rich / Markdown, de l’aide à la saisie et des 11 langues à l’historique. Ce sont des fonctions existantes, et non de nouvelles fonctions de cette mise à jour.",
+    "historyRich": "Amélioration du passage entre texte enrichi et Markdown et de leur conversion aller-retour.",
+    "historyInput": "En complément du texte coloré et des listes numérotées de Drafta-MD, ajout de la conversion automatique Markdown et des commandes slash.",
+    "historyLanguages": "Ajout de notes d’exemple en 11 langues, en complément de l’interface multilingue.",
     "preview": "Aperçu web",
     "warning": "Les données ne sont pas encore enregistrées. Un rechargement peut effacer vos notes.",
     "roadmapTitle": "À venir",
@@ -157,6 +185,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "Prévu"
   },
   "pt-BR": {
+    "release011": "Adicionamos Rich / Markdown, assistência de escrita e suporte a 11 idiomas ao histórico. São recursos existentes, não novos recursos desta atualização.",
+    "historyRich": "Melhoramos a alternância e a conversão de ida e volta entre texto rico e Markdown.",
+    "historyInput": "Ampliamos a assistência com conversão automática de Markdown e comandos de barra, além do texto colorido e das listas numeradas do Drafta-MD.",
+    "historyLanguages": "Adicionamos notas de exemplo em 11 idiomas, complementando a interface multilíngue.",
     "preview": "Prévia web",
     "warning": "Os dados ainda não são salvos. Recarregar pode apagar suas notas.",
     "roadmapTitle": "Próximos passos",
@@ -179,6 +211,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "Planejado"
   },
   "hi": {
+    "release011": "कार्यान्वयन इतिहास में Rich / Markdown, लेखन सहायता और 11 भाषाओं के समर्थन की जानकारी जोड़ी गई। ये मौजूदा सुविधाएँ हैं, इस अपडेट में नई नहीं हैं।",
+    "historyRich": "रिच टेक्स्ट और Markdown के बीच स्विच करने और दोनों दिशाओं में रूपांतरण की संगतता सुधारी गई।",
+    "historyInput": "Drafta-MD के रंगीन टेक्स्ट और क्रमांकित सूचियों के साथ Markdown का स्वतः रूपांतरण और स्लैश कमांड जोड़े गए।",
+    "historyLanguages": "बहुभाषी इंटरफ़ेस के साथ नमूना नोट भी 11 भाषाओं में उपलब्ध किए गए।",
     "preview": "वेब पूर्वावलोकन",
     "warning": "डेटा अभी सहेजा नहीं जाता है। पेज दोबारा लोड करने पर मेमो खो सकते हैं।",
     "roadmapTitle": "आगे की योजना",
@@ -201,6 +237,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "नियोजित"
   },
   "ar": {
+    "release011": "أُضيفت ميزات Rich / Markdown والمساعدة في الكتابة ودعم 11 لغة إلى سجل التنفيذ. هذه ميزات موجودة وليست إضافات جديدة في هذا التحديث.",
+    "historyRich": "تحسين التبديل والتحويل في الاتجاهين بين النص المنسق وMarkdown.",
+    "historyInput": "توسيع مساعدة الكتابة بالتحويل التلقائي لـMarkdown وأوامر الشرطة المائلة، إلى جانب النص الملون والقوائم المرقمة في Drafta-MD.",
+    "historyLanguages": "إضافة ملاحظات نموذجية بـ11 لغة، إلى جانب الواجهة متعددة اللغات.",
     "preview": "معاينة الويب",
     "warning": "لا تُحفظ البيانات بعد. قد تفقد مذكراتك عند إعادة تحميل الصفحة.",
     "roadmapTitle": "خطة التطوير",
@@ -223,6 +263,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "مخطط"
   },
   "ru": {
+    "release011": "В историю добавлены Rich / Markdown, помощь при вводе и поддержка 11 языков. Это существующие функции, а не новые возможности этого обновления.",
+    "historyRich": "Улучшены переключение и совместимость преобразования между форматированным текстом и Markdown в обе стороны.",
+    "historyInput": "Помимо цветного текста и нумерованных списков Drafta-MD, добавлены автоматическое преобразование Markdown и команды через косую черту.",
+    "historyLanguages": "Добавлены примеры заметок на 11 языках в дополнение к многоязычному интерфейсу.",
     "preview": "Веб-предпросмотр",
     "warning": "Данные пока не сохраняются. При перезагрузке заметки могут быть потеряны.",
     "roadmapTitle": "Планы развития",
@@ -245,6 +289,10 @@ export const releaseCopy: Record<Lang, ReleaseCopy> = {
     "planned": "Запланировано"
   },
   "id": {
+    "release011": "Rich / Markdown, bantuan penulisan dan dukungan 11 bahasa ditambahkan ke riwayat implementasi. Ini fitur yang sudah ada, bukan fitur baru pada pembaruan ini.",
+    "historyRich": "Peralihan dan konversi dua arah antara teks kaya dan Markdown ditingkatkan.",
+    "historyInput": "Bantuan penulisan diperluas dengan konversi Markdown otomatis dan perintah garis miring, melengkapi teks berwarna dan daftar bernomor Drafta-MD.",
+    "historyLanguages": "Catatan contoh ditambahkan dalam 11 bahasa, melengkapi antarmuka multibahasa.",
     "preview": "Pratinjau web",
     "warning": "Data belum disimpan. Memuat ulang halaman dapat menghilangkan memo Anda.",
     "roadmapTitle": "Rencana pengembangan",
