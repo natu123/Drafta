@@ -7,7 +7,7 @@
 - 既存Firebaseプロジェクト `drafta-memo` にWebアプリ `Drafta Web` を登録しました. アプリIDは `1:642102711632:web:e1e1f3a8ba7d00eec00855` で, 登録状態はACTIVEです.
 - SDK接続設定を取得しました. APIキーを文書･公開Repositoryへ記載していません. アプリ登録だけではログイン･保存･同期は動作しません.
 - 承認後にFirestore APIを有効化し, 本番の(default) DBをasia-northeast1 (東京)へ作成しました. STANDARD･FIRESTORE_NATIVE･freeTier=true･誤削除防止有効･PITR無効をCLIで確認しました. 所有者別ルールの本番公開も成功しました. HostingのDeployと課金設定変更は行っていません.
-- Firebase Authenticationの初期設定を開始しました. Google有効化の保存には公開サポートメールの指定が必要なため, 連絡先の確認待ちです. Googleプロバイダー設定はまだ保存していません.
+- Firebase AuthenticationのGoogleプロバイダーを有効化しました. 公開名Draftaと承認済みのサポートメールを登録し, コンソールの「Google: 有効」を確認しました. メールアドレスは公開Repositoryへ転記していません. 実際のアプリでの本番ログイン･保存はまだ未検証です.
 - Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`を指定したローカル開発環境のみ画面から接続します. 未指定の公開版は従来のプレビューのままです.
 - ローカルのAuthentication･Firestoreエミュレーターで, 所有者分離等の4テストが成功しました. 実際のGoogleログインや本番での保存成功を意味しません.
 
@@ -47,4 +47,4 @@ npm run test:rules
 
 ## 次の作業
 
-本番DBと認証設定の具体案を提示し, 承認後に本番接続と残る表示幅を検証します. 本番Firestore APIの読取確認は未使用または無効による403で, 無断で有効化していません. 公開番号は0.1.1のままで, ローカル専用の機能を公開済みとする履歴は追加しません. 本番で提供可能になるリリースで番号･11言語の更新履歴･Landing-pageを更新します. 本番設定の変更とDeployは別途承認を得ます.
+本番接続用のアプリ設定と認証ドメインを確認し, 実際のGoogleログイン･保存を検証します. 本番DBとGoogleプロバイダーの設定は承認後に完了しましたが, アプリはまだローカル専用の接続です. 公開番号は0.1.1のままで, 未公開機能を公開済みとする履歴は追加しません. 本番で提供可能になるリリースで番号･11言語の更新履歴･Landing-pageを更新します. HostingのDeployは別途承認を得ます.
