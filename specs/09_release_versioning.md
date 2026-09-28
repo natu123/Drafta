@@ -17,7 +17,9 @@
 
 ## 公開時の確認
 
-### Version 0.2.0 (公開準備済み･未Deploy)
+### Version 0.2.0 (2026-09-28公開)
+
+明示承認後に`firebase deploy --only hosting --project drafta-memo --non-interactive`が成功しました. 公開トップ･アプリ･更新履歴のHTTP 200とローカル生成HTMLの一致を確認しました. 公開アプリにAccountとGoogleログインの導線があります. 公開ドメインでの実認証完了は引き続き確認します.
 
 GoogleログインとMemo･Tray･設定の自動保存をまとまった機能追加として0.2.0にします. PackageとLock-file, 11言語の更新履歴, Landing-pageの保存条件･今後の計画を揃えました. 過去の履歴には当時の保存未対応の説明を保持します. 本番接続設定をプロセス環境へ渡したBuildが成功し, 静的生成物でも本番DBから復元できることをChromeで確認しました. 公開日2026-09-28はDeployが別日になる場合に更新します.
 
