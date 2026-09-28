@@ -78,7 +78,7 @@ export default function LandingPage() {
           </p>
 
           {/* Before/After Section */}
-          <div className="max-w-3xl mx-auto mb-14">
+          <div data-nosnippet="" className="max-w-3xl mx-auto mb-14">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="p-5 rounded-2xl bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600">
                 <h3 className="text-base font-semibold mb-3 text-gray-500 dark:text-gray-400">{t.beforeTitle}</h3>
