@@ -754,8 +754,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 const CloudSession = dynamic(() => import('@/components/cloud-session'), { ssr: false });
 export default function Page() {
-  return process.env.NEXT_PUBLIC_FIREBASE_MODE === 'emulator' || process.env.NEXT_PUBLIC_FIREBASE_MODE === 'production'
-    ? <CloudSession Workspace={Home} /> : <Home />;
+  return <CloudSession Workspace={Home} />;
 }
 
 function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory }: WorkspaceViewProps) {

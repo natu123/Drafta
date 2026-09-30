@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
@@ -23,6 +24,9 @@ import type { MemoHistoryRepository } from '@/lib/memo-history';
 import { memoHistoryCopy } from '@/lib/memo-history-copy';
 import { freezeHistorySample } from '@/lib/memo-history-restore';
 import { useShortcutMod } from '@/hooks/use-client-ready';
+import { authRecoveryCopy } from '@/lib/auth-recovery-copy';
+import { loginRequiredCopy } from '@/lib/login-required-copy';
+import { BrandIcon } from './brand-icon';
 
 type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'> };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
@@ -48,15 +52,17 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const restartWatching = React.useRef<(() => void) | null>(null);
   const syncUnavailable = React.useRef(false);
   const updateSequence = React.useRef(0);
-  const guest = React.useRef<WorkspaceState | undefined>(undefined);
   const lastState = React.useRef('');
   const lastBackup = React.useRef<WorkspaceBackup | null>(null);
   const invalidState = React.useRef<WorkspaceState | null>(null);
+  const activeOwner = React.useRef<string | null>(null);
+  const heldEdits = React.useRef(new Map<string, { base: SavedWorkspace | null; backup: WorkspaceBackup; invalid: WorkspaceState | null }>());
+  const [hasHeldEdits, setHasHeldEdits] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState; history?: MemoHistoryRepository } | null>(null);
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
-  const [loginOpen, setLoginOpen] = React.useState(false);
   const [remoteUpdate, setRemoteUpdate] = React.useState<WorkspaceUpdate | undefined>(undefined);
   const [reviewRemote, setReviewRemote] = React.useState<SavedWorkspace | null>(null);
   const [reviewOpen, setReviewOpen] = React.useState(false);
@@ -82,6 +88,13 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   }), [applyRemote]);
 
   const load = React.useCallback(async (user: User | null) => {
+    setIsAuthenticated(user !== null);
+    const owner = activeOwner.current;
+    if (owner && lastBackup.current && (queue.current?.dirty || invalidState.current)) {
+      heldEdits.current.set(owner, { base: queue.current?.acknowledged ?? null, backup: structuredClone(lastBackup.current), invalid: invalidState.current ? structuredClone(invalidState.current) : null });
+      setHasHeldEdits(true);
+    }
+    activeOwner.current = null;
     const id = ++generation.current;
     stopWatching.current?.(); stopWatching.current = null;
     restartWatching.current = null; syncUnavailable.current = false;
@@ -91,24 +104,27 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     setErrorCode(null);
     setSession(null); setStatus('loading');
     if (!user) {
-      guest.current = undefined;
-      setSession({ key: id, user: null }); setStatus('guest'); return;
+      setStatus('guest'); return;
     }
     try {
       const repository = repositoryFor(user.uid, id);
       const stored = await repository.load();
       if (id !== generation.current) return;
-      const seed = stored ? workspaceToState(stored.backup, document) : guest.current;
-      guest.current = undefined;
+      const held = heldEdits.current.get(user.uid);
+      const seed = held ? held.invalid ?? workspaceToState(held.backup, document) : stored ? workspaceToState(stored.backup, document) : undefined;
       if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
       lastState.current = seed ? stateFingerprint(seed) : '';
-      lastBackup.current = stored?.backup ?? null;
-      queue.current = makeQueue(stored, repository, id);
-      if (!stored && seed) {
-        lastBackup.current = createWorkspaceBackup(seed, document);
-        queue.current.enqueue(lastBackup.current, true);
+      lastBackup.current = held?.backup ?? stored?.backup ?? null;
+      queue.current = makeQueue(held ? held.base : stored, repository, id);
+      if (held) {
+        invalidState.current = held.invalid;
+        queue.current.enqueue(held.backup);
+        if (stored) queue.current.acceptRemote(stored);
+        heldEdits.current.delete(user.uid);
+        setHasHeldEdits(heldEdits.current.size > 0);
       }
-      setStatus(stored ? 'saved' : 'pending');
+      activeOwner.current = user.uid;
+      setStatus(invalidState.current ? 'error' : queue.current.status);
       setSession({ key: id, user, seed, history: repository.history });
       restartWatching.current = () => {
         stopWatching.current?.();
@@ -145,7 +161,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
 
   React.useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (queue.current?.dirty || invalidState.current) { event.preventDefault(); event.returnValue = ''; }
+      if (queue.current?.dirty || invalidState.current || heldEdits.current.size) { event.preventDefault(); event.returnValue = ''; }
     };
     const flush = () => { void queue.current?.flush(); };
     const visibility = () => { if (document.visibilityState === 'hidden') flush(); };
@@ -164,7 +180,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const uid = session?.user?.uid;
   const changed = React.useCallback((state: WorkspaceState) => {
     if (sessionKey !== generation.current) return;
-    if (!uid) { guest.current = state; return; }
+    if (!uid) return;
     if (client.current?.auth.currentUser?.uid !== uid) return;
     const fingerprint = stateFingerprint(state);
     if (fingerprint === lastState.current) {
@@ -191,7 +207,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     } finally { setBusy(false); }
   };
   const login = () => {
-    if (!busy) setLoginOpen(true);
+    void act(() => client.current!.login());
   };
   const logout = () => { void act(async () => {
     if (invalidState.current) { setStatus('error'); return; }
@@ -212,8 +228,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (queue.current) void queue.current.retry(); else reload();
   };
   const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
-  const loginDialog = loginOpen ? <DeleteConfirmDialog open onOpenChange={setLoginOpen} title={labels.login} description={labels.loginConfirm} confirmText={labels.login} variant="default" onConfirm={() => { void act(() => client.current!.login()); }} /> : null;
-  if (!session) return <><main className="flex min-h-screen flex-col items-center justify-center gap-4"><p role="status">{labels.status[status]}</p>{errorCode && <p role="alert">{errorCode}</p>}{status === 'error' && <Button onClick={retry}>{labels.retry}</Button>}</main>{loginDialog}</>;
+  if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p><p role="status" aria-live="polite">{status === 'guest' ? labels.login : labels.status[status]}</p>{errorCode && <p role="alert">{errorCode}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}</main>;
   const resolveReview = () => {
     if (!reviewRemote || !lastBackup.current || !session.user) return;
     const remote = reviewRemote;
@@ -224,5 +239,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <><Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} />{loginDialog}<DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }

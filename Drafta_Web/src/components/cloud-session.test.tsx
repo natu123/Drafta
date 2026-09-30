@@ -16,8 +16,7 @@ import CloudSession from './cloud-session';
 let root: Root;
 let container: HTMLDivElement;
 function Workspace({ accountMenu }: { accountMenu?: React.ReactNode }) {
-  const [draft, setDraft] = React.useState('Initial preview');
-  return <>{accountMenu}<button onClick={() => setDraft('Keep my draft')}>Edit draft</button><p>{draft}</p></>;
+  return <>{accountMenu}<p>Private editing screen</p></>;
 }
 async function click(label: string) {
   const button = [...container.querySelectorAll('button')].find(element => element.textContent === label);
@@ -34,23 +33,19 @@ beforeEach(async () => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
 
 describe('authentication retry', () => {
-  it('restarts authentication after a blocked popup without resetting the draft', async () => {
+  it('restarts authentication after a blocked popup without exposing the workspace', async () => {
     const nativeConfirm = vi.spyOn(window, 'confirm');
-    await click('Edit draft'); await click('Login');
-    expect(mocks.login).not.toHaveBeenCalled();
-    await click('Confirm login');
+    await click('Sign in with Google');
     expect(mocks.login).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain('auth/popup-blocked');
-    await click('Retry');
-    expect(container.textContent).toContain('Keep my draft');
-    await click('Confirm login');
+    await click('Sign in with Google');
     expect(mocks.login).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toContain('Keep my draft');
+    expect(container.textContent).not.toContain('Private editing screen');
     expect(nativeConfirm).not.toHaveBeenCalled();
   });
-  it('preserves the draft when confirmation is cancelled', async () => {
-    await click('Edit draft'); await click('Login'); await click('Cancel');
+  it('does not mount the workspace before signing in', async () => {
     expect(mocks.login).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('Keep my draft');
+    expect(container.textContent).not.toContain('Private editing screen');
+    expect(container.querySelector('[contenteditable]')).toBeNull();
   });
 });
