@@ -154,7 +154,9 @@ UI 状態カラー:
 
 ## Project Documentation
 - 公開バージョンは `Drafta_Web/package.json` を正本とし、履歴と運用方針は `specs/09_release_versioning.md` を参照する。過去の版番号を後付けしない。
-- 利用者に影響するアップデートでは、バージョン番号・更新履歴・Landing-pageの最新情報を同じリリースで更新する。実装済みになったロードマップや注意書きも見直す。内部文書のみの変更では番号を上げず、Deployには別途明示承認を得る。
+- 利用者に影響するアップデートでは、バージョン番号・更新履歴・Landing-pageの最新情報を同じリリースで更新する。実装済みになったロードマップや注意書きも見直す。内部文書のみの変更では番号を上げない。
+- 通常のアプリ更新（文言・UI・既存仕様内の機能追加や修正）は、依頼された範囲の検証・Commit・Push後、Firebaseプロジェクト`drafta-memo`のHosting（https://drafta-memo.com）へDeployし、公開確認まで進める。これは継続的な実行許可とし、更新ごとのDeploy承認は求めない。内部文書のみの変更ではDeployしない。
+- 課金・認証方式・アクセス権限（Firestoreルールを含む）・本番データの削除や移行は、内容・影響・リスクを示して別途明示承認を得る。通常更新の許可をこれらへ広げない。承認が必要な変更に依存するアプリ更新は、その承認・反映が済むまで公開しない。
 - 現状・今後の方針・次の作業は `specs/02_development_plan.md` を正本とし、作業の節目にこの順で報告する。保存・運用の詳細は `specs/05_service_launch_plan.md` を参照する。未実装の計画を完了扱いしない。
 - `specs/01_tech_stack.md` - 技術スタック（Firebase, Expo, Tauri）
 - `specs/02_development_plan.md` - 承認済みロードマップ・現状・次の作業
