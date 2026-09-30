@@ -19,7 +19,7 @@ export function ReleaseUpdates({ full = false }: { full?: boolean }) {
           <span className="text-sm text-muted-foreground">{t.preview}</span>
         </div>
         <p className="leading-relaxed">{t[release.copyKey]}</p>
-        <p className="text-sm text-muted-foreground">{release.version.startsWith('0.1.') ? t.legacyWarning : t.warning}</p>
+        <p className="text-sm text-muted-foreground">{release.version.startsWith('0.1.') ? t.legacyWarning : ['0.2.0', '0.2.1', '0.3.0', '0.4.0'].includes(release.version) ? t.previousCloudWarning : t.warning}</p>
       </article>)}
       {full ? (
         <section aria-labelledby="implementation-history" className="flex flex-col gap-5">
