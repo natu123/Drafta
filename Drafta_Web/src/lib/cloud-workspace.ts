@@ -1,5 +1,6 @@
 import { collection, doc, getDocFromServer, getDocsFromServer, limit, query, runTransaction, serverTimestamp, startAfter, type Firestore } from 'firebase/firestore';
-import { BACKUP_LIMITS, parseWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
+import { BACKUP_LIMITS, parseWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup, type BackupNote } from './workspace-backup';
+import { memoHistory, historyCandidate } from './memo-history';
 
 export class WorkspaceConflictError extends Error {
   constructor() { super('The server workspace changed. Reload before saving.'); this.name = 'WorkspaceConflictError'; }
@@ -24,10 +25,11 @@ function revisionOf(data: Record<string, unknown> | undefined): number {
 }
 
 /** Cloud-only repository. All reads come from the server, never offline cache. */
-export function cloudWorkspace(db: Firestore, uid: string) {
+export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryFailure?: () => void; historySnapshot?: (note: BackupNote) => BackupNote } = {}) {
   if (!uid || uid.length > 128 || uid.includes('/')) throw new WorkspaceStorageError('Invalid account');
   const root = doc(db, 'users', uid, 'workspaces', 'default');
   const notesCollection = collection(root, 'notes');
+  const history = memoHistory(db, uid);
 
   async function load(): Promise<SavedWorkspace | null> {
     // Read the revision twice so a concurrent atomic save cannot mix two states.
@@ -95,8 +97,26 @@ export function cloudWorkspace(db: Firestore, uid: string) {
       for (const [id, payloadJson] of writes) transaction.set(doc(notesCollection, id), { schemaVersion: 1, payloadJson, updatedAt: serverTimestamp() });
       for (const id of deletes) transaction.delete(doc(notesCollection, id));
     });
+    // Archive only after the primary transaction has been acknowledged. Its success
+    // must remain acknowledged even if the optional history write fails.
+    const priorNotes = new Map((base?.backup.notes ?? []).map(note => [note.id, note]));
+    const changedIds = new Set(writes.map(([id]) => id));
+    const jobs = [
+      ...notes.filter(note => changedIds.has(note.id)).map(note => async () => {
+        const candidate = historyCandidate(note, priorNotes.get(note.id));
+        if (candidate) await history.record(options.historySnapshot?.(candidate.note) ?? candidate.note, candidate.force);
+      }),
+      ...deletes.map(id => async () => { await history.remove(id); }),
+    ];
+    let historyFailed = false;
+    // Bound concurrency so restoring a workspace does not flood the service.
+    for (let index = 0; index < jobs.length; index += 4) {
+      const results = await Promise.allSettled(jobs.slice(index, index + 4).map(job => job()));
+      if (results.some(result => result.status === 'rejected')) historyFailed = true;
+    }
+    if (historyFailed) options.onHistoryFailure?.();
     // Only the successful server transaction advances the acknowledged baseline.
     return { uid, revision, backup };
   }
-  return { load, save };
+  return { load, save, history };
 }

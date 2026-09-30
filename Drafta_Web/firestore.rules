@@ -28,6 +28,32 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time;
         allow delete: if owns(uid) && workspaceId == 'default';
       }
+      match /memoHistory/{noteId} {
+        function historyOwner() {
+          return owns(uid) && workspaceId == 'default' && noteId.matches('^[A-Za-z0-9_-]{1,128}$');
+        }
+        function memoExists() {
+          return exists(/databases/$(database)/documents/users/$(uid)/workspaces/default/notes/$(noteId));
+        }
+        allow read, delete: if historyOwner();
+        allow create, update: if historyOwner() && memoExists()
+          && request.resource.data.keys().hasOnly(['schemaVersion', 'versionIds', 'contentHash', 'capturedAt'])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.versionIds is list
+          && request.resource.data.versionIds.size() <= 20
+          && request.resource.data.contentHash is string
+          && request.resource.data.contentHash.matches('^[0-9a-f]{64}$')
+          && request.resource.data.capturedAt == request.time;
+        match /versions/{versionId} {
+          allow read, delete: if historyOwner();
+          allow create: if historyOwner() && memoExists() && versionId.matches('^[A-Za-z0-9_-]{1,128}$')
+            && request.resource.data.keys().hasOnly(['schemaVersion', 'payloadJson', 'capturedAt'])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.payloadJson is string
+            && request.resource.data.payloadJson.size() < 500000
+            && request.resource.data.capturedAt == request.time;
+        }
+      }
     }
     // No client access to billing, plans, other profiles, or unrecognized paths.
     match /{document=**} { allow read, write: if false; }

@@ -60,4 +60,26 @@ describe.skipIf(!host)('Firestore owner isolation (emulator only)', () => {
     await assertFails(setDoc(ref, { ...note(), payloadJson: 'x'.repeat(500000) }));
     await assertSucceeds(deleteDoc(ref));
   });
+  it('keeps history versions immutable and denies recording for missing memos', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    const historyRef = doc(db, 'users/alice/workspaces/default/memoHistory/memo-1/versions/version-1');
+    const version = { schemaVersion: 1, payloadJson: '{}', capturedAt: serverTimestamp() };
+    await assertFails(setDoc(historyRef, version));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/workspaces/default/notes/memo-1'), note()));
+    await assertSucceeds(setDoc(historyRef, version));
+    await assertFails(setDoc(historyRef, version));
+    await assertFails(getDoc(doc(env.authenticatedContext('bob').firestore(), historyRef.path)));
+    await assertSucceeds(deleteDoc(historyRef));
+  });
+  it('enforces the history index cap and server timestamps', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/alice/workspaces/default/notes/memo-1'), note()));
+    const ref = doc(db, 'users/alice/workspaces/default/memoHistory/memo-1');
+    const head = { schemaVersion: 1, versionIds: Array.from({ length: 20 }, (_, index) => `v-${index}`), contentHash: 'a'.repeat(64), capturedAt: serverTimestamp() };
+    await assertSucceeds(setDoc(ref, head));
+    await assertFails(setDoc(ref, { ...head, versionIds: [...head.versionIds, 'v-20'] }));
+    await assertFails(setDoc(ref, { ...head, capturedAt: 'fake' }));
+    await assertFails(setDoc(ref, { ...head, public: true }));
+    await assertFails(setDoc(doc(db, 'users/alice/workspaces/other/memoHistory/memo-1'), head));
+  });
 });
