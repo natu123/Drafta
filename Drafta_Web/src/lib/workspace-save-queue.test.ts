@@ -104,6 +104,53 @@ describe('workspace autosave queue', () => {
     expect(save).toHaveBeenCalledTimes(1); expect(queue.status).toBe('conflict'); queue.dispose();
   });
 
+  it('retries the newest edit after a disconnected outstanding save fails', async () => {
+    vi.useFakeTimers();
+    let reject!: (error: Error) => void;
+    const base = saved(value(), 4);
+    const save = vi.fn<(input: WorkspaceBackup, base: SavedWorkspace | null) => Promise<SavedWorkspace>>()
+      .mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }))
+      .mockImplementationOnce(async input => saved(input, 5));
+    const queue = new WorkspaceSaveQueue(base, save, vi.fn());
+    const first = value(); first.settings.theme = 'dark';
+    queue.enqueue(first); const flushing = queue.flush();
+    const latest = value(); latest.settings.language = 'ja';
+    queue.enqueue(latest); reject(new Error('offline')); await flushing;
+    expect(queue.status).toBe('error'); expect(queue.dirty).toBe(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(save.mock.calls[1]).toEqual([latest, base]);
+    expect(queue.status).toBe('saved'); expect(queue.dirty).toBe(false);
+    queue.dispose();
+  });
+
+  it('keeps later edits after retry exhaustion until an explicit retry succeeds', async () => {
+    vi.useFakeTimers();
+    const base = saved(value(), 3);
+    const save = vi.fn().mockRejectedValue(new Error('unavailable'));
+    const queue = new WorkspaceSaveQueue(base, save, vi.fn());
+    queue.enqueue(value()); await queue.flush(); await vi.advanceTimersByTimeAsync(7000);
+    const latest = value(); latest.settings.language = 'ja'; queue.enqueue(latest);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(save).toHaveBeenCalledTimes(4); expect(queue.dirty).toBe(true);
+    save.mockImplementation(async input => saved(input, 4)); await queue.retry();
+    expect(save.mock.calls[4]).toEqual([latest, base]);
+    expect(queue.status).toBe('saved'); expect(queue.dirty).toBe(false);
+    queue.dispose();
+  });
+
+  it('does not mark a rejected authorization save as saved and retains its candidate', async () => {
+    const base = saved(value());
+    const save = vi.fn().mockRejectedValueOnce({ code: 'permission-denied' })
+      .mockImplementationOnce(async input => saved(input, 2));
+    const queue = new WorkspaceSaveQueue(base, save, vi.fn());
+    const edited = value(); edited.settings.theme = 'dark';
+    queue.enqueue(edited); await queue.flush();
+    expect(queue.status).toBe('error'); expect(queue.dirty).toBe(true);
+    await queue.retry();
+    expect(save.mock.calls[1]).toEqual([edited, base]);
+    expect(queue.status).toBe('saved'); queue.dispose();
+  });
+
   it('does not publish late results or write queued changes after disposal', async () => {
     let resolve!: (value: SavedWorkspace) => void;
     const save = vi.fn(() => new Promise<SavedWorkspace>(done => { resolve = done; }));
