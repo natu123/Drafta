@@ -6,12 +6,18 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
 import type { WorkspaceState, WorkspaceUpdate } from '@/lib/workspace-state';
+import type { MemoHistoryRepository, MemoHistoryVersion } from '@/lib/memo-history';
+import { restoreHistoryCopy } from '@/lib/memo-history-restore';
+import { memoHistoryCopy } from '@/lib/memo-history-copy';
+import { MemoHistoryAction } from '@/components/memo-history-action';
+import { toast } from '@/hooks/use-toast';
 
 export type WorkspaceViewProps = {
   remoteUpdate?: WorkspaceUpdate;
   initialState?: WorkspaceState;
   accountMenu?: React.ReactNode;
   onWorkspaceChange?: (state: WorkspaceState) => void;
+  memoHistory?: Pick<MemoHistoryRepository, 'list'>;
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
@@ -752,7 +758,7 @@ export default function Page() {
     ? <CloudSession Workspace={Home} /> : <Home />;
 }
 
-function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate }: WorkspaceViewProps) {
+function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
 
@@ -991,6 +997,17 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate }: Wo
 
 
   const activeNote = activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
+  const handleHistoryRestore = (version: MemoHistoryVersion) => {
+    const labels = memoHistoryCopy[lang];
+    const restored = restoreHistoryCopy(version, sourceGroups, sourceNotes, { dom: document,
+      preferredGroupId: activeNote?.group ?? activeGroupId, newId: () => crypto.randomUUID(), now: new Date().toISOString(),
+      suffix: labels.suffix, unnamed: appT.untitledMemo, recoveredTrayName: labels.tray,
+    });
+    if (restored.newGroup) setGroups(previous => [...previous, restored.newGroup!]);
+    setNotes(previous => scrollDirection === 'top' ? [restored.note, ...previous] : [...previous, restored.note]);
+    setActiveGroupId(restored.note.group);
+    toast({ description: labels.restored });
+  };
   React.useEffect(() => {
     document.title = activeNote && !activeNote.isDeleted
       ? `${stripColorMarkdown(activeNote.title) || appT.untitledMemo} - Drafta`
@@ -1506,6 +1523,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate }: Wo
                 externalRevision={editorSyncRevision}
                 continuityKey={editorContinuity?.noteId === activeNote.id ? editorContinuity.key : undefined}
                 note={activeNote}
+                historyAction={memoHistory && activeNote.type !== 'separator' ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
                 onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
                   handleDeleteNote(activeNote.id);
                   setActiveView('home');

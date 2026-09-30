@@ -32,6 +32,7 @@ interface TiptapEditorProps {
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
   onDelete?: () => void;
+  historyAction?: React.ReactNode;
 }
 
 const baseColors = [
@@ -46,7 +47,7 @@ const baseColors = [
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, externalRevision = 0 }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, externalRevision = 0, historyAction }) => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t } = useLang();
@@ -1054,7 +1055,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             }
           }}
         >
-          <div className="editor-document relative">
+          <div className={cn('editor-document relative', historyAction && 'has-history', onDelete && !note.isProtected && !note.isDeleted && 'has-delete')}>
           <div className="editor-title-icon">
           <Popover>
             <PopoverTrigger asChild>
@@ -1081,6 +1082,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             )}
           </Popover>
           </div>
+          {historyAction && <div className="editor-history-action">{historyAction}</div>}
           {onDelete && !note.isProtected && !note.isDeleted && (
             <Tooltip>
               <TooltipTrigger asChild>

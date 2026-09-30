@@ -24,7 +24,10 @@
 .editor-palette:not([hidden]) { display: flex; flex-wrap: wrap; flex-basis: 100%; gap: 2px; }
 .editor-title-icon { position: absolute; left: 0; top: 16px; }
 .editor-delete-button { position: absolute; right: 0; top: 16px; }
+.editor-history-action { position: absolute; right: 44px; top: 16px; }
+.editor-document:not(.has-delete) .editor-history-action { right: 0; }
 .editor-document .drafta-editor > h1:first-child { padding-left: 44px; padding-right: 44px; }
+.editor-document.has-history.has-delete .drafta-editor > h1:first-child { padding-right: 88px; }
 .memo-pin { z-index: 1; }
 .note-find-hit { background: #fef08a; color: #17202a; }
 .note-find-current { background: #fbbf24; outline: 1px solid #92400e; }

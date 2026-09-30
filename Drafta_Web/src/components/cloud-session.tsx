@@ -19,13 +19,22 @@ import { AccountMenu, type SaveStatus } from './account-menu';
 import { cloudCopy } from '@/lib/cloud-copy';
 import { Button } from './ui/button';
 import { DeleteConfirmDialog } from './delete-confirm-dialog';
+import type { MemoHistoryRepository } from '@/lib/memo-history';
+import { memoHistoryCopy } from '@/lib/memo-history-copy';
+import { freezeHistorySample } from '@/lib/memo-history-restore';
+import { useShortcutMod } from '@/hooks/use-client-ready';
 
-type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void };
+type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'> };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
 
 export default function CloudSession({ Workspace }: { Workspace: React.ComponentType<ViewProps> }) {
   const { lang, restoreLanguage } = useLang();
   const labels = cloudCopy[lang];
+  const shortcutMod = useShortcutMod();
+  const historyContext = React.useRef({ lang, shortcutMod });
+  React.useEffect(() => { historyContext.current = { lang, shortcutMod }; }, [lang, shortcutMod]);
+  const historyLabelsRef = React.useRef(memoHistoryCopy[lang]);
+  React.useEffect(() => { historyLabelsRef.current = memoHistoryCopy[lang]; }, [lang]);
   const syncLabels = syncCopy[lang];
   const syncLabelsRef = React.useRef(syncLabels);
   React.useEffect(() => { syncLabelsRef.current = syncLabels; }, [syncLabels]);
@@ -43,7 +52,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const lastState = React.useRef('');
   const lastBackup = React.useRef<WorkspaceBackup | null>(null);
   const invalidState = React.useRef<WorkspaceState | null>(null);
-  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState } | null>(null);
+  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState; history?: MemoHistoryRepository } | null>(null);
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
@@ -51,6 +60,10 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [remoteUpdate, setRemoteUpdate] = React.useState<WorkspaceUpdate | undefined>(undefined);
   const [reviewRemote, setReviewRemote] = React.useState<SavedWorkspace | null>(null);
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  const repositoryFor = React.useCallback((uid: string, id: number) => cloudWorkspace(client.current!.db, uid, {
+    onHistoryFailure: () => { if (id === generation.current) toast({ description: historyLabelsRef.current.warning }); },
+    historySnapshot: note => freezeHistorySample(note, document, historyContext.current.lang, historyContext.current.shortcutMod),
+  }), []);
 
   const applyRemote = React.useCallback((backup: WorkspaceBackup, copies: { originalId: string; copyId: string }[]) => {
     const state = workspaceToState(backup, document);
@@ -82,7 +95,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       setSession({ key: id, user: null }); setStatus('guest'); return;
     }
     try {
-      const repository = cloudWorkspace(client.current!.db, user.uid);
+      const repository = repositoryFor(user.uid, id);
       const stored = await repository.load();
       if (id !== generation.current) return;
       const seed = stored ? workspaceToState(stored.backup, document) : guest.current;
@@ -96,7 +109,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         queue.current.enqueue(lastBackup.current, true);
       }
       setStatus(stored ? 'saved' : 'pending');
-      setSession({ key: id, user, seed });
+      setSession({ key: id, user, seed, history: repository.history });
       restartWatching.current = () => {
         stopWatching.current?.();
         stopWatching.current = watchCloudWorkspace(client.current!.db, user.uid, remote => {
@@ -117,7 +130,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         setStatus('error');
       }
     }
-  }, [restoreLanguage, makeQueue]);
+  }, [restoreLanguage, makeQueue, repositoryFor]);
 
   React.useEffect(() => {
     const lifecycle = generation;
@@ -207,9 +220,9 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     try {
       const backup = preserveWorkspaceCopy(lastBackup.current, remote.backup, { now: new Date().toISOString(), newId: () => crypto.randomUUID(), copySuffix: syncLabels.suffix });
       queue.current?.dispose();
-      queue.current = makeQueue(remote, cloudWorkspace(client.current!.db, session.user.uid), generation.current);
+      queue.current = makeQueue(remote, repositoryFor(session.user.uid, generation.current), generation.current);
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <><Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} />{loginDialog}<DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <><Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} />{loginDialog}<DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }
