@@ -27,6 +27,7 @@ import { useShortcutMod } from '@/hooks/use-client-ready';
 import { authRecoveryCopy } from '@/lib/auth-recovery-copy';
 import { loginRequiredCopy } from '@/lib/login-required-copy';
 import { BrandIcon } from './brand-icon';
+import { authErrorCopy } from '@/lib/auth-error-copy';
 
 type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'> };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
@@ -63,6 +64,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
+  const [loginNotice, setLoginNotice] = React.useState<'blocked' | 'failed' | null>(null);
   const [remoteUpdate, setRemoteUpdate] = React.useState<WorkspaceUpdate | undefined>(undefined);
   const [reviewRemote, setReviewRemote] = React.useState<SavedWorkspace | null>(null);
   const [reviewOpen, setReviewOpen] = React.useState(false);
@@ -102,6 +104,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     setRemoteUpdate(undefined); setReviewRemote(null); setReviewOpen(false);
     invalidState.current = null;
     setErrorCode(null);
+    setLoginNotice(null);
     setSession(null); setStatus('loading');
     if (!user) {
       setStatus('guest'); return;
@@ -196,18 +199,22 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     } catch { invalidState.current = state; setStatus('error'); }
   }, [sessionKey, uid]);
 
-  const act = async (action: () => Promise<unknown>) => {
+  const act = async (action: () => Promise<unknown>, loginAttempt = false) => {
     if (busy) return;
     setBusy(true);
     setErrorCode(null);
+    if (loginAttempt) setLoginNotice(null);
     try { await action(); } catch (error) {
       const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
       setErrorCode(/^(auth|firestore)\/[a-z-]+$/.test(code) ? code : 'operation-failed');
-      setStatus('error');
+      if (loginAttempt) {
+        setLoginNotice(code === 'auth/popup-closed-by-user' ? null : code === 'auth/popup-blocked' ? 'blocked' : 'failed');
+        setStatus('guest');
+      } else setStatus('error');
     } finally { setBusy(false); }
   };
   const login = () => {
-    void act(() => client.current!.login());
+    void act(() => client.current!.login(), true);
   };
   const logout = () => { void act(async () => {
     if (invalidState.current) { setStatus('error'); return; }
@@ -228,7 +235,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (queue.current) void queue.current.retry(); else reload();
   };
   const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
-  if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p><p role="status" aria-live="polite">{status === 'guest' ? labels.login : labels.status[status]}</p>{errorCode && <p role="alert">{errorCode}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}</main>;
+  if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p>{status !== 'guest' && <p role="status" aria-live="polite">{labels.status[status]}</p>}{loginNotice && <p role="alert" className="max-w-lg">{authErrorCopy[lang][loginNotice]}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}</main>;
   const resolveReview = () => {
     if (!reviewRemote || !lastBackup.current || !session.user) return;
     const remote = reviewRemote;

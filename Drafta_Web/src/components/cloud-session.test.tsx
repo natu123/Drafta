@@ -37,7 +37,9 @@ describe('authentication retry', () => {
     const nativeConfirm = vi.spyOn(window, 'confirm');
     await click('Sign in with Google');
     expect(mocks.login).toHaveBeenCalledTimes(1);
-    expect(container.textContent).toContain('auth/popup-blocked');
+    expect(container.textContent).toContain('Allow popups in your browser');
+    expect(container.textContent).not.toContain('auth/popup-blocked');
+    expect(container.textContent).not.toContain('Could not save or load');
     await click('Sign in with Google');
     expect(mocks.login).toHaveBeenCalledTimes(2);
     expect(container.textContent).not.toContain('Private editing screen');
@@ -47,5 +49,23 @@ describe('authentication retry', () => {
     expect(mocks.login).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain('Private editing screen');
     expect(container.querySelector('[contenteditable]')).toBeNull();
+    expect(container.querySelector('[role=status]')).toBeNull();
+  });
+  it('returns to the login screen without an error when the user closes the popup', async () => {
+    mocks.login.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' });
+    await click('Sign in with Google');
+    expect(container.querySelector('[role=alert]')).toBeNull();
+    expect(container.textContent).not.toContain('auth/');
+    expect(container.querySelector('button')?.disabled).toBe(false);
+  });
+  it('shows a readable message for another sign-in failure', async () => {
+    mocks.login.mockRejectedValueOnce({ code: 'auth/network-request-failed' });
+    await click('Sign in with Google');
+    expect(container.querySelector('[role=alert]')?.textContent).toBe('Could not sign in. Please try again.');
+    expect(container.textContent).not.toContain('auth/');
+  });
+  it('clears a previous blocked-popup message when the next popup is closed', async () => {
+    await click('Sign in with Google'); mocks.login.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' });
+    await click('Sign in with Google'); expect(container.querySelector('[role=alert]')).toBeNull();
   });
 });
