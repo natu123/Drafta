@@ -18,8 +18,9 @@
 2. `CLAUDE.md`はClaude Code向け補助指示で, Project仕様の複製元ではありません.
 3. `Drafta_Web/package.json`が公開Versionの正本です. 更新履歴は`Drafta_Web/src/lib/release-info.ts`と同`release-copy.ts`から生成されます.
 4. `specs/12_memo_history.md`と`specs/13_login_required.md`は各機能の採用仕様と検証結果です. 同期・保存の補足は`specs/10_persistence_foundation.md`と`specs/11_sync_recovery.md`を参照してください.
-5. `specs/02_development_plan.md`と`README.md`には古い文が残っています. とくに「0.5.0が最新の次作業」「未ログインPreview」「メモがメモリ上だけ」「Firebase未登録」は現在の状態ではありません. これらの記述を現状の根拠にせず, 上記の仕様文書・Package Version・Git・公開サイトで照合してください.
-6. `specs/05_service_launch_plan.md`は初回監査の歴史記録を含みます. 2026-09-15時点の「アプリ未登録」「永続保存なし」等は現在の状態を示しません.
+5. `README.md`と`Drafta_Web/README.md`は`5570025`で認証・保存・ローカル開発手順の現状に更新済みです. ローカル動作確認にはFirebase Emulatorを使い, `NEXT_PUBLIC_FIREBASE_MODE=emulator`を設定します.
+6. `specs/02_development_plan.md`には古い記述が残っています. とくに「0.5.0が最新の次作業」「未ログインPreview」「公開版0.2.0が現状」は現在の状態ではありません. Version 0.5.1までの進捗と今後の作業を開発計画へ反映してください.
+7. `specs/05_service_launch_plan.md`は初回監査の歴史記録を含みます. 2026-09-15時点の「アプリ未登録」「永続保存なし」等は現在の状態を示しません.
 
 ## 次の作業
 
@@ -32,10 +33,18 @@
 ```powershell
 Set-Location C:\Users\kenji\Drafta\Drafta_Web
 npm ci
+npm run emulators
+```
+
+2つ目のTerminalから:
+
+```powershell
+Set-Location C:\Users\kenji\Drafta\Drafta_Web
+$env:NEXT_PUBLIC_FIREBASE_MODE = "emulator"
 npm run dev
 ```
 
-開発サーバーは`http://localhost:9002`です. 主なコマンドは`npm test`, `npm run typecheck`, `npm run lint`, `npm run emulators`, `npm run test:rules`, `npm run test:storage`です. 変更範囲に合う確認だけ実行し, 小変更で全テストを一律に繰り返さないでください.
+開発サーバーは`http://localhost:9002/app/`です. Node.js 24.x, npm 12.x, Firebase CLIとJava 21以降が必要です. Emulatorは`demo-drafta`を使い, Authは9099, Firestoreは8080です. Emulatorを停止してもデータは自動保存されません. 主なコマンドは`npm test`, `npm run typecheck`, `npm run lint`, `npm run test:rules`, `npm run test:storage`です. 変更範囲に合う確認だけ実行し, 小変更で全テストを一律に繰り返さないでください.
 
 本番接続Buildには登録済みFirebase Webアプリの接続設定が必要です. Secretや設定値をGit・文書・ログへ書かないでください. Firebase設定ファイルは`Drafta_Web/`内です. 本番Deploy前にはHosting対象と生成物を確認します. 通常のアプリ更新は`AGENTS.md`の継続許可に従います. 課金・認証方式・Firestoreアクセスルール・本番データ削除/移行は別途承認が必要です. 文書だけの変更はDeployしません.
 
