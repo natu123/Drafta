@@ -1,5 +1,14 @@
 # Drafta 仕様書
 
+> 位置付け (2026-10-08追記): この文書は正式サービス化前の初期設計です. 以下の値は現行の実装や確定仕様を示しません. 現在の状態は[開発計画](02_development_plan.md)と[正式サービス化計画](05_service_launch_plan.md)を, 実装済みの仕様は`AGENTS.md`のProject Specsと`specs/10`〜`13`を正本とします.
+>
+> - プラン･料金･容量･広告: 過去の設計値です. 無料βは広告なしとし, 料金･容量･課金開始日は未確定です.
+> - 認証: Webは2026-10-08時点でGoogleログインのみです. Appleログインは後続段階です.
+> - 同期･保存: 自動再試行は計4回の失敗で停止します (`11_sync_recovery.md`). 保存先は`/users/{uid}/workspaces/default`配下で, 下記のデータ設計とは異なります (`10_persistence_foundation.md`).
+> - 本番Firestoreリージョン: 実際はasia-northeast1 (東京) です.
+> - 保護ノート: WelcomeとQuick Referenceも通常メモとして編集･削除できます (`AGENTS.md`).
+> - 法務文書: Web公開前に整える方針へ変更しています (`05_service_launch_plan.md`のM4).
+
 ## プラン設計
 
 | 項目 | Free | Pro ($3/月) |

@@ -1,6 +1,8 @@
 # 認証･永続保存の準備
 
-更新日: 2026-09-28.
+更新日: 2026-09-28. 2026-10-08に公開版の記述だけ現行化しました.
+
+この文書は0.2.0〜0.2.1時点の準備と検証の記録です. 現在の状態は[開発計画](02_development_plan.md)と[正式サービス化計画](05_service_launch_plan.md)の0章を参照します.
 
 公開状況: Version 0.2.1を承認後にHostingへDeployしました. トップ･アプリ･更新履歴のHTMLと, アプリの参照するJS/CSS 16件がローカル生成物と一致しました. 公開ドメインでのユーザーの認証後と再読み込み後に保存済み表示を確認しました. 以下の検証記録では, ローカル模擬DBと本番DBを区別します.
 
@@ -10,7 +12,7 @@
 - SDK接続設定を取得しました. APIキーを文書･公開Repositoryへ記載していません. アプリ登録だけではログイン･保存･同期は動作しません.
 - 承認後にFirestore APIを有効化し, 本番の(default) DBをasia-northeast1 (東京)へ作成しました. STANDARD･FIRESTORE_NATIVE･freeTier=true･誤削除防止有効･PITR無効をCLIで確認しました. 所有者別ルールの本番公開も成功しました. HostingのDeployと課金設定変更は行っていません.
 - Firebase AuthenticationのGoogleプロバイダーを有効化しました. 公開名Draftaと承認済みのサポートメールを登録し, コンソールの「Google: 有効」を確認しました. メールアドレスは公開Repositoryへ転記していません. Chromeのローカル画面から実Googleログイン･本番DBへの保存･再読み込み後の復元を確認しました.
-- Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`ではローカル模擬DBへ接続します. 未指定の公開版は従来のプレビューのままです.
+- Firebase SDK 12.19.0とRules検証用5.0.2をExact-versionで追加しました. `NEXT_PUBLIC_FIREBASE_MODE=emulator`ではローカル模擬DBへ接続します. Mode未指定 (または`off`) のBuildはFirebaseへ接続しません. 公開版は本番接続設定を明示したBuildで, 0.5.0以降はログイン必須です.
 - 本番接続は`NEXT_PUBLIC_FIREBASE_MODE=production`と`NEXT_PUBLIC_FIREBASE_PROJECT_ID`･`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`･`NEXT_PUBLIC_FIREBASE_APP_ID`･`NEXT_PUBLIC_FIREBASE_API_KEY`を明示した場合だけ有効です. 登録済みDraftaアプリと異なる設定を拒否し, Emulatorとは別インスタンスにします. 本番接続設定を含むBuildをHostingへ反映済みです.
 - Authenticationの承認済みドメインにはlocalhost･標準Firebaseドメイン2件と, 承認後に追加したdrafta-memo.comがあります. コンソール上のCustom登録を確認しました.
 - 本番SDK設定をCLIから取得し, ファイルへ保存せず開発サーバーのプロセス環境だけへ渡してlocalhost:9002を起動しました. ユーザーによるChromeログイン後に保存済みを確認し, 再読み込み後も保存済みとサンプルMemo･Trayの復元を確認しました.
