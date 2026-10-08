@@ -14,6 +14,7 @@
 - Claude Code の Bash ツールは Unix 系シェル前提
 - そのためコマンド提案は `rm`, `ls`, `&&` など Bash 構文を許可
 - ただし、ユーザーが PowerShell 実行を前提にしている場合は PowerShell 構文を優先
+- 現在地と作業開始手順は `docs/claude-handoff-2026-10-08.md` を参照し, 最新コード・Git・本番状態を改めて確認する
 
 ## Canonical Reference
 - `AGENTS.md` を常に最優先で解釈する
