@@ -156,29 +156,21 @@ interface SortableNoteItemProps {
   onIconChange?: (id: string, icon: string) => void;
 }
 
-const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
+type SortableBinding = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners' | 'setNodeRef' | 'isDragging'> & { transform: string | undefined; transition: string | undefined };
+
+const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = ({
   item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
-  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin
+  onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin,
+  attributes, listeners, setNodeRef, transform, transition, isDragging,
 }) => {
   const { t } = useLang();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: item.id,
-    disabled: !canDrag || item.isProtected,
-  });
 
   // dnd-kit標準のtransform使用（モディファイアで軸制限）
   // ドラッグ中は非表示にしてDragOverlayのみ表示
   const style: React.CSSProperties = isDragging
     ? { opacity: 0 }
     : {
-        transform: CSS.Transform.toString(transform),
+        transform,
         transition: transition ?? 'transform 200ms ease',
       };
 
@@ -327,6 +319,18 @@ const SortableNoteItem: React.FC<SortableNoteItemProps> = ({
   );
 };
 
+// Typing in one memo re-renders only that card's body (specs/15). dnd-kit re-renders every
+// sortable on each list render, so the hook stays in this thin wrapper and passes stable values.
+const MemoizedNoteItemView = React.memo(SortableNoteItemView);
+const SortableNoteItem: React.FC<SortableNoteItemProps> = props => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.item.id,
+    disabled: !props.canDrag || props.item.isProtected,
+  });
+  return <MemoizedNoteItemView {...props} attributes={attributes} listeners={listeners} setNodeRef={setNodeRef}
+    transform={CSS.Transform.toString(transform)} transition={transition} isDragging={isDragging} />;
+};
+
 // emojis is imported from tiptap-editor.tsx
 
 // Sortable Group Item Component for Left Sidebar
@@ -430,6 +434,11 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
   );
 };
 
+// Module constants keep dnd-kit's sensors and card listeners stable across renders.
+const NOTE_MOUSE_SENSOR = { activationConstraint: { distance: 8 } }; // Start drag after 8px of movement
+const NOTE_TOUCH_SENSOR = { activationConstraint: { delay: 350, tolerance: 8 } };
+const NOTE_KEYBOARD_SENSOR = { coordinateGetter: sortableKeyboardCoordinates };
+
 const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
   viewMode, pinsCollapsed, onTogglePins, onTogglePin,
@@ -457,17 +466,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   );
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 8, // Start drag after 8px of movement
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 350, tolerance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(MouseSensor, NOTE_MOUSE_SENSOR),
+    useSensor(TouchSensor, NOTE_TOUCH_SENSOR),
+    useSensor(KeyboardSensor, NOTE_KEYBOARD_SENSOR)
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -512,6 +513,29 @@ const HomeSection: React.FC<HomeSectionProps> = ({
     if (!isTrash) return [];
     return groups.filter(g => g.isDeleted);
   }, [isTrash, groups]);
+
+  // Stable card callbacks read the latest props, so unchanged memo cards can skip rendering.
+  const cardProps = React.useRef({ onToggleSelect, onItemSelect, itemType, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin });
+  React.useLayoutEffect(() => {
+    cardProps.current = { onToggleSelect, onItemSelect, itemType, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin };
+  });
+  const cardActions = React.useMemo(() => ({
+    onToggleSelect: (id: string) => cardProps.current.onToggleSelect(id),
+    onItemSelect: (id: string) => cardProps.current.onItemSelect(id, cardProps.current.itemType),
+    onToggleComplete: (id: string, isCompleted: boolean) => cardProps.current.onToggleComplete?.(id, isCompleted),
+    onDeleteItem: (id: string) => cardProps.current.onDeleteItem(id),
+    onRestoreItem: (id: string) => cardProps.current.onRestoreItem?.(id),
+    onPermanentDeleteItem: (id: string) => cardProps.current.onPermanentDeleteItem?.(id),
+    onIconChange: (id: string, icon: string) => cardProps.current.onIconChange?.(id, icon),
+    onTogglePin: (id: string) => cardProps.current.onTogglePin(id),
+  }), []);
+  const sections = isTrash ? [{ pinned: false, list: items }] : [
+    { pinned: true, list: pinnedNotes(items) },
+    { pinned: false, list: regularNotes(items) },
+  ];
+  // IDs match [A-Za-z0-9_-], so the joined key is unambiguous; dnd-kit sees the same arrays while order is unchanged.
+  const sectionKey = sections.map(section => section.list.map(item => item.id).join(' ')).join('|');
+  const sectionIds = React.useMemo(() => sectionKey.split('|').map(ids => ids ? ids.split(' ') : []), [sectionKey]);
 
   return (
     <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
@@ -641,19 +665,17 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   )}
 
                   <div ref={sortableAreaRef}>
-                    {(isTrash ? [{ pinned: false, list: items }] : [
-                      { pinned: true, list: pinnedNotes(items) },
-                      { pinned: false, list: regularNotes(items) },
-                    ]).map(section => <React.Fragment key={String(section.pinned)}>
+                    {sections.map((section, index) => <React.Fragment key={String(section.pinned)}>
                       {section.pinned && section.list.length > 0 && <Button variant="ghost" className="pinned-summary w-full justify-start h-9 mb-2" aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
                       <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
-                        <SortableContext items={section.list.map(item => item.id)} strategy={verticalListSortingStrategy}>
+                        <SortableContext items={sectionIds[index]} strategy={verticalListSortingStrategy}>
                           {section.list.map(item => <SortableNoteItem key={item.id} item={item} activeId={activeId}
                             isSelectionMode={isSelectionMode} selectedIds={selectedIds} isTrash={isTrash}
-                            canDrag={canDragNotes && !(section.pinned && pinsCollapsed)} onToggleSelect={onToggleSelect}
-                            onItemSelect={id => onItemSelect(id, itemType)} onToggleComplete={onToggleComplete}
-                            onDeleteItem={onDeleteItem} onRestoreItem={onRestoreItem}
-                            onPermanentDeleteItem={onPermanentDeleteItem} onIconChange={onIconChange} onTogglePin={onTogglePin} />)}
+                            canDrag={canDragNotes && !(section.pinned && pinsCollapsed)} onToggleSelect={cardActions.onToggleSelect}
+                            onItemSelect={cardActions.onItemSelect} onToggleComplete={onToggleComplete && cardActions.onToggleComplete}
+                            onDeleteItem={cardActions.onDeleteItem} onRestoreItem={onRestoreItem && cardActions.onRestoreItem}
+                            onPermanentDeleteItem={onPermanentDeleteItem && cardActions.onPermanentDeleteItem} onIconChange={onIconChange && cardActions.onIconChange}
+                            onTogglePin={cardActions.onTogglePin} />)}
                         </SortableContext>
                       </div>
                     </React.Fragment>)}
