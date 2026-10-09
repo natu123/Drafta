@@ -36,10 +36,11 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
   const fileInput = React.useRef<HTMLInputElement>(null);
   const busy = stage.kind === 'reading' || stage.kind === 'saving';
 
-  React.useEffect(() => {
-    // React has no typed prop for directory selection.
-    folderInput.current?.setAttribute('webkitdirectory', '');
-  }, [open]);
+  // React has no typed prop for directory selection, and the dialog mounts its content lazily.
+  const folderRef = React.useCallback((node: HTMLInputElement | null) => {
+    folderInput.current = node;
+    node?.setAttribute('webkitdirectory', '');
+  }, []);
 
   const close = (next: boolean) => {
     if (busy) return;
@@ -75,7 +76,7 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
           <DialogTitle>{labels.title}</DialogTitle>
           <DialogDescription>{labels.description}</DialogDescription>
         </DialogHeader>
-        <input ref={folderInput} type="file" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
+        <input ref={folderRef} type="file" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
         <input ref={fileInput} type="file" accept=".md,text/markdown" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
 
         {stage.kind === 'select' && (
