@@ -7,7 +7,7 @@ import * as React from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search, Menu } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search, Menu, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
 import { NoteFind } from './note-find';
 import { Button } from './ui/button';
@@ -23,11 +23,15 @@ import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
 import { useShortcutMod } from '@/hooks/use-client-ready';
 import { emojis } from './editor-options';
+import { isEditLockedSample } from '@/lib/sample-notes';
+import { sampleLockCopy } from '@/lib/sample-lock-copy';
 
 interface TiptapEditorProps {
   externalRevision?: number;
   note: Note;
   onNoteUpdate: (updatedNote: Partial<Note>) => void;
+  /** Creates an editable copy of a read-only guide sample. */
+  onDuplicate?: () => void;
   onIconChange: (icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
@@ -47,10 +51,12 @@ const baseColors = [
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, externalRevision = 0, historyAction }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, onDuplicate, externalRevision = 0, historyAction }) => {
+  // isProtected also blocks deletion; guide samples only block editing.
+  const readOnly = Boolean(note.isProtected) || isEditLockedSample(note);
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const shortcutMod = useShortcutMod();
   const [findOpen, setFindOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
@@ -305,7 +311,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     extensions,
     content: getInitialContent(note.title, note.content),
     immediatelyRender: false,
-    editable: !note.isProtected,
+    editable: !readOnly,
     enableInputRules: ['richMarkdownInputRules'],
     enablePasteRules: false,
     onUpdate: ({ editor, transaction }) => {
@@ -384,9 +390,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   // Sync editable state
   React.useEffect(() => {
     if (editor) {
-      editor.setEditable(!note.isProtected);
+      editor.setEditable(!readOnly);
     }
-  }, [editor, note.isProtected]);
+  }, [editor, readOnly]);
 
   // Scroll based on scrollDirection (on mount and note switch)
   const previousExternalRevision = React.useRef(externalRevision);
@@ -825,7 +831,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   return (
     <TooltipProvider delayDuration={200} disableHoverableContent>
-      <SlashCommandMenu editor={editor} enabled={!isPlainTextMode && !note.isProtected} />
+      <SlashCommandMenu editor={editor} enabled={!isPlainTextMode && !readOnly} />
       {/* ADDED: plain-mode class for CSS targeting */}
       <div className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")} onKeyDownCapture={event => {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
@@ -842,7 +848,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Tooltip>
             {/* Logic unchanged */}
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.undo} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || note.isProtected}>
+              <Button variant="ghost" size="icon" aria-label={t.undo} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || readOnly}>
                 <Undo />
               </Button>
             </TooltipTrigger>
@@ -850,7 +856,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.redo} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || note.isProtected}>
+              <Button variant="ghost" size="icon" aria-label={t.redo} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || readOnly}>
                 <Redo />
               </Button>
             </TooltipTrigger>
@@ -860,7 +866,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           {/* List buttons ... */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.addSeparator} onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={note.isProtected || isPlainTextMode}>
+              <Button variant="ghost" size="icon" aria-label={t.addSeparator} onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={readOnly || isPlainTextMode}>
                 <Minus />
               </Button>
             </TooltipTrigger>
@@ -869,7 +875,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={note.isProtected || isPlainTextMode}>
+              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={readOnly || isPlainTextMode}>
                 <List />
               </Button>
             </TooltipTrigger>
@@ -877,7 +883,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.checkboxList} onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={note.isProtected || isPlainTextMode}>
+              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.checkboxList} onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={readOnly || isPlainTextMode}>
                 <ListChecks />
               </Button>
             </TooltipTrigger>
@@ -892,7 +898,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   size="icon"
                   aria-label={t.removeNumberedList}
                   onClick={removeOrderedList}
-                  disabled={note.isProtected || isPlainTextMode}
+                  disabled={readOnly || isPlainTextMode}
                 >
                   <ListOrdered />
                 </Button>
@@ -908,7 +914,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                       variant="ghost"
                       size="icon"
                       aria-label={t.numberedList}
-                      disabled={note.isProtected || isPlainTextMode}
+                      disabled={readOnly || isPlainTextMode}
                     >
                       <ListOrdered />
                     </Button>
@@ -949,7 +955,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   size="icon"
                   aria-label={t.numberedList}
                   onClick={insertOrderedList}
-                  disabled={note.isProtected || isPlainTextMode}
+                  disabled={readOnly || isPlainTextMode}
                 >
                   <ListOrdered />
                 </Button>
@@ -973,7 +979,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.removeFormatting} onClick={handleRemoveFormatting} disabled={note.isProtected}>
+              <Button variant="ghost" size="icon" aria-label={t.removeFormatting} onClick={handleRemoveFormatting} disabled={readOnly}>
                 <Pilcrow />
               </Button>
             </TooltipTrigger>
@@ -1000,7 +1006,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                         "w-8 h-10 rounded-md p-1 transition-opacity"
                       )}
                       aria-pressed={isActive}
-                      disabled={note.isProtected || isPlainTextMode}
+                      disabled={readOnly || isPlainTextMode}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleSetColor(color.value)}
                     >
@@ -1018,7 +1024,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
         </div>
 
         {findOpen && <NoteFind editor={editor} onClose={() => setFindOpen(false)} />}
-        {!note.isProtected && (
+        {!readOnly && (
           <BubbleMenu editor={editor} shouldShow={({ from, to }) => !window.matchMedia('(hover: none) and (pointer: coarse)').matches && !isPlainTextMode && editor.isEditable && from !== to} options={{ placement: 'top', offset: 8 }} className="selection-format-menu bg-background border rounded-md shadow-lg p-1 grid grid-cols-2 sm:grid-cols-4 gap-1 max-w-[calc(100vw-16px)]">
             {[
               { mark: 'bold', label: t.formatBold, icon: Bold, key: 'B', run: () => editor.chain().focus().toggleBold().run() },
@@ -1044,7 +1050,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           onMouseDown={(e) => {
             // Handle click-to-focus for the container background and editor empty area
             // For clicks on actual content nodes (p, h1, etc.), let ProseMirror handle natively
-            if (editor && !note.isProtected) {
+            if (editor && !readOnly) {
               const target = e.target as HTMLElement;
               // Intercept clicks on ScrollContainer (padding) or ProseMirror div (empty area below content)
               // Actual content nodes (p, h1, li, etc.) won't match — ProseMirror handles those
@@ -1059,11 +1065,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <div className="editor-title-icon">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={note.isProtected}>
+              <Button variant="ghost" size="icon" className="text-2xl w-10 h-10 shrink-0" disabled={readOnly}>
                 {note.icon || '📝'}
               </Button>
             </PopoverTrigger>
-            {!note.isProtected && (
+            {!readOnly && (
               <PopoverContent className="w-auto p-2">
                 <div className="grid grid-cols-5 gap-2">
                   {emojis.map((emoji) => (
@@ -1090,6 +1096,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </TooltipTrigger>
               <TooltipContent>{t.delete}</TooltipContent>
             </Tooltip>
+          )}
+          {onDuplicate && isEditLockedSample(note) && !note.isDeleted && (
+            <div role="note" className="mb-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              <span className="min-w-0 flex-1">{sampleLockCopy[lang].notice}</span>
+              <Button variant="outline" size="sm" onClick={onDuplicate}><Copy />{sampleLockCopy[lang].duplicate}</Button>
+            </div>
           )}
           <EditorContent editor={editor} dir="auto" />
           </div>

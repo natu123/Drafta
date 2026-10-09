@@ -14,10 +14,11 @@ interface EditorProps {
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
   onDelete?: () => void;
+  onDuplicate?: () => void;
   historyAction?: React.ReactNode;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete, externalRevision, continuityKey, historyAction }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete, onDuplicate, externalRevision, continuityKey, historyAction }) => {
 
   const handleContentUpdate = React.useCallback((updates: Partial<Note>) => {
     onNoteUpdate(updates);
@@ -39,6 +40,7 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
         scrollDirection={scrollDirection}
         navigationAction={navigationAction}
         onDelete={onDelete}
+        onDuplicate={onDuplicate}
         historyAction={historyAction}
       />
     </div>

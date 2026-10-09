@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { LANGS } from '@/app/languages';
 import { notes } from './data';
 import { sampleCopy } from './sample-copy';
-import { localizeSampleNote, getSamplePhrases, applySampleEdit } from './sample-notes';
+import { localizeSampleNote, getSamplePhrases, applySampleEdit, isEditLockedSample, duplicateSampleForEdit } from './sample-notes';
+import { createWorkspaceBackup } from './workspace-backup';
 
 describe('localized protected samples', () => {
   it('uses the lighter English closing line while preserving the Japanese copy', () => {
@@ -128,5 +129,36 @@ describe('editable examples', () => {
     expect(result.isDeleted).toBe(true);
     expect(result.icon).toBe('⭐');
     expect(result.group).toBe('work');
+  });
+});
+
+describe('read-only guide samples', () => {
+  const welcome = notes.find(note => note.sampleKey === 'welcome')!;
+  const reference = notes.find(note => note.sampleKey === 'reference')!;
+
+  it('locks only Welcome and Quick Reference while they keep their sample marker', () => {
+    expect(isEditLockedSample(welcome)).toBe(true);
+    expect(isEditLockedSample(reference)).toBe(true);
+    expect(notes.filter(note => note.sampleKey && note.sampleKey !== 'welcome' && note.sampleKey !== 'reference').some(isEditLockedSample)).toBe(false);
+    expect(isEditLockedSample({ ...welcome, sampleKey: undefined })).toBe(false);
+    // Deletion stays available: the lock does not use the delete-blocking isProtected flag.
+    expect(welcome.isProtected).toBeFalsy();
+    expect(reference.isProtected).toBeFalsy();
+  });
+
+  it('keeps following the display language until duplicated', () => {
+    expect(localizeSampleNote(welcome, 'ja', 'Ctrl').title).not.toBe(localizeSampleNote(welcome, 'fr', 'Ctrl').title);
+    expect(isEditLockedSample(localizeSampleNote(welcome, 'fr', 'Ctrl'))).toBe(true);
+  });
+
+  it('duplicates the displayed translation as a normal, valid memo', () => {
+    const copy = duplicateSampleForEdit({ ...reference, isPinned: true }, 'ja', 'Cmd', { id: 'note-copy', now: '2026-10-09T00:00:00.000Z' });
+    const shown = localizeSampleNote(reference, 'ja', 'Cmd');
+    expect(copy).toMatchObject({ id: 'note-copy', group: reference.group, title: shown.title, content: shown.content, createdAt: '2026-10-09T00:00:00.000Z', updatedAt: '2026-10-09T00:00:00.000Z', isPinned: false });
+    expect(copy.sampleKey).toBeUndefined();
+    expect(isEditLockedSample(copy)).toBe(false);
+    expect(localizeSampleNote(copy, 'en', 'Ctrl')).toBe(copy);
+    const backup = createWorkspaceBackup({ notes: [copy], groups: [{ id: copy.group, name: 'Tray', type: 'group' }], settings: { language: 'ja', theme: 'system', listStyle: 'top', noteSort: 'manual' } }, document);
+    expect(backup.notes[0].sampleKey).toBeUndefined();
   });
 });

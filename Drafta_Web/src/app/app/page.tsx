@@ -31,7 +31,8 @@ import VerticalTabs from '@/components/vertical-note-tabs';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
-import { localizeSampleNote, applySampleEdit } from '@/lib/sample-notes';
+import { localizeSampleNote, applySampleEdit, isEditLockedSample, duplicateSampleForEdit } from '@/lib/sample-notes';
+import { sampleLockCopy } from '@/lib/sample-lock-copy';
 import { localizeUntitledGroup } from '@/lib/group-display';
 import { pinnedNotes, regularNotes, reorderPinSection } from '@/lib/pin-order';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
@@ -1066,7 +1067,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }) => {
     if (!activeTabId) return;
     setNotes(notes => notes.map(note => {
-      if (note.id === activeTabId) {
+      // Guide samples are read-only even if an edit slips through the editor.
+      if (note.id === activeTabId && !isEditLockedSample(note)) {
         const newNote = { ...applySampleEdit(note, updatedNote, lang, modKey), updatedAt: new Date().toISOString() };
         if (updatedNote.content !== undefined) {
           newNote.plainTextContent = htmlToSimpleText(updatedNote.content);
@@ -1273,8 +1275,23 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   };
 
   const handleIconChange = React.useCallback((id: string, icon: string) => {
-    setNotes(prevNotes => prevNotes.map(note => note.id === id ? { ...note, icon } : note));
+    setNotes(prevNotes => prevNotes.map(note => note.id === id && !isEditLockedSample(note) ? { ...note, icon } : note));
   }, []);
+
+  const handleDuplicateSample = (id: string) => {
+    const source = sourceNotes.find(note => note.id === id);
+    if (!source || !isEditLockedSample(source)) return;
+    const now = new Date().toISOString();
+    const copy = duplicateSampleForEdit(source, lang, modKey, { id: `note-${crypto.randomUUID()}`, now });
+    // Same placement rule as a new memo in this tray.
+    setNotes(previous => {
+      const index = scrollDirection === 'top' ? previous.findIndex(note => note.group === copy.group) : -1;
+      return index === -1 ? [...previous, copy] : [...previous.slice(0, index), copy, ...previous.slice(index)];
+    });
+    setActiveGroupId(copy.group);
+    openTab(copy.id, 'note');
+    toast({ description: sampleLockCopy[lang].duplicated });
+  };
 
   const handleToggleView = React.useCallback(() => {
     setActiveView(prev => prev === 'home' ? 'editor' : 'home');
@@ -1545,6 +1562,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                   setMobilePane('notes');
                 } : undefined}
                 onNoteUpdate={handleNoteUpdate}
+                onDuplicate={() => handleDuplicateSample(activeNote.id)}
                  onIconChange={(id, icon) => handleIconChange(id, icon)}
                  scrollDirection={scrollDirection}
                  navigationAction={layoutMode === 'mobile' && activeView === 'home' ? (
