@@ -69,12 +69,28 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
   };
 
   const plan = stage.kind === 'select' || stage.kind === 'reading' ? null : stage.plan;
+  // After the import, the list of files left out stays open next to the result.
+  const skippedList = (plan: ImportPlan, expanded: boolean) => plan.skipped.length > 0 && (
+    <details open={expanded}>
+      <summary className="cursor-pointer">{fillCopy(labels.skipped, { count: plan.skipped.length })}</summary>
+      <ul className="mt-1 max-h-32 overflow-y-auto rounded-md border px-3 py-2">
+        {plan.skipped.map(item => <li key={item.path} className="break-all">{item.path} — {labels.reasons[item.reason]}</li>)}
+      </ul>
+    </details>
+  );
   return (
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-w-lg" onEscapeKeyDown={event => { if (busy) event.preventDefault(); }} onPointerDownOutside={event => { if (busy) event.preventDefault(); }}>
         <DialogHeader>
-          <DialogTitle>{labels.title}</DialogTitle>
-          <DialogDescription>{labels.description}</DialogDescription>
+          {/* Once saved, the selection guidance ("nothing is saved until you confirm") no longer applies. */}
+          <DialogTitle>{stage.kind === 'done' ? labels.done.title : labels.title}</DialogTitle>
+          {stage.kind === 'done' ? (
+            <DialogDescription role="status" className="text-base font-medium text-foreground">
+              {stage.plan.groups.length === 1
+                ? fillCopy(labels.done.one, { tray: stage.plan.groups[0].name, memos: stage.plan.notes.length })
+                : fillCopy(labels.done.many, { trays: stage.plan.groups.length, memos: stage.plan.notes.length })}
+            </DialogDescription>
+          ) : <DialogDescription>{labels.description}</DialogDescription>}
         </DialogHeader>
         <input ref={folderRef} type="file" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
         <input ref={fileInput} type="file" accept=".md,text/markdown" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
@@ -98,20 +114,22 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
               </>
             ) : <p role="alert">{labels.nothing}</p>}
             {plan.embeds > 0 && <p>{fillCopy(labels.embeds, { count: plan.embeds })}</p>}
-            {plan.skipped.length > 0 && (
-              <details>
-                <summary className="cursor-pointer">{fillCopy(labels.skipped, { count: plan.skipped.length })}</summary>
-                <ul className="mt-1 max-h-32 overflow-y-auto rounded-md border px-3 py-2">
-                  {plan.skipped.map(item => <li key={item.path} className="break-all">{item.path} — {labels.reasons[item.reason]}</li>)}
-                </ul>
-              </details>
-            )}
+            {skippedList(plan, false)}
             {stage.kind === 'preview' && stage.limit && <p role="alert" className="text-destructive">{labels.limits[stage.limit]}</p>}
             {stage.kind === 'saving' && <p role="status">{fillCopy(labels.saving, { done: stage.done, total: stage.total })}</p>}
             {stage.kind === 'failed' && <p role="alert" className="text-destructive">{fillCopy(labels.failed, { saved: stage.saved, unsaved: stage.plan.notes.length - stage.saved })}</p>}
           </div>
         )}
-        {stage.kind === 'done' && <p role="status" className="text-sm">{fillCopy(labels.done, { memos: stage.plan.notes.length })}</p>}
+        {stage.kind === 'done' && (stage.plan.groups.length > 1 || stage.plan.skipped.length > 0) && (
+          <div className="space-y-3 text-sm">
+            {stage.plan.groups.length > 1 && (
+              <ul className="max-h-24 overflow-y-auto rounded-md border px-3 py-2">
+                {stage.plan.groups.map(group => <li key={group.id} className="truncate">{group.name}</li>)}
+              </ul>
+            )}
+            {skippedList(stage.plan, true)}
+          </div>
+        )}
 
         <DialogFooter className="gap-2 sm:gap-0">
           {stage.kind === 'preview' && (
