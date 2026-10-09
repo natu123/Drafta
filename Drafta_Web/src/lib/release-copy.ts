@@ -4,8 +4,10 @@ import { syncReleaseCopy } from './sync-release-copy';
 import { memoHistoryReleaseCopy } from './memo-history-release-copy';
 import { authRequiredReleaseCopy } from './auth-required-release-copy';
 import { loginErrorsReleaseCopy } from './login-errors-release-copy';
+import { importReleaseCopy } from './import-release-copy';
 
 export interface ReleaseCopy {
+  release060: string;
   release051: string;
   release050: string;
   previousCloudWarning: string;
@@ -40,7 +42,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'previousCloudWarning' | 'legacyWarning'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'previousCloudWarning' | 'legacyWarning'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -54,7 +56,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "Future plans",
     "nextBody": "Backup and restore, then Google sign-in, saving, sync and recovery.",
     "laterBody": "Profiles, version updates and a feedback form; an ad-free beta to validate everyday use.",
-    "futureBody": "Notion / Obsidian / Evernote import, Codex MCP, memo sharing, paid plans and native iOS / Android apps.",
+    "futureBody": "Notion / Evernote import, Codex MCP, memo sharing, paid plans and native iOS / Android apps.",
     "roadmapNote": "Plans may change. No release dates are promised; paid plans follow beta validation.",
     "updates": "Updates",
     "allUpdates": "All updates",
@@ -80,7 +82,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "将来構想",
     "nextBody": "バックアップ･復元を整え, Googleログイン･永続保存･同期･障害復旧へ進みます.",
     "laterBody": "プロファイル, バージョン更新情報, フィードバックフォームを用意し, 広告なしの無料βで実用性を検証します.",
-    "futureBody": "Notion / Obsidian / Evernoteからのインポート, Codex向けMCP, Memo共有, 有料プラン, iOS / Androidネイティブアプリを計画しています.",
+    "futureBody": "Notion / Evernoteからのインポート, Codex向けMCP, Memo共有, 有料プラン, iOS / Androidネイティブアプリを計画しています.",
     "roadmapNote": "計画は変更される場合があります. 公開日は未定です. 有料化は無料βの検証後に判断します.",
     "updates": "更新情報",
     "allUpdates": "すべての更新履歴",
@@ -106,7 +108,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "未来计划",
     "nextBody": "先实现备份与恢复，再加入Google登录、持久保存、同步和故障恢复。",
     "laterBody": "提供配置档案、版本更新信息和反馈表单，并通过无广告的免费测试版验证日常使用。",
-    "futureBody": "计划支持Notion / Obsidian / Evernote导入、Codex MCP、备忘录分享、付费方案及iOS / Android原生应用。",
+    "futureBody": "计划支持Notion / Evernote导入、Codex MCP、备忘录分享、付费方案及iOS / Android原生应用。",
     "roadmapNote": "计划可能调整，发布日期未定。付费方案将在免费测试验证后决定。",
     "updates": "更新",
     "allUpdates": "全部更新",
@@ -132,7 +134,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "향후 계획",
     "nextBody": "백업과 복원부터 시작해 Google 로그인, 영구 저장, 동기화와 장애 복구를 구현합니다.",
     "laterBody": "프로필, 버전 업데이트 안내와 피드백 양식을 마련하고 광고 없는 무료 베타로 사용성을 검증합니다.",
-    "futureBody": "Notion / Obsidian / Evernote 가져오기, Codex MCP, 메모 공유, 유료 요금제와 iOS / Android 네이티브 앱을 계획합니다.",
+    "futureBody": "Notion / Evernote 가져오기, Codex MCP, 메모 공유, 유료 요금제와 iOS / Android 네이티브 앱을 계획합니다.",
     "roadmapNote": "계획은 변경될 수 있으며 출시일은 미정입니다. 유료화는 무료 베타 검증 후 결정합니다.",
     "updates": "업데이트",
     "allUpdates": "모든 업데이트",
@@ -158,7 +160,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "Planes futuros",
     "nextBody": "Copias de seguridad y restauración, seguidas de acceso con Google, guardado, sincronización y recuperación.",
     "laterBody": "Perfiles, novedades de versiones y formulario de comentarios; una beta gratuita sin anuncios para validar el uso diario.",
-    "futureBody": "Importación de Notion / Obsidian / Evernote, MCP para Codex, notas compartidas, planes de pago y apps nativas para iOS / Android.",
+    "futureBody": "Importación de Notion / Evernote, MCP para Codex, notas compartidas, planes de pago y apps nativas para iOS / Android.",
     "roadmapNote": "Los planes pueden cambiar. No hay fechas comprometidas; los planes de pago seguirán a la validación de la beta.",
     "updates": "Novedades",
     "allUpdates": "Todas las novedades",
@@ -184,7 +186,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "Projets futurs",
     "nextBody": "Sauvegarde et restauration, puis connexion Google, enregistrement durable, synchronisation et récupération.",
     "laterBody": "Profils, annonces de versions et formulaire de retour ; une bêta gratuite sans publicité pour valider l’usage quotidien.",
-    "futureBody": "Import Notion / Obsidian / Evernote, MCP pour Codex, partage de notes, offres payantes et applications natives iOS / Android.",
+    "futureBody": "Import Notion / Evernote, MCP pour Codex, partage de notes, offres payantes et applications natives iOS / Android.",
     "roadmapNote": "Les projets peuvent évoluer. Aucune date n’est promise ; les offres payantes suivront la validation de la bêta.",
     "updates": "Nouveautés",
     "allUpdates": "Toutes les mises à jour",
@@ -210,7 +212,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "Planos futuros",
     "nextBody": "Backup e restauração, seguidos de login com Google, armazenamento persistente, sincronização e recuperação.",
     "laterBody": "Perfis, novidades de versões e formulário de feedback; uma beta gratuita sem anúncios para validar o uso diário.",
-    "futureBody": "Importação de Notion / Obsidian / Evernote, MCP para Codex, compartilhamento de notas, planos pagos e apps nativos iOS / Android.",
+    "futureBody": "Importação de Notion / Evernote, MCP para Codex, compartilhamento de notas, planos pagos e apps nativos iOS / Android.",
     "roadmapNote": "Os planos podem mudar. Não há datas prometidas; os planos pagos virão após a validação da beta.",
     "updates": "Novidades",
     "allUpdates": "Todas as atualizações",
@@ -236,7 +238,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "भविष्य की योजनाएँ",
     "nextBody": "पहले बैकअप और बहाली, फिर Google लॉगिन, स्थायी भंडारण, सिंक और विफलता से पुनर्प्राप्ति।",
     "laterBody": "प्रोफ़ाइल, संस्करण अपडेट और फ़ीडबैक फ़ॉर्म; रोज़मर्रा के उपयोग की जाँच के लिए विज्ञापन रहित मुफ़्त बीटा।",
-    "futureBody": "Notion / Obsidian / Evernote से आयात, Codex MCP, मेमो साझा करना, सशुल्क योजनाएँ और iOS / Android के नेटिव ऐप।",
+    "futureBody": "Notion / Evernote से आयात, Codex MCP, मेमो साझा करना, सशुल्क योजनाएँ और iOS / Android के नेटिव ऐप।",
     "roadmapNote": "योजनाएँ बदल सकती हैं। रिलीज़ की तारीखें तय नहीं हैं। सशुल्क योजनाएँ बीटा के मूल्यांकन के बाद तय होंगी।",
     "updates": "अपडेट",
     "allUpdates": "सभी अपडेट",
@@ -262,7 +264,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "خطط مستقبلية",
     "nextBody": "النسخ الاحتياطي والاستعادة، ثم تسجيل الدخول باستخدام Google والحفظ الدائم والمزامنة والتعافي من الأعطال.",
     "laterBody": "الملفات الشخصية وتحديثات الإصدارات ونموذج الملاحظات؛ ونسخة تجريبية مجانية بلا إعلانات لاختبار الاستخدام اليومي.",
-    "futureBody": "الاستيراد من Notion / Obsidian / Evernote، وربط Codex عبر MCP، ومشاركة المذكرات، وخطط مدفوعة وتطبيقات أصلية لـ iOS / Android.",
+    "futureBody": "الاستيراد من Notion / Evernote، وربط Codex عبر MCP، ومشاركة المذكرات، وخطط مدفوعة وتطبيقات أصلية لـ iOS / Android.",
     "roadmapNote": "قد تتغير الخطط. لم تُحدد مواعيد الإطلاق؛ وتُقرر الخطط المدفوعة بعد تقييم النسخة التجريبية.",
     "updates": "التحديثات",
     "allUpdates": "جميع التحديثات",
@@ -288,7 +290,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "Будущие планы",
     "nextBody": "Резервное копирование и восстановление, затем вход через Google, постоянное хранение, синхронизация и восстановление после сбоев.",
     "laterBody": "Профили, новости версий и форма обратной связи; бесплатная бета без рекламы для проверки повседневного использования.",
-    "futureBody": "Импорт из Notion / Obsidian / Evernote, MCP для Codex, общий доступ к заметкам, платные планы и нативные приложения iOS / Android.",
+    "futureBody": "Импорт из Notion / Evernote, MCP для Codex, общий доступ к заметкам, платные планы и нативные приложения iOS / Android.",
     "roadmapNote": "Планы могут измениться. Даты не обещаны; платные планы будут определены после проверки беты.",
     "updates": "Обновления",
     "allUpdates": "Все обновления",
@@ -314,7 +316,7 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "future": "Rencana mendatang",
     "nextBody": "Pencadangan dan pemulihan, lalu login Google, penyimpanan permanen, sinkronisasi dan pemulihan gangguan.",
     "laterBody": "Profil, kabar versi dan formulir masukan; beta gratis tanpa iklan untuk menguji penggunaan sehari-hari.",
-    "futureBody": "Impor Notion / Obsidian / Evernote, MCP untuk Codex, berbagi memo, paket berbayar dan aplikasi native iOS / Android.",
+    "futureBody": "Impor Notion / Evernote, MCP untuk Codex, berbagi memo, paket berbayar dan aplikasi native iOS / Android.",
     "roadmapNote": "Rencana dapat berubah. Tanggal rilis belum dijanjikan; paket berbayar ditentukan setelah evaluasi beta.",
     "updates": "Pembaruan",
     "allUpdates": "Semua pembaruan",
@@ -340,5 +342,6 @@ export const releaseCopy = Object.fromEntries(
     previousCloudWarning: persistenceReleaseCopy[language as Lang].warning,
     ...authRequiredReleaseCopy[language as Lang],
     release051: loginErrorsReleaseCopy[language as Lang],
+    release060: importReleaseCopy[language as Lang],
   }]),
 ) as Record<Lang, ReleaseCopy>;
