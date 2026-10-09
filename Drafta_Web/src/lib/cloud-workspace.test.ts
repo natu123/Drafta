@@ -1,18 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
-import { cloudWorkspace, WorkspaceConflictError } from './cloud-workspace';
+import { disableNetwork, doc, enableNetwork, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
+import { cloudWorkspace, WorkspaceConflictError, type SavedWorkspace } from './cloud-workspace';
 import type { WorkspaceBackup } from './workspace-backup';
 import { watchCloudWorkspace } from './cloud-workspace-watch';
 import { IMPORT_BATCH_LIMITS } from './obsidian-import';
 
+// Server results delivered to memo-collection listeners, to compare read volumes.
+const queryResults: number[] = [];
 // The local emulator does not enforce this production query constraint.
 vi.mock('firebase/firestore', async importOriginal => {
   const actual = await importOriginal<typeof import('firebase/firestore')>();
   return { ...actual, limit: (count: number) => {
     if (count > 10000) throw new Error('Production query limit exceeded');
     return actual.limit(count);
+  }, onSnapshot: (target: Parameters<typeof actual.onSnapshot>[0], ...rest: unknown[]) => {
+    const [options, onNext, ...others] = rest as [unknown, (snapshot: { metadata: { fromCache: boolean }; size?: number }) => void, ...unknown[]];
+    const record = (snapshot: { metadata: { fromCache: boolean }; size?: number }) => {
+      if ((target as { type?: string }).type === 'query' && !snapshot.metadata.fromCache && snapshot.size !== undefined) queryResults.push(snapshot.size);
+      onNext(snapshot);
+    };
+    return (actual.onSnapshot as (...args: unknown[]) => () => void)(target, options, record, ...others);
   } };
 });
 
@@ -25,6 +34,8 @@ const fresh = (): WorkspaceBackup => ({
   notes: [], settings: { language: 'ja', theme: 'dark', listStyle: 'top', noteSort: 'manual' },
 });
 const repository = (uid: string) => cloudWorkspace(env.authenticatedContext(uid).firestore() as unknown as Firestore, uid);
+const memo = (id: string, text: string, group = 'tray') => ({ id, group, stars: 0 as const, createdAt: '2026-09-28T00:00:00.000Z', updatedAt: '2026-09-28T00:00:00.000Z',
+  document: { format: 'drafta-document' as const, schemaVersion: 1 as const, document: { type: 'doc', content: [{ type: 'title', content: [{ type: 'text', text: id }] }, { type: 'paragraph', content: [{ type: 'text', text }] }] } } });
 
 describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
   it('publishes coherent remote updates and preserves owner boundaries', async () => {
@@ -139,5 +150,100 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
     const loaded = await repository('alice').load();
     expect(loaded?.revision).toBe(4);
     expect(loaded?.backup.notes.map(note => note.id)).toEqual(imported.map(note => note.id));
+  }, 120000);
+
+  it('reads only memos saved since the loaded revision and still applies remote edits and deletions', async () => {
+    const owner = repository('alice');
+    const saved = await owner.save({ ...fresh(), notes: ['a', 'b', 'c', 'd', 'e'].map(id => memo(id, 'one')) }, null);
+    await owner.save({ ...saved.backup, notes: saved.backup.notes.map(note => note.id === 'e' ? memo('e', 'two') : note) }, saved);
+    const base = await repository('alice').load();
+    const db = env.authenticatedContext('alice').firestore() as unknown as Firestore;
+    queryResults.length = 0;
+    const updates: string[][] = [];
+    const errors: unknown[] = [];
+    const stop = watchCloudWorkspace(db, 'alice', result => updates.push(result.backup.notes.map(note => `${note.id}:${JSON.stringify(note.document).includes('three') ? 3 : 1}`)), error => errors.push(error), undefined, base);
+    try {
+      await vi.waitFor(() => expect(queryResults.length).toBeGreaterThan(0));
+      // Only the memo written by the latest save, not all five.
+      expect(queryResults[0]).toBe(1);
+      const remote = await repository('alice').load();
+      const edited = remote!.backup.notes.filter(note => note.id !== 'b').map(note => note.id === 'a' ? memo('a', 'three') : note);
+      await repository('alice').save({ ...remote!.backup, notes: [...edited, memo('f', 'one')] }, remote);
+      await vi.waitFor(() => expect(updates).toContainEqual(['a:3', 'c:1', 'd:1', 'e:1', 'f:1']));
+      expect(errors).toEqual([]);
+    } finally { stop(); }
+    // A stale base falls back to the full query.
+    queryResults.length = 0;
+    const full = watchCloudWorkspace(db, 'alice', () => {}, error => errors.push(error), undefined, base);
+    try { await vi.waitFor(() => expect(queryResults[0]).toBe(5)); } finally { full(); }
+    expect(errors).toEqual([]);
+  });
+
+  it('keeps a diff-subscribed device equal to a full load through another device, offline gaps and its own saves', async () => {
+    // Two devices of one account: each context is a separate Firestore client.
+    const dbA = env.authenticatedContext('alice').firestore() as unknown as Firestore;
+    const deviceA = cloudWorkspace(dbA, 'alice');
+    const deviceB = repository('alice');
+    let latest = await deviceB.save({ ...fresh(), groups: [...fresh().groups, { id: 'tray2', name: 'Second', type: 'group' }],
+      notes: ['a', 'b', 'c', 'd', 'e'].map(id => memo(id, 'one')) }, null);
+    latest = await deviceB.save({ ...latest.backup, notes: latest.backup.notes.map(note => note.id === 'e' ? memo('e', 'two') : note) }, latest);
+    const base = await deviceA.load();
+    let own = base!.revision;
+    const updates: SavedWorkspace[] = [];
+    const errors: unknown[] = [];
+    queryResults.length = 0;
+    const stop = watchCloudWorkspace(dbA, 'alice', result => updates.push(result), error => errors.push(error), revision => revision <= own, base);
+    // The device must show exactly what a fresh full load returns.
+    const converged = async () => {
+      const server = await repository('alice').load();
+      await vi.waitFor(() => expect(updates.at(-1)).toEqual(server));
+      latest = server!;
+    };
+    const fromB = async (change: (backup: WorkspaceBackup) => WorkspaceBackup) => { latest = await deviceB.save(change(structuredClone(latest.backup)), latest); };
+    try {
+      await vi.waitFor(() => expect(queryResults.length).toBeGreaterThan(0));
+      expect(queryResults[0]).toBe(1); // Only the memo of the base revision; the rest come from the base.
+      await fromB(backup => ({ ...backup, notes: [...backup.notes].reverse() })); // Reorder.
+      await converged();
+      await fromB(backup => ({ ...backup, groups: backup.groups.map(group => group.id === 'tray' ? { ...group, name: 'Renamed' } : group),
+        notes: backup.notes.map(note => note.id === 'c' ? { ...note, group: 'tray2' } : note) })); // Tray rename and move.
+      await converged();
+      await fromB(backup => ({ ...backup, notes: [...backup.notes.filter(note => note.id !== 'b').map(note => note.id === 'a' ? memo('a', 'edited') : note), memo('f', 'new')] }));
+      await converged();
+      // Device A saves itself (skipped as known), then B saves on top: A's write must not be lost.
+      const mine = await deviceA.save({ ...latest.backup, notes: latest.backup.notes.map(note => note.id === 'd' ? memo('d', 'from A') : note) }, latest);
+      own = mine.revision; latest = mine;
+      await fromB(backup => ({ ...backup, notes: backup.notes.map(note => note.id === 'e' ? memo('e', 'from B') : note) }));
+      await converged();
+      expect(JSON.stringify(updates.at(-1)!.backup.notes.find(note => note.id === 'd'))).toContain('from A');
+      // Offline gap: two remote saves, including a deletion, arrive after reconnecting.
+      await disableNetwork(dbA);
+      await fromB(backup => ({ ...backup, notes: backup.notes.map(note => note.id === 'f' ? memo('f', 'offline') : note) }));
+      await fromB(backup => ({ ...backup, notes: backup.notes.filter(note => note.id !== 'c') }));
+      await enableNetwork(dbA);
+      await converged();
+      expect(errors).toEqual([]);
+    } finally { stop(); }
+  });
+
+  it('measures memo reads when opening a 429-memo workspace', async () => {
+    const owner = repository('alice');
+    const notes = Array.from({ length: 429 }, (_, index) => memo(`m${index}`, 'body'));
+    let saved = await owner.save(fresh(), null);
+    for (let start = 0; start < notes.length; start += IMPORT_BATCH_LIMITS.notes) saved = await owner.save({ ...fresh(), notes: notes.slice(0, start + IMPORT_BATCH_LIMITS.notes) }, saved);
+    // A typical last save edits one memo.
+    saved = await owner.save({ ...saved.backup, notes: saved.backup.notes.map(note => note.id === 'm7' ? memo('m7', 'edited') : note) }, saved);
+    const base = await repository('alice').load();
+    const db = env.authenticatedContext('alice').firestore() as unknown as Firestore;
+    const opened = async (from: typeof base) => {
+      queryResults.length = 0;
+      const stop = watchCloudWorkspace(db, 'alice', () => {}, error => { throw error; }, () => false, from);
+      try { await vi.waitFor(() => expect(queryResults.length).toBeGreaterThan(0)); return queryResults[0]; } finally { stop(); }
+    };
+    // load(): root twice + every memo; then the watcher's root and its memo query.
+    const before = 2 + 429 + 1 + await opened(null);
+    const after = 2 + 429 + 1 + Math.max(1, await opened(base));
+    console.info(`[reads] 429 memos: before ${before}, after ${after}`);
+    expect([before, after]).toEqual([2 + 429 + 1 + 429, 2 + 429 + 1 + 1]);
   }, 120000);
 });

@@ -156,7 +156,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
           if (id !== generation.current || !queue.current || revision > queue.current.revision) return false;
           synced(); setStatus(invalidState.current ? 'error' : queue.current.status);
           return true;
-        });
+        }, queue.current?.acknowledged ?? null);
       };
       restartWatching.current();
     } catch (error) {
