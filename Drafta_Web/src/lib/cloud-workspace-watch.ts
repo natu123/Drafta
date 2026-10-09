@@ -2,8 +2,12 @@ import { collection, doc, limit, onSnapshot, onSnapshotsInSync, query, type Docu
 import { BACKUP_LIMITS, parseWorkspaceBackup } from './workspace-backup';
 import { CLOUD_LIMITS, WorkspaceStorageError, type SavedWorkspace } from './cloud-workspace';
 
-/** One initial query, then changed documents only; never publish pending/cache-only snapshots. */
-export function watchCloudWorkspace(db: Firestore, uid: string, next: (workspace: SavedWorkspace) => void, failed: (error: unknown) => void): () => void {
+/**
+ * One initial query, then changed documents only; never publish pending/cache-only snapshots.
+ * `known` returns true for a revision this client already holds (its own save); that revision
+ * is not parsed again, since revisions only advance through one transaction each.
+ */
+export function watchCloudWorkspace(db: Firestore, uid: string, next: (workspace: SavedWorkspace) => void, failed: (error: unknown) => void, known: (revision: number) => boolean = () => false): () => void {
   if (!uid || uid.length > 128 || uid.includes('/')) throw new WorkspaceStorageError('Invalid account');
   const root = doc(db, 'users', uid, 'workspaces', 'default');
   let metadata: DocumentSnapshot | null = null;
@@ -24,6 +28,7 @@ export function watchCloudWorkspace(db: Firestore, uid: string, next: (workspace
     if (data.revision === revision) return;
     try {
       if (data.schemaVersion !== 1 || !Number.isSafeInteger(data.revision) || data.revision < 1) throw new WorkspaceStorageError('Invalid workspace revision');
+      if (known(data.revision)) { revision = data.revision; return; }
       const { noteOrder, ...envelope } = readJson(data.metadataJson);
       if (!Array.isArray(noteOrder) || noteOrder.length > BACKUP_LIMITS.notes || new Set(noteOrder).size !== noteOrder.length || noteOrder.some(id => typeof id !== 'string')) throw new WorkspaceStorageError('Invalid note order');
       if (noteOrder.length !== memos.size) throw new WorkspaceStorageError('Incomplete workspace snapshot');

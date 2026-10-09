@@ -143,13 +143,19 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       setSession({ key: id, user, seed, history: repository.history });
       restartWatching.current = () => {
         stopWatching.current?.();
+        const synced = () => { syncUnavailable.current = false; setErrorCode(null); };
         stopWatching.current = watchCloudWorkspace(client.current!.db, user.uid, remote => {
           if (id !== generation.current) return;
-          syncUnavailable.current = false; setErrorCode(null);
+          synced();
           if (!invalidState.current) queue.current?.acceptRemote(remote);
           setStatus(invalidState.current ? 'error' : queue.current?.status ?? 'saved');
         }, () => {
           if (id === generation.current) { syncUnavailable.current = true; setErrorCode('sync-unavailable'); setStatus('error'); }
+        }, revision => {
+          // acceptRemote would ignore it anyway; skip parsing the whole workspace for our own save.
+          if (id !== generation.current || !queue.current || revision > queue.current.revision) return false;
+          synced(); setStatus(invalidState.current ? 'error' : queue.current.status);
+          return true;
         });
       };
       restartWatching.current();

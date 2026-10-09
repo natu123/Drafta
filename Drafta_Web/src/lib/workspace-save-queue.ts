@@ -27,6 +27,7 @@ export class WorkspaceSaveQueue {
   }
   get dirty() { return this.pending !== null || this.running !== null; }
   get status() { return this.state; }
+  get revision() { return this.base?.revision ?? 0; }
   get acknowledged() { return this.base ? structuredClone(this.base) : null; }
   acceptRemote(remote: SavedWorkspace) {
     if (this.disposed || !this.sync || (this.base && remote.uid !== this.base.uid)) return;

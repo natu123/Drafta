@@ -45,6 +45,20 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
     const stopOther = watchCloudWorkspace(env.authenticatedContext('bob').firestore() as unknown as Firestore, 'alice', () => { throw new Error('Cross-account update'); }, error => denied.push(error));
     try { await vi.waitFor(() => expect(denied.length).toBeGreaterThan(0)); } finally { stopOther(); }
   });
+  it('skips parsing revisions the client already holds and publishes newer ones', async () => {
+    const owner = repository('alice');
+    const first = await owner.save(fresh(), null);
+    const updates: number[] = [];
+    const seen: number[] = [];
+    const db = env.authenticatedContext('alice').firestore() as unknown as Firestore;
+    const stop = watchCloudWorkspace(db, 'alice', result => updates.push(result.revision), error => { throw error; }, revision => { seen.push(revision); return revision <= 1; });
+    try {
+      await vi.waitFor(() => expect(seen).toContain(1));
+      const changed = fresh(); changed.groups[0].name = 'Remote tray';
+      await owner.save(changed, first);
+      await vi.waitFor(() => expect(updates).toEqual([2]));
+    } finally { stop(); }
+  });
   beforeAll(async () => {
     env = await initializeTestEnvironment({ projectId: 'demo-drafta-storage', firestore: { host: '127.0.0.1', port: 8080, rules: readFileSync('firestore.rules', 'utf8') } });
   });
