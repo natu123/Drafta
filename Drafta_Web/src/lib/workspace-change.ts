@@ -14,6 +14,7 @@ export function requiresImmediateSave(previous: WorkspaceBackup | null, next: Wo
       previous.notes.length !== next.notes.length) return true;
   return next.notes.some((note, index) => {
     const old = previous.notes[index];
+    if (note === old) return false; // Snapshots share unchanged, frozen memos.
     const { document, updatedAt: _updatedAt, ...metadata } = note;
     const { document: oldDocument, updatedAt: _oldUpdatedAt, ...oldMetadata } = old;
     void _updatedAt; void _oldUpdatedAt;

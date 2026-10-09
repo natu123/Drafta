@@ -1,13 +1,25 @@
+/** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceSaveQueue } from './workspace-save-queue';
 import { WorkspaceConflictError, type SavedWorkspace } from './cloud-workspace';
-import type { WorkspaceBackup } from './workspace-backup';
+import { snapshotWorkspace, type WorkspaceBackup } from './workspace-backup';
+import { notes, groups } from './data';
 
 const value = (): WorkspaceBackup => ({ format: 'drafta-workspace', version: 1, exportedAt: '2026-09-28T00:00:00.000Z', groups: [], notes: [], settings: { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' } });
 const saved = (backup: WorkspaceBackup, revision = 1): SavedWorkspace => ({ uid: 'alice', revision, backup });
 afterEach(() => vi.useRealTimers());
 
 describe('workspace autosave queue', () => {
+  it('saves a frozen snapshot without copying it and detaches other values', async () => {
+    const save = vi.fn(async (input: WorkspaceBackup) => saved(input, 2));
+    const queue = new WorkspaceSaveQueue(saved(value()), save, vi.fn());
+    const snapshot = snapshotWorkspace({ notes, groups, settings: value().settings }, document);
+    queue.enqueue(snapshot, true); await queue.flush();
+    expect(save.mock.calls[0][0]).toBe(snapshot);
+    const plain = value(); queue.enqueue(plain, true); await queue.flush();
+    expect(save.mock.calls[1][0]).not.toBe(plain);
+    expect(save.mock.calls[1][0]).toEqual(plain); queue.dispose();
+  });
   it('rebases pending edits onto a remote revision before saving', async () => {
     vi.useFakeTimers();
     const base = saved(value());

@@ -8,6 +8,12 @@ const fresh = (): WorkspaceBackup => ({
   notes: [{ id: 'memo', group: 'tray', stars: 0, createdAt: '2026-09-28T00:00:00.000Z', updatedAt: '2026-09-28T00:00:00.000Z', document: { format: 'drafta-document', schemaVersion: 1, document: { type: 'doc', content: [{ type: 'title' }, { type: 'paragraph', content: [{ type: 'text', text: 'Before' }] }] } } }],
 });
 describe('autosave timing', () => {
+  it('treats a shared memo as unchanged and still compares replaced memos', () => {
+    const before = fresh();
+    expect(requiresImmediateSave(before, { ...before, notes: [...before.notes] })).toBe(false);
+    const moved = fresh(); moved.notes[0].stars = 2;
+    expect(requiresImmediateSave(before, moved)).toBe(true);
+  });
   it('debounces ordinary text and timestamp edits', () => {
     const before = fresh(), after = fresh();
     after.notes[0].document.document.content![1].content![0].text = 'After';

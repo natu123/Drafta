@@ -11,8 +11,9 @@ import { watchCloudWorkspace } from '@/lib/cloud-workspace-watch';
 import { mergeWorkspaces, preserveWorkspaceCopy } from '@/lib/workspace-merge';
 import { syncCopy } from '@/lib/sync-copy';
 import { toast } from '@/hooks/use-toast';
-import { createWorkspaceBackup } from '@/lib/workspace-backup';
+import { snapshotWorkspace } from '@/lib/workspace-backup';
 import type { WorkspaceBackup } from '@/lib/workspace-backup';
+import type { Note } from '@/lib/types';
 import { requiresImmediateSave } from '@/lib/workspace-change';
 import { workspaceToState, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
 import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
@@ -30,7 +31,18 @@ import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
 type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean> };
-const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
+// Each memo's JSON is reused while its field values are unchanged, so one keystroke serializes one memo.
+const noteFingerprints = new WeakMap<Note, { fields: Note; text: string }>();
+const noteFingerprint = (note: Note) => {
+  const cached = noteFingerprints.get(note);
+  const keys = Object.keys(note);
+  if (cached && keys.length === Object.keys(cached.fields).length && keys.every(key => note[key as keyof Note] === cached.fields[key as keyof Note])) return cached.text;
+  const text = JSON.stringify(note);
+  noteFingerprints.set(note, { fields: { ...note }, text });
+  return text;
+};
+// JSON text never contains a raw line break, so the joined memos cannot collide.
+const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ groups: state.groups, settings: state.settings }) + state.notes.map(note => `\n${noteFingerprint(note)}`).join('');
 
 export default function CloudSession({ Workspace }: { Workspace: React.ComponentType<ViewProps> }) {
   const { lang, restoreLanguage } = useLang();
@@ -191,7 +203,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       return;
     }
     try {
-      const backup = createWorkspaceBackup(state, document);
+      const backup = snapshotWorkspace(state, document);
       invalidState.current = null;
       queue.current?.enqueue(backup, requiresImmediateSave(lastBackup.current, backup));
       lastBackup.current = backup;

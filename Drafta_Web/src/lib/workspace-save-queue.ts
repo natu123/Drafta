@@ -1,5 +1,5 @@
 import { WorkspaceConflictError, WorkspaceStorageError, type SavedWorkspace } from './cloud-workspace';
-import type { WorkspaceBackup } from './workspace-backup';
+import { isValidatedBackup, type WorkspaceBackup } from './workspace-backup';
 import type { WorkspaceMerge } from './workspace-merge';
 
 export type QueueStatus = 'pending' | 'saving' | 'saved' | 'error' | 'conflict';
@@ -58,8 +58,8 @@ export class WorkspaceSaveQueue {
   }
   enqueue(value: WorkspaceBackup, immediate = false) {
     if (this.disposed) return;
-    // Detach from caller-owned state before any async boundary.
-    this.pending = structuredClone(value);
+    // Detach from caller-owned state before any async boundary; a validated snapshot is already frozen.
+    this.pending = isValidatedBackup(value) ? value : structuredClone(value);
     if (this.stopped) return;
     this.emit('pending');
     if (immediate) void this.flush();

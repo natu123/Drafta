@@ -1,5 +1,5 @@
 import { collection, doc, getDocFromServer, getDocsFromServer, limit, query, runTransaction, serverTimestamp, startAfter, type Firestore } from 'firebase/firestore';
-import { BACKUP_LIMITS, parseWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup, type BackupNote } from './workspace-backup';
+import { BACKUP_LIMITS, isValidatedBackup, parseWorkspaceBackup, serializeWorkspaceBackup, storedNoteText, type WorkspaceBackup, type BackupNote } from './workspace-backup';
 import { memoHistory, historyCandidate } from './memo-history';
 
 export class WorkspaceConflictError extends Error {
@@ -17,7 +17,13 @@ function checkSize(text: string): string {
   return text;
 }
 function checkedBackup(input: WorkspaceBackup): WorkspaceBackup {
-  return parseWorkspaceBackup(serializeWorkspaceBackup(input));
+  // A frozen snapshot was validated when it was made and cannot have changed since.
+  return isValidatedBackup(input) ? input : parseWorkspaceBackup(serializeWorkspaceBackup(input));
+}
+function storedText(note: BackupNote): string {
+  const { json, bytes } = storedNoteText(note);
+  if (bytes > CLOUD_LIMITS.documentBytes) throw new WorkspaceStorageError('Document is too large to save');
+  return json;
 }
 function revisionOf(data: Record<string, unknown> | undefined): number {
   if (!data || data.schemaVersion !== 1 || !Number.isSafeInteger(data.revision) || Number(data.revision) < 1) throw new WorkspaceStorageError('Invalid server workspace');
@@ -80,8 +86,8 @@ export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryF
     const backup = checkedBackup(input);
     const { notes, ...envelope } = backup;
     const metadataJson = checkSize(JSON.stringify({ ...envelope, noteOrder: notes.map(note => note.id) }));
-    const previous = new Map((base?.backup.notes ?? []).map(note => [note.id, JSON.stringify(note)]));
-    const current = new Map(notes.map(note => [note.id, checkSize(JSON.stringify(note))]));
+    const previous = new Map((base?.backup.notes ?? []).map(note => [note.id, storedNoteText(note).json]));
+    const current = new Map(notes.map(note => [note.id, storedText(note)]));
     const writes = [...current].filter(([id, text]) => previous.get(id) !== text);
     const deletes = [...previous.keys()].filter(id => !current.has(id));
     if (writes.length + deletes.length > CLOUD_LIMITS.changedNotes ||
