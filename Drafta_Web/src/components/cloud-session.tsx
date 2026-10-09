@@ -29,7 +29,7 @@ import { loginRequiredCopy } from '@/lib/login-required-copy';
 import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
-type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'> };
+type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean> };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ notes: state.notes, groups: state.groups, settings: state.settings });
 
 export default function CloudSession({ Workspace }: { Workspace: React.ComponentType<ViewProps> }) {
@@ -199,6 +199,21 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     } catch { invalidState.current = state; setStatus('error'); }
   }, [sessionKey, uid]);
 
+  // Resolves true only after every queued change was acknowledged by the server.
+  const saveWorkspace = React.useCallback(async () => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const current = queue.current;
+      if (!current || invalidState.current || current.status === 'conflict') return false;
+      if (current.status === 'error') await current.retry(); else await current.flush();
+      if (current !== queue.current) return false;
+      // Re-read after the await; TypeScript would otherwise keep the narrowing from above.
+      const status = current.status as SaveStatus;
+      if (!current.dirty && status === 'saved') return true;
+      if (status === 'error' || status === 'conflict') return false;
+    }
+    return false;
+  }, []);
+
   const act = async (action: () => Promise<unknown>, loginAttempt = false) => {
     if (busy) return;
     setBusy(true);
@@ -246,5 +261,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }

@@ -2,7 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { checkImportLimits, importBatches, obsidianMarkdownToHtml, planObsidianImport, safeLinkUrl, type ImportFile } from './obsidian-import';
 import { createWorkspaceBackup } from './workspace-backup';
-import { CLOUD_LIMITS } from './cloud-workspace';
+import { CLOUD_LIMITS, WorkspaceStorageError, type SavedWorkspace } from './cloud-workspace';
+import { WorkspaceSaveQueue } from './workspace-save-queue';
+import type { WorkspaceBackup } from './workspace-backup';
 
 const labels = { image: 'Image', file: 'File', vault: 'Obsidian' };
 const convert = (markdown: string) => obsidianMarkdownToHtml(markdown, labels);
@@ -103,4 +105,38 @@ describe('Obsidian import plan', () => {
     const many = Array.from({ length: 9998 }, (_, index) => ({ ...plan.notes[0], id: `existing-${index}` }));
     expect(checkImportLimits({ notes: many, groups: plan.groups, settings }, plan, document)).toBe('notes');
   });
+});
+
+describe('Obsidian import saving', () => {
+  it('keeps every queued save below the cloud change limit and resumes after a failure', async () => {
+    const plan = await planObsidianImport(Array.from({ length: 801 }, (_, index) => file(`V/n${index}.md`, `memo ${index}`)), options);
+    let failNext = true;
+    const writes: number[] = [];
+    // Mirrors cloudWorkspace.save: count changed memos against CLOUD_LIMITS.changedNotes.
+    const save = async (value: WorkspaceBackup, base: SavedWorkspace | null): Promise<SavedWorkspace> => {
+      const previous = new Set((base?.backup.notes ?? []).map(note => note.id));
+      const changed = value.notes.filter(note => !previous.has(note.id)).length;
+      if (changed > CLOUD_LIMITS.changedNotes) throw new WorkspaceStorageError('Too many changes in one save');
+      if (writes.length === 1 && failNext) { failNext = false; throw new WorkspaceStorageError('Simulated outage'); }
+      writes.push(changed);
+      return { uid: 'u', revision: (base?.revision ?? 0) + 1, backup: value };
+    };
+    const queue = new WorkspaceSaveQueue(null, save, () => {});
+    const state = { notes: [] as typeof plan.notes, groups: [] as typeof plan.groups, settings };
+    const saveBatch = async (batch: typeof plan.notes, groups: typeof plan.groups) => {
+      state.notes = [...state.notes, ...batch]; state.groups = [...state.groups, ...groups];
+      queue.enqueue(createWorkspaceBackup(state, document), true);
+      await queue.flush();
+      return !queue.dirty && queue.status === 'saved';
+    };
+    const batches = importBatches(plan);
+    expect(await saveBatch(batches[0], plan.groups)).toBe(true);
+    expect(await saveBatch(batches[1], [])).toBe(false);
+    expect(queue.status).toBe('error');
+    await queue.retry();
+    expect(queue.status).toBe('saved');
+    expect(await saveBatch(batches[2], [])).toBe(true);
+    expect(writes).toEqual([350, 350, 101]);
+    await expect(save(createWorkspaceBackup({ ...state, notes: plan.notes }, document), null)).rejects.toThrow('Too many changes');
+  }, 60000);
 });

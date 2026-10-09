@@ -5,6 +5,7 @@ import { doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore
 import { cloudWorkspace, WorkspaceConflictError } from './cloud-workspace';
 import type { WorkspaceBackup } from './workspace-backup';
 import { watchCloudWorkspace } from './cloud-workspace-watch';
+import { IMPORT_BATCH_LIMITS } from './obsidian-import';
 
 // The local emulator does not enforce this production query constraint.
 vi.mock('firebase/firestore', async importOriginal => {
@@ -105,4 +106,24 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
     });
     await expect(repository('alice').load()).rejects.toThrow();
   });
+
+  it('saves a large import only in batches below the per-save change limit', async () => {
+    const owner = repository('alice');
+    const base = fresh();
+    let saved = await owner.save(base, null);
+    const imported = Array.from({ length: 801 }, (_, index) => ({
+      id: `import-${index}`, group: 'tray', stars: 0 as const, createdAt: base.exportedAt, updatedAt: base.exportedAt,
+      document: { format: 'drafta-document' as const, schemaVersion: 1 as const, document: { type: 'doc', content: [
+        { type: 'title', content: [{ type: 'text', text: `Imported ${index}` }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Obsidian' }] },
+      ] } },
+    }));
+    await expect(owner.save({ ...base, notes: imported }, saved)).rejects.toThrow('Too many changes in one save');
+    for (let start = 0; start < imported.length; start += IMPORT_BATCH_LIMITS.notes) {
+      saved = await owner.save({ ...base, notes: imported.slice(0, start + IMPORT_BATCH_LIMITS.notes) }, saved);
+    }
+    const loaded = await repository('alice').load();
+    expect(loaded?.revision).toBe(4);
+    expect(loaded?.backup.notes.map(note => note.id)).toEqual(imported.map(note => note.id));
+  }, 120000);
 });

@@ -18,6 +18,7 @@ export type WorkspaceViewProps = {
   accountMenu?: React.ReactNode;
   onWorkspaceChange?: (state: WorkspaceState) => void;
   memoHistory?: Pick<MemoHistoryRepository, 'list'>;
+  saveWorkspace?: () => Promise<boolean>;
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
@@ -35,6 +36,7 @@ import { localizeUntitledGroup } from '@/lib/group-display';
 import { pinnedNotes, regularNotes, reorderPinSection } from '@/lib/pin-order';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
+import { ImportDialog } from '@/components/import-dialog';
 import SearchDialog from '@/components/search-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -757,7 +759,7 @@ export default function Page() {
   return <CloudSession Workspace={Home} />;
 }
 
-function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory }: WorkspaceViewProps) {
+function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
 
@@ -781,6 +783,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
   const [noteViewMode] = React.useState<ViewMode>('list');
@@ -817,6 +820,19 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
     onWorkspaceChange?.({ notes: sourceNotes, groups: sourceGroups, settings: { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } });
   }, [sourceNotes, sourceGroups, languagePreference, theme, scrollDirection, onWorkspaceChange, remoteUpdate, activeTabId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+  // Import batches wait until React committed them and the cloud queue received them.
+  const commitWaiters = React.useRef<(() => void)[]>([]);
+  React.useEffect(() => { commitWaiters.current.splice(0).forEach(resolve => resolve()); }, [sourceNotes, sourceGroups]);
+  const handleImportBatch = async (newGroups: Group[], newNotes: Note[]) => {
+    const committed = new Promise<void>(resolve => { commitWaiters.current.push(resolve); });
+    // Imported trays go to the end; their memos keep the vault's file order.
+    if (newGroups.length) setGroups(previous => [...previous, ...newGroups]);
+    setNotes(previous => [...previous, ...newNotes]);
+    await committed;
+    return saveWorkspace ? saveWorkspace() : true;
+  };
+  const workspaceSettings = { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } as const;
+
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
     setScrollDirection(direction);
   };
@@ -1567,6 +1583,16 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
           onOpenChange={setIsSettingsOpen}
           scrollDirection={scrollDirection}
           onScrollDirectionChange={handleListStyleChange}
+          onImport={() => { setIsSettingsOpen(false); setIsImportOpen(true); }}
+        />
+
+        <ImportDialog
+          open={isImportOpen}
+          onOpenChange={setIsImportOpen}
+          existing={{ notes: sourceNotes, groups: sourceGroups, settings: workspaceSettings }}
+          onBatch={handleImportBatch}
+          onRetry={() => saveWorkspace ? saveWorkspace() : Promise.resolve(true)}
+          onShowTray={groupId => { setActiveGroupId(groupId); setActiveView('home'); setMobilePane('notes'); }}
         />
 
         <SearchDialog

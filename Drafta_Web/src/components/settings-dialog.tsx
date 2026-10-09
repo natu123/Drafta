@@ -13,17 +13,21 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady } from '@/hooks/use-client-ready';
+import { Button } from '@/components/ui/button';
+import { importCopy } from '@/lib/import-copy';
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   scrollDirection: 'top' | 'bottom';
   onScrollDirectionChange: (direction: 'top' | 'bottom') => void;
+  onImport?: () => void;
 }
 
-const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scrollDirection, onScrollDirectionChange }) => {
+const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scrollDirection, onScrollDirectionChange, onImport }) => {
   const { theme, setTheme } = useTheme();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const data = importCopy[lang];
 
   const mounted = useClientReady();
 
@@ -78,6 +82,19 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
               </RadioGroup>
               <p className="text-sm text-muted-foreground">{t.newItemPosDesc}</p>
             </div>
+
+            {onImport && (
+              <>
+                <div className="pt-2">
+                  <hr className="border-border mb-2" />
+                  <h3 className="text-lg font-medium">{data.section}</h3>
+                </div>
+                <div className="space-y-2">
+                  <Button variant="outline" onClick={onImport}>{data.open}</Button>
+                  <p className="text-sm text-muted-foreground">{data.openDescription}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>
