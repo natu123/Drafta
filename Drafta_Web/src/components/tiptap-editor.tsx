@@ -1061,6 +1061,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             }
           }}
         >
+          {onDuplicate && isEditLockedSample(note) && !note.isDeleted && (
+            <div role="note" className="mt-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              <span className="min-w-0 flex-1">{sampleLockCopy[lang].notice}</span>
+              <Button variant="outline" size="sm" onClick={onDuplicate}><Copy />{sampleLockCopy[lang].duplicate}</Button>
+            </div>
+          )}
           <div className={cn('editor-document relative', historyAction && 'has-history', onDelete && !note.isProtected && !note.isDeleted && 'has-delete')}>
           <div className="editor-title-icon">
           <Popover>
@@ -1096,12 +1102,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               </TooltipTrigger>
               <TooltipContent>{t.delete}</TooltipContent>
             </Tooltip>
-          )}
-          {onDuplicate && isEditLockedSample(note) && !note.isDeleted && (
-            <div role="note" className="mb-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
-              <span className="min-w-0 flex-1">{sampleLockCopy[lang].notice}</span>
-              <Button variant="outline" size="sm" onClick={onDuplicate}><Copy />{sampleLockCopy[lang].duplicate}</Button>
-            </div>
           )}
           <EditorContent editor={editor} dir="auto" />
           </div>
