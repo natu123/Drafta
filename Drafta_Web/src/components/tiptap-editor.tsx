@@ -6,9 +6,9 @@ import { TextSelection } from '@tiptap/pm/state';
 import * as React from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import Placeholder from '@tiptap/extension-placeholder';
 import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search, Menu, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
+import { TitlePlaceholder } from './tiptap-extensions/title-placeholder';
 import { NoteFind } from './note-find';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -75,14 +75,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     // TipTap stores this callback and evaluates it during input events, not render.
     // eslint-disable-next-line react-hooks/refs
     RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
-    Placeholder.configure({
-      placeholder: ({ node }) => {
-        if (node.type.name === 'title') return t.untitledMemo;
-        return '';
-      },
-      showOnlyCurrent: false,
-      includeChildren: false,
-    }),
+    TitlePlaceholder.configure({ placeholder: () => t.untitledMemo }),
   ], [t.untitledMemo]);
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
