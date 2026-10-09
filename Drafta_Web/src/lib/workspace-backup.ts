@@ -22,7 +22,8 @@ export type WorkspaceBackup = {
 };
 
 // Defensive import limits, not subscription quotas. Large-file support is a separate milestone.
-export const BACKUP_LIMITS = { bytes: 16 * 1024 * 1024, notes: 10000, groups: 1000, nodes: 100000, depth: 32 } as const;
+// nodes and table cells are per memo; workspaceNodes bounds all memos together (specs/15).
+export const BACKUP_LIMITS = { bytes: 16 * 1024 * 1024, notes: 10000, groups: 1000, nodes: 100000, workspaceNodes: 1000000, depth: 32 } as const;
 
 export class BackupValidationError extends Error {
   constructor(public readonly path: string, message: string) {
@@ -103,11 +104,12 @@ function attributes(type: string, value: unknown, path: string, mark: boolean) {
   }
 }
 
-function documentValue(value: unknown, path: string, budget: { nodes: number; tableSlots: number }) {
+function documentValue(value: unknown, path: string, workspace: { nodes: number }) {
+  const budget = { nodes: 0, tableSlots: 0 };
   const envelope = record(value, path, ['format', 'schemaVersion', 'document']);
   requireValue(envelope.format === 'drafta-document' && envelope.schemaVersion === 1, path, 'Unsupported document version');
   const walk = (raw: unknown, at: string, depth: number) => {
-    requireValue(depth <= BACKUP_LIMITS.depth && ++budget.nodes <= BACKUP_LIMITS.nodes, at, 'Document complexity limit exceeded');
+    requireValue(depth <= BACKUP_LIMITS.depth && ++budget.nodes <= BACKUP_LIMITS.nodes && ++workspace.nodes <= BACKUP_LIMITS.workspaceNodes, at, 'Document complexity limit exceeded');
     const node = record(raw, at, ['type', 'attrs', 'content', 'marks', 'text']);
     requireValue(typeof node.type === 'string' && Object.hasOwn(documentSchema.nodes, node.type), at, 'Unknown node type');
     if (node.attrs !== undefined) attributes(node.type, node.attrs, `${at}.attrs`, false);
@@ -167,7 +169,7 @@ function validate(value: unknown): asserts value is WorkspaceBackup {
     groups.set(group.id, group);
   });
   const notes = new Map<string, RecordValue>();
-  const budget = { nodes: 0, tableSlots: 0 };
+  const budget = { nodes: 0 };
   const samples: Record<string, string> = { 'note-1': 'welcome', 'note-2': 'reference', 'note-3': 'brainstorm', 'note-4': 'groceries', 'note-5': 'meeting', 'note-6': 'todo', 'note-7': 'todo', 'note-8': 'todo', 'note-9': 'todo' };
   data.notes.forEach((raw, index) => {
     const path = `notes[${index}]`;

@@ -15,7 +15,16 @@ const rejected = (mutate: (backup: WorkspaceBackup) => void, message?: string) =
 };
 
 describe('workspace backup', () => {
-  it('preserves tray pins and permits deleted or absent Inbox and empty workspaces', () => {
+  it('limits document parts per memo while allowing larger workspaces in total', () => {
+    // Each paragraph with text is two parts; three memos together exceed the per-memo limit.
+    const memo = (id: string, paragraphs: number) => ({ id, group: groups[0].id, stars: 0 as const, createdAt: exportedAt, updatedAt: exportedAt,
+      document: { format: 'drafta-document' as const, schemaVersion: 1 as const, document: { type: 'doc', content: [{ type: 'title' },
+        ...Array.from({ length: paragraphs }, () => ({ type: 'paragraph', content: [{ type: 'text', text: 'x' }] }))] } } });
+    const value = { ...fresh(), notes: ['a', 'b', 'c'].map(id => memo(id, 20000)) };
+    expect(parseWorkspaceBackup(JSON.stringify(value)).notes).toHaveLength(3);
+    expect(() => parseWorkspaceBackup(JSON.stringify({ ...value, notes: [memo('big', 50000)] }))).toThrow('complexity');
+    expect(BACKUP_LIMITS.workspaceNodes).toBeGreaterThan(BACKUP_LIMITS.nodes);
+  });  it('preserves tray pins and permits deleted or absent Inbox and empty workspaces', () => {
     const backup = fresh();
     backup.groups[0].isDeleted = true;
     expect(parseWorkspaceBackup(JSON.stringify(backup)).groups[0]).toMatchObject({ isDeleted: true, isPinned: true });
