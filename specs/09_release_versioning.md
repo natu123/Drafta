@@ -17,6 +17,10 @@
 
 ## 公開時の確認
 
+### Version 0.6.0 (2026-10-09公開)
+
+Obsidianからの取り込み (設定の「データ」区分) と, WelcomeとQuick Referenceの編集保護 (削除は可能, 「複製して編集」) を追加し, 11言語の更新履歴とLanding-pageの今後の予定 (ObsidianをNotion / Evernoteの予定から外す) を揃えました. 単体269テスト, Emulatorの分割保存7件･ルール6件, 型チェック, Lint, localhost:9002の1440px･375pxの画面確認後, Glesさんの公開指示によりPushし, 本番接続Build (接続設定はProcessの環境変数のみで渡し, File･ログへ保存しない) をHostingへ公開しました. 公開トップ･アプリ･更新履歴･robots･sitemapのHTTP 200と生成物の一致, JS/CSS29件の一致, 1440px･375pxの日本語ログイン画面とLanding-pageの0.6.0表示, 横スクロール･Consoleエラーがないことを確認しました. 本番アカウントへのログインと本番データの変更は行っていません. Google認証方式･Firestoreルール･課金設定は変更していません. 詳細は`14_import.md`を参照します.
+
 ### Version 0.5.1 (2026-09-30公開)
 
 ログイン表示の重複, ポップアップ取消時の誤った保存エラー表示, 内部コードの直接表示を修正しました. ブロック・その他の認証失敗を11言語の操作案内へ変更し, Landing-pageと更新履歴を揃えました. 対象13テスト・Lint・本番接続Build後にHostingへ公開し, HTML3ページ・JS/CSS18件の一致と日本語のPC・スマホ表示を確認しました. Google認証方式・Firestoreルール・課金設定は変更していません. 詳細は`13_login_required.md`を参照します.
