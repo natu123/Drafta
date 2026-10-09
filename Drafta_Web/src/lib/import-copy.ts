@@ -77,10 +77,10 @@ export const importCopy: Record<Lang, ReturnType<typeof copy>> = {
     'Импортировано заметок: {memos}.', 'Закрыть', 'Открыть импортированный лоток', 'Изображение', 'Файл']),
   id: copy(['Data', 'Impor', 'Impor catatan dari vault Obsidian. Nampan dan catatan yang ada tidak diubah.', 'Impor dari Obsidian',
     'Pilih folder vault atau file .md. File dibaca dan dikonversi di perangkat ini, dan tidak ada yang disimpan sebelum Anda mengonfirmasi.', 'Pilih folder', 'Pilih file',
-    'Membaca file…', 'Membuat {catatans} catatan di {trays} nampan baru.', '{count} gambar atau sematan tidak diimpor. Namanya tetap ada di teks.', 'File yang tidak diimpor ({count})',
+    'Membaca file…', 'Membuat {memos} catatan di {trays} nampan baru.', '{count} gambar atau sematan tidak diimpor. Namanya tetap ada di teks.', 'File yang tidak diimpor ({count})',
     'Terlalu besar', 'Format tidak didukung', 'Tidak dapat dikonversi', 'Tidak ada file Markdown untuk diimpor.', 'Akan melebihi batas 10.000 catatan.', 'Akan melebihi batas 1.000 nampan.',
     'Akan melebihi batas total (ukuran atau jumlah konten).', 'Impor', 'Batal', 'Menyimpan… {done} / {total}', 'Penyimpanan berhenti. Tersimpan: {saved}. Belum tersimpan: {unsaved}.', 'Coba lagi yang belum tersimpan',
-    '{catatans} catatan diimpor.', 'Tutup', 'Buka nampan yang diimpor', 'Gambar', 'File']),
+    '{memos} catatan diimpor.', 'Tutup', 'Buka nampan yang diimpor', 'Gambar', 'File']),
 };
 
 export const fillCopy = (text: string, values: Record<string, number | string>) => text.replace(/\{(\w+)\}/g, (match, key: string) => key in values ? String(values[key]) : match);
