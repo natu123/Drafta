@@ -4,7 +4,7 @@ import { notes, groups } from './data';
 import { localizeSampleNote } from './sample-notes';
 import { LANGS } from '@/app/languages';
 import { editorDocumentToHtml } from './document-codec';
-import { BACKUP_LIMITS, createWorkspaceBackup, parseWorkspaceBackup, prepareWorkspaceRestore, serializeWorkspaceBackup, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
+import { BACKUP_LIMITS, createWorkspaceBackup, isValidatedBackup, parseWorkspaceBackup, prepareWorkspaceRestore, serializeWorkspaceBackup, snapshotWorkspace, storedNoteText, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
 
 const settings: BackupSettings = { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' };
 const exportedAt = '2026-09-15T00:00:00.000Z';
@@ -136,6 +136,36 @@ describe('workspace backup', () => {
     rejected(value => { value.notes[5].document.document.content![1] = { type: 'table', content: [{ type: 'tableRow', content: [{ type: 'tableCell', attrs: { colspan: 2 }, content: [{ type: 'paragraph' }] }] }, { type: 'tableRow', content: [{ type: 'tableCell', content: [{ type: 'paragraph' }] }] }] }; }, 'geometry');
     rejected(value => { value.notes[5].document.document.content![1] = { type: 'table', content: Array.from({ length: 40 }, () => ({ type: 'tableRow', content: [{ type: 'tableCell', attrs: { colspan: 100 }, content: [{ type: 'paragraph' }] }] })) }; }, 'complexity');
   });
+
+  it('reuses unchanged memos in a frozen snapshot and converts only the changed memo', () => {
+    const first = snapshotWorkspace({ notes, groups, settings }, document, exportedAt);
+    expect(first).toEqual(fresh());
+    expect(isValidatedBackup(first) && Object.isFrozen(first) && Object.isFrozen(first.notes[5].document.document)).toBe(true);
+    expect(isValidatedBackup(fresh())).toBe(false);
+    const edited = notes.map((note, index) => index === 5 ? { ...note, content: '<p>Edited</p>' } : note);
+    const second = snapshotWorkspace({ notes: edited, groups, settings }, document, exportedAt);
+    expect(second.notes.filter((note, index) => note !== first.notes[index]).map(note => note.id)).toEqual([notes[5].id]);
+    expect(editorDocumentToHtml(second.notes[5].document, document)).toContain('Edited');
+    expect(storedNoteText(second.notes[5]).json).toBe(JSON.stringify(second.notes[5]));
+  });
+
+  it('notices a memo changed in place instead of reusing its stale conversion', () => {
+    const copies = notes.map(note => ({ ...note }));
+    const first = snapshotWorkspace({ notes: copies, groups, settings }, document, exportedAt);
+    copies[5].content = '<p>Changed in place</p>';
+    const second = snapshotWorkspace({ notes: copies, groups, settings }, document, exportedAt);
+    expect(second.notes[5]).not.toBe(first.notes[5]);
+    expect(editorDocumentToHtml(second.notes[5].document, document)).toContain('Changed in place');
+  });
+
+  it('keeps rejecting oversized memos and workspaces when other memos come from the cache', () => {
+    const memo = (id: string, content: string) => ({ ...notes[5], id, sampleKey: undefined, content });
+    const big = memo('big-a', `<p>${'x'.repeat(900_000)}</p>`.repeat(10));
+    expect(snapshotWorkspace({ notes: [big], groups, settings }, document, exportedAt).notes).toHaveLength(1);
+    expect(() => snapshotWorkspace({ notes: [big, memo('big-b', `<p>${'y'.repeat(900_000)}</p>`.repeat(10))], groups, settings }, document, exportedAt)).toThrow('size');
+    const complex = memo('complex', '<p>x</p>'.repeat(50001));
+    for (let attempt = 0; attempt < 2; attempt++) expect(() => snapshotWorkspace({ notes: [big, complex], groups, settings }, document, exportedAt)).toThrow('complexity');
+  }, 30000);
 
   it('does not silently discard legacy nested children', () => {
     expect(() => createWorkspaceBackup({ groups, settings, notes: [{ ...notes[5], children: [] }] }, document)).toThrow('Flatten children');

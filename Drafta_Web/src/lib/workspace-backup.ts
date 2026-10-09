@@ -104,7 +104,8 @@ function attributes(type: string, value: unknown, path: string, mark: boolean) {
   }
 }
 
-function documentValue(value: unknown, path: string, workspace: { nodes: number }) {
+/** Returns the memo's node count after validating it against the per-memo and workspace budgets. */
+function documentValue(value: unknown, path: string, workspace: { nodes: number }): number {
   const budget = { nodes: 0, tableSlots: 0 };
   const envelope = record(value, path, ['format', 'schemaVersion', 'document']);
   requireValue(envelope.format === 'drafta-document' && envelope.schemaVersion === 1, path, 'Unsupported document version');
@@ -145,9 +146,14 @@ function documentValue(value: unknown, path: string, workspace: { nodes: number 
       requireValue(!TableMap.get(child).problems?.length, path, 'Invalid table geometry');
     });
   } catch (error) { if (error instanceof BackupValidationError) throw error;throw new BackupValidationError(path, 'Invalid document structure'); }
+  return budget.nodes;
 }
 
-function validate(value: unknown): asserts value is WorkspaceBackup {
+/**
+ * `documents` lists frozen documents this module already validated, with their node counts.
+ * Only createWorkspaceBackup passes it; parsed or external input is always walked in full.
+ */
+function validate(value: unknown, documents?: WeakMap<object, number>): asserts value is WorkspaceBackup {
   const data = record(value, 'backup', ['format', 'version', 'exportedAt', 'groups', 'notes', 'settings']);
   requireValue(data.format === 'drafta-workspace' && data.version === 1, 'backup', 'Unsupported backup version');
   date(data.exportedAt, 'exportedAt');
@@ -185,7 +191,9 @@ function validate(value: unknown): asserts value is WorkspaceBackup {
     for (const key of ['isPinned', 'isCompleted', 'isDeleted', 'isProtected']) if (note[key] !== undefined) requireValue(typeof note[key] === 'boolean', `${path}.${key}`, 'Expected a boolean');
     if (note.parentId !== undefined) id(note.parentId, `${path}.parentId`);
     if (note.sampleKey !== undefined) requireValue(Object.hasOwn(samples, note.id) && samples[note.id] === note.sampleKey && note.type !== 'separator', path, 'Invalid sample identity');
-    documentValue(note.document, `${path}.document`, budget);
+    const known = typeof note.document === 'object' && note.document !== null ? documents?.get(note.document) : undefined;
+    if (known === undefined) documentValue(note.document, `${path}.document`, budget);
+    else requireValue((budget.nodes += known) <= BACKUP_LIMITS.workspaceNodes, `${path}.document`, 'Document complexity limit exceeded');
     notes.set(note.id, note);
   });
   const checked = new Set<string>();
@@ -217,22 +225,91 @@ export function serializeWorkspaceBackup(value: WorkspaceBackup): string {
   return text;
 }
 
-/** Exports trusted, current in-memory app state. Does not read storage or write files. */
-export function createWorkspaceBackup(source: { groups: Group[]; notes: Note[]; settings: BackupSettings }, dom: Document, exportedAt = new Date().toISOString()): WorkspaceBackup {
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.values(value).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+// Converting every memo's HTML on each keystroke froze large workspaces (specs/15). A memo is
+// converted once per distinct set of field values; the result is frozen, so it cannot drift.
+type ConvertedNote = { fields: Note; note: BackupNote; json: string; bytes: number; inputBytes: number };
+const convertedNotes = new WeakMap<Note, ConvertedNote>();
+const validatedDocuments = new WeakMap<object, number>();
+const storedNotes = new WeakMap<BackupNote, { json: string; bytes: number }>();
+const validatedBackups = new WeakSet<WorkspaceBackup>();
+const encoder = new TextEncoder();
+const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const sameFields = (a: Note, b: Note) => {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => a[key as keyof Note] === b[key as keyof Note]);
+};
+
+function convertNote(note: Note, dom: Document): ConvertedNote {
+  const cached = convertedNotes.get(note);
+  if (cached && sameFields(note, cached.fields)) return cached;
+  const { title, content, plainTextContent: _preview, children, ...metadata } = note;
+  void _preview; // Derived display text is regenerated, not a second content source.
+  requireValue(title.length <= BACKUP_LIMITS.bytes && content.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  const inputBytes = encoder.encode(title).byteLength + encoder.encode(content).byteLength;
+  requireValue(inputBytes <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  requireValue(children === undefined, `notes.${note.id}.children`, 'Flatten children into parentId references before export');
+  const titleHtml = escapeHtml(title).replace(/\{color:(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\}(.+?)\{\/color\}/g, '<span style="color:$1">$2</span>');
+  const json = JSON.stringify({ ...metadata, document: editorHtmlToDocument(`<h1>${titleHtml}</h1>${content}`, dom) });
+  // The JSON round trip keeps the stored shape identical to a parsed backup.
+  const stored = deepFreeze(JSON.parse(json) as BackupNote);
+  validatedDocuments.set(stored.document, documentValue(stored.document, `notes.${note.id}.document`, { nodes: 0 }));
+  const bytes = encoder.encode(json).byteLength;
+  storedNotes.set(stored, { json, bytes });
+  const entry = { fields: { ...note }, note: stored, json, bytes, inputBytes };
+  convertedNotes.set(note, entry);
+  return entry;
+}
+
+/**
+ * The save path's form of createWorkspaceBackup: deeply frozen and validated like
+ * parseWorkspaceBackup, with unchanged memos reusing their earlier conversion and validation.
+ */
+export function snapshotWorkspace(source: { groups: Group[]; notes: Note[]; settings: BackupSettings }, dom: Document, exportedAt = new Date().toISOString()): WorkspaceBackup {
   requireValue(source.notes.length <= BACKUP_LIMITS.notes && source.groups.length <= BACKUP_LIMITS.groups, 'backup', 'Collection size limit exceeded');
   let inputBytes = 0;
-  const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  let noteBytes = 0;
   const notes = source.notes.map(note => {
-    const { title, content, plainTextContent: _preview, children, ...metadata } = note;
-    void _preview; // Derived display text is regenerated, not a second content source.
-    requireValue(title.length <= BACKUP_LIMITS.bytes && content.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
-    inputBytes += new TextEncoder().encode(title).byteLength + new TextEncoder().encode(content).byteLength;
+    const entry = convertNote(note, dom);
+    inputBytes += entry.inputBytes;
     requireValue(inputBytes <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
-    requireValue(children === undefined, `notes.${note.id}.children`, 'Flatten children into parentId references before export');
-    const titleHtml = escape(title).replace(/\{color:(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\}(.+?)\{\/color\}/g, '<span style="color:$1">$2</span>');
-    return { ...metadata, document: editorHtmlToDocument(`<h1>${titleHtml}</h1>${content}`, dom) };
+    noteBytes += entry.bytes;
+    return entry.note;
   });
-  return parseWorkspaceBackup(JSON.stringify({ format: 'drafta-workspace', version: 1, exportedAt, groups: source.groups, notes, settings: source.settings }));
+  const envelope = JSON.parse(JSON.stringify({ format: 'drafta-workspace', version: 1, exportedAt, groups: source.groups, notes: [], settings: source.settings }));
+  // Same byte count as JSON.stringify of the whole backup: "[]" plus the memos and their commas.
+  const total = encoder.encode(JSON.stringify(envelope)).byteLength + noteBytes + Math.max(0, notes.length - 1);
+  requireValue(total <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  const backup = { ...envelope, notes };
+  validate(backup, validatedDocuments);
+  deepFreeze(envelope.groups); deepFreeze(envelope.settings); Object.freeze(notes); Object.freeze(backup);
+  validatedBackups.add(backup);
+  return backup;
+}
+
+/** Exports trusted, current in-memory app state as a mutable copy. Does not read storage or write files. */
+export function createWorkspaceBackup(source: { groups: Group[]; notes: Note[]; settings: BackupSettings }, dom: Document, exportedAt = new Date().toISOString()): WorkspaceBackup {
+  return JSON.parse(JSON.stringify(snapshotWorkspace(source, dom, exportedAt)));
+}
+
+/** True only for a backup returned by snapshotWorkspace: validated and deeply frozen. */
+export function isValidatedBackup(value: WorkspaceBackup): boolean {
+  return validatedBackups.has(value);
+}
+
+/** A memo's stored JSON and its UTF-8 size, reused for memos from snapshotWorkspace. */
+export function storedNoteText(note: BackupNote): { json: string; bytes: number } {
+  const cached = storedNotes.get(note);
+  if (cached) return cached;
+  const json = JSON.stringify(note);
+  return { json, bytes: encoder.encode(json).byteLength };
 }
 
 /** A candidate for user review; never merges into or mutates the existing workspace. */
