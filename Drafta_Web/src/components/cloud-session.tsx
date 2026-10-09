@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { useTheme } from 'next-themes';
@@ -17,6 +18,7 @@ import type { Note } from '@/lib/types';
 import { requiresImmediateSave } from '@/lib/workspace-change';
 import { workspaceToState, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
 import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
+import { flushPendingEdits } from '@/lib/pending-edits';
 import { AccountMenu, type SaveStatus } from './account-menu';
 import { cloudCopy } from '@/lib/cloud-copy';
 import { Button } from './ui/button';
@@ -42,6 +44,8 @@ const noteFingerprint = (note: Note) => {
   return text;
 };
 // JSON text never contains a raw line break, so the joined memos cannot collide.
+// Writes text still waiting in an editor and lets React hand the new state to `changed` now.
+const flushEdits = () => { flushSync(() => { flushPendingEdits(); }); };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ groups: state.groups, settings: state.settings }) + state.notes.map(note => `\n${noteFingerprint(note)}`).join('');
 
 export default function CloudSession({ Workspace }: { Workspace: React.ComponentType<ViewProps> }) {
@@ -68,6 +72,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const lastState = React.useRef('');
   const lastBackup = React.useRef<WorkspaceBackup | null>(null);
   const invalidState = React.useRef<WorkspaceState | null>(null);
+  // While an account change is handled, the edits written by its flush still belong to the old session.
+  const flushingForAccountChange = React.useRef(false);
   const activeOwner = React.useRef<string | null>(null);
   const heldEdits = React.useRef(new Map<string, { base: SavedWorkspace | null; backup: WorkspaceBackup; invalid: WorkspaceState | null }>());
   const [hasHeldEdits, setHasHeldEdits] = React.useState(false);
@@ -96,12 +102,16 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (id === generation.current) setStatus(invalidState.current || syncUnavailable.current ? 'error' : next);
   }, {
     load: repository.load,
+    prepare: flushEdits,
     merge: (base, local, remote) => mergeWorkspaces(base, local, remote, { now: new Date().toISOString(), newId: () => crypto.randomUUID(), copySuffix: syncLabelsRef.current.suffix }),
     apply: (backup, copies) => { if (id === generation.current) applyRemote(backup, copies); },
     review: remote => { if (id === generation.current) setReviewRemote(remote); },
   }), [applyRemote]);
 
   const load = React.useCallback(async (user: User | null) => {
+    // Keep the last keystrokes of the session that is ending with that session's held edits.
+    flushingForAccountChange.current = true;
+    try { flushEdits(); } finally { flushingForAccountChange.current = false; }
     setIsAuthenticated(user !== null);
     const owner = activeOwner.current;
     if (owner && lastBackup.current && (queue.current?.dirty || invalidState.current)) {
@@ -182,19 +192,23 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
 
   React.useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
+      flushEdits();
       if (queue.current?.dirty || invalidState.current || heldEdits.current.size) { event.preventDefault(); event.returnValue = ''; }
     };
-    const flush = () => { void queue.current?.flush(); };
+    const flush = () => { flushEdits(); void queue.current?.flush(); };
+    // Focus can leave while React removes the editor; flush after that commit finishes.
+    const flushLater = () => { queueMicrotask(flush); };
     const visibility = () => { if (document.visibilityState === 'hidden') flush(); };
     const saveShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); flush(); }
     };
     window.addEventListener('beforeunload', beforeUnload);
-    window.addEventListener('blur', flush);
-    document.addEventListener('focusout', flush);
+    window.addEventListener('blur', flushLater);
+    document.addEventListener('focusout', flushLater);
+    window.addEventListener('pagehide', flush);
     window.addEventListener('keydown', saveShortcut);
     document.addEventListener('visibilitychange', visibility);
-    return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flush); window.removeEventListener('keydown', saveShortcut); };
+    return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flushLater); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flushLater); window.removeEventListener('keydown', saveShortcut); };
   }, []);
 
   const sessionKey = session?.key;
@@ -202,7 +216,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const changed = React.useCallback((state: WorkspaceState) => {
     if (sessionKey !== generation.current) return;
     if (!uid) return;
-    if (client.current?.auth.currentUser?.uid !== uid) return;
+    if (!flushingForAccountChange.current && client.current?.auth.currentUser?.uid !== uid) return;
     const fingerprint = stateFingerprint(state);
     if (fingerprint === lastState.current) {
       if (invalidState.current) { invalidState.current = null; setStatus(queue.current?.status ?? 'pending'); }
@@ -219,6 +233,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
 
   // Resolves true only after every queued change was acknowledged by the server.
   const saveWorkspace = React.useCallback(async () => {
+    flushEdits();
     for (let attempt = 0; attempt < 10; attempt++) {
       const current = queue.current;
       if (!current || invalidState.current || current.status === 'conflict') return false;

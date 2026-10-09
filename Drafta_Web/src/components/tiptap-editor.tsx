@@ -25,11 +25,16 @@ import { useShortcutMod } from '@/hooks/use-client-ready';
 import { emojis } from './editor-options';
 import { isEditLockedSample } from '@/lib/sample-notes';
 import { sampleLockCopy } from '@/lib/sample-lock-copy';
+import { registerPendingEdit } from '@/lib/pending-edits';
+
+// Typing marks the memo dirty; its HTML is written into app state once typing pauses (specs/15).
+export const EDITOR_SAVE_DELAY_MS = 300;
 
 interface TiptapEditorProps {
   externalRevision?: number;
   note: Note;
-  onNoteUpdate: (updatedNote: Partial<Note>) => void;
+  /** Receives the memo's text with the ID of the memo this editor showed, even if a flush runs late. */
+  onNoteUpdate: (updatedNote: Partial<Note>, noteId: string) => void;
   /** Creates an editable copy of a read-only guide sample. */
   onDuplicate?: () => void;
   onIconChange: (icon: string) => void;
@@ -80,6 +85,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
   const contentRef = React.useRef(note.content);
+  const noteIdRef = React.useRef(note.id);
+  React.useLayoutEffect(() => { noteIdRef.current = note.id; }, [note.id]);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Color Markdown → HTML変換（タイトル表示用）
@@ -227,8 +234,26 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     }
 
     contentRef.current = newContent;
-    onNoteUpdate({ title: newTitle, content: newContent });
+    onNoteUpdate({ title: newTitle, content: newContent }, noteIdRef.current);
   }, [extractMarkdownFromPlainBody, htmlToTitle, onNoteUpdate]);
+
+  // Serializing a long memo on every keystroke froze typing; the latest edit waits here instead.
+  const pendingSave = React.useRef<{ editor: Editor; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const handleSaveRef = React.useRef(handleSave);
+  React.useLayoutEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
+  const flushSave = React.useCallback(() => {
+    const pending = pendingSave.current;
+    if (!pending) return false;
+    clearTimeout(pending.timer);
+    pendingSave.current = null;
+    handleSaveRef.current(pending.editor);
+    return true;
+  }, []);
+  // Switching memos unmounts this editor; its pending text belongs to the memo it showed.
+  React.useEffect(() => {
+    const unregister = registerPendingEdit(flushSave);
+    return () => { unregister(); flushSave(); };
+  }, [flushSave]);
 
 
   // Renumber ordered list items with smart grouping
@@ -316,8 +341,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       setTimeout(() => {
         renumberAllOrderedLists(editor);
       }, 0);
-      handleSave(editor);
+      if (pendingSave.current) clearTimeout(pendingSave.current.timer);
+      pendingSave.current = { editor, timer: setTimeout(flushSave, EDITOR_SAVE_DELAY_MS) };
     },
+    onBlur: () => { flushSave(); },
     editorProps: {
       attributes: {
         class: 'drafta-editor max-w-none focus:outline-hidden min-h-[calc(100vh-150px)]',
@@ -580,6 +607,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   const handleTogglePlainTextMode = () => {
     if (!editor) return;
+    // Pending text is read in the current mode, so write it before the mode changes.
+    flushSave();
 
     // Calculate next mode
     const nextMode = !isPlainTextMode;
@@ -684,6 +713,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   const handleRemoveFormatting = () => {
     if (!editor) return;
+    flushSave();
     const currentContent = editor.getHTML();
     const isCurrentlyPlainMode = isPlainTextMode;
 

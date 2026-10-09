@@ -1086,11 +1086,12 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
     });
   }, []);
 
-  const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }) => {
-    if (!activeTabId) return;
+  // The editor names its memo, since a delayed write can arrive after switching memos.
+  const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }, noteId: string | null = activeTabId) => {
+    if (!noteId) return;
     setNotes(notes => notes.map(note => {
       // Guide samples are read-only even if an edit slips through the editor.
-      if (note.id === activeTabId && !isEditLockedSample(note)) {
+      if (note.id === noteId && !isEditLockedSample(note)) {
         const newNote = { ...applySampleEdit(note, updatedNote, lang, modKey), updatedAt: new Date().toISOString() };
         if (updatedNote.content !== undefined) {
           newNote.plainTextContent = htmlToSimpleText(updatedNote.content);

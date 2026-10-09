@@ -10,6 +10,17 @@ const saved = (backup: WorkspaceBackup, revision = 1): SavedWorkspace => ({ uid:
 afterEach(() => vi.useRealTimers());
 
 describe('workspace autosave queue', () => {
+  it('lets the UI hand over held edits before merging a remote revision', () => {
+    const base = saved(value()), remote = saved(value(), 2);
+    const held = value(); held.settings.theme = 'dark';
+    const merge = vi.fn((_base: WorkspaceBackup, local: WorkspaceBackup) => ({ kind: 'merged' as const, backup: local, copies: [] }));
+    const queue: WorkspaceSaveQueue = new WorkspaceSaveQueue(base, vi.fn(async (input: WorkspaceBackup) => saved(input, 3)), vi.fn(), {
+      prepare: () => queue.enqueue(held), load: async () => remote, merge, apply: vi.fn(), review: vi.fn(),
+    });
+    queue.acceptRemote(remote);
+    expect(merge).toHaveBeenCalledWith(base.backup, held, remote.backup);
+    queue.dispose();
+  });
   it('saves a frozen snapshot without copying it and detaches other values', async () => {
     const save = vi.fn(async (input: WorkspaceBackup) => saved(input, 2));
     const queue = new WorkspaceSaveQueue(saved(value()), save, vi.fn());

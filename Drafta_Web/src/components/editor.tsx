@@ -9,7 +9,7 @@ interface EditorProps {
   externalRevision?: number;
   continuityKey?: string;
   note: Note;
-  onNoteUpdate: (updatedNote: Partial<Note>) => void;
+  onNoteUpdate: (updatedNote: Partial<Note>, noteId: string) => void;
   onIconChange: (id: string, icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
@@ -20,8 +20,8 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete, onDuplicate, externalRevision, continuityKey, historyAction }) => {
 
-  const handleContentUpdate = React.useCallback((updates: Partial<Note>) => {
-    onNoteUpdate(updates);
+  const handleContentUpdate = React.useCallback((updates: Partial<Note>, noteId: string) => {
+    onNoteUpdate(updates, noteId);
   }, [onNoteUpdate]);
 
   const handleIconSelect = React.useCallback((icon: string) => {

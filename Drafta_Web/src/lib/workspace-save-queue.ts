@@ -5,6 +5,8 @@ import type { WorkspaceMerge } from './workspace-merge';
 export type QueueStatus = 'pending' | 'saving' | 'saved' | 'error' | 'conflict';
 type Save = (value: WorkspaceBackup, base: SavedWorkspace | null) => Promise<SavedWorkspace>;
 export type QueueSync = {
+  /** Brings edits still held by the UI into the queue before a merge reads them. */
+  prepare?: () => void;
   load: () => Promise<SavedWorkspace | null>;
   merge: (base: WorkspaceBackup, local: WorkspaceBackup, remote: WorkspaceBackup) => WorkspaceMerge;
   apply: (backup: WorkspaceBackup, copies: { originalId: string; copyId: string }[]) => void;
@@ -37,6 +39,7 @@ export class WorkspaceSaveQueue {
   }
   private reconcile(remote: SavedWorkspace): boolean {
     if (!this.sync || this.disposed || (this.base && remote.revision <= this.base.revision)) return true;
+    this.sync.prepare?.();
     if (this.stopped && this.state === 'conflict') { this.sync.review(remote); return false; }
     if (!this.base && this.pending) { this.stopped = true; this.emit('conflict'); this.sync.review(remote); return false; }
     const result = this.pending && this.base ? this.sync.merge(this.base.backup, this.pending, remote.backup) : { kind: 'merged' as const, backup: remote.backup, copies: [] };

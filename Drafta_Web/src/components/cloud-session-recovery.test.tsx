@@ -17,13 +17,17 @@ vi.mock('@/lib/cloud-workspace-watch', () => ({ watchCloudWorkspace: () => () =>
 vi.mock('./account-menu', () => ({ AccountMenu: (props: AccountMenuProps) => <><span role="status">{props.status}</span><button onClick={props.onRetry}>Retry</button></> }));
 vi.mock('./delete-confirm-dialog', () => ({ DeleteConfirmDialog: ({ open, onConfirm }: { open: boolean; onConfirm: () => void }) => open ? <button onClick={onConfirm}>Confirm login</button> : null }));
 import CloudSession from './cloud-session';
+import { registerPendingEdit } from '@/lib/pending-edits';
 
 const backup = (theme: 'system' | 'dark' | 'light' = 'system'): WorkspaceBackup => ({ format: 'drafta-workspace', version: 1, exportedAt: '2026-09-30T00:00:00.000Z', groups: [], notes: [], settings: { theme, language: null, listStyle: 'top', noteSort: 'manual' } });
 const user = (uid: string) => ({ uid, displayName: uid } as User);
 function Workspace({ initialState, remoteUpdate, onWorkspaceChange, accountMenu }: { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; onWorkspaceChange?: (state: WorkspaceState) => void; accountMenu?: React.ReactNode }) {
   const [state, setState] = React.useState(initialState!);
   const shown = remoteUpdate?.state ?? state;
-  return <>{accountMenu}<span data-theme>{shown.settings.theme}</span><button onClick={() => { const next = { ...shown, settings: { ...shown.settings, theme: 'dark' as const } }; setState(next); onWorkspaceChange?.(next); }}>Edit</button></>;
+  const edit = () => { const next = { ...shown, settings: { ...shown.settings, theme: 'dark' as const } }; setState(next); onWorkspaceChange?.(next); };
+  // Like an editor waiting for typing to pause: the change only reaches the session when flushed.
+  const type = () => { const off = registerPendingEdit(() => { off(); edit(); return true; }); };
+  return <>{accountMenu}<span data-theme>{shown.settings.theme}</span><button onClick={edit}>Edit</button><button onClick={type}>Type</button></>;
 }
 let root: Root, container: HTMLDivElement;
 async function auth(uid: string | null) { await act(async () => { if (uid) mocks.save.mockImplementation(async (owner, input) => ({ uid: owner, revision: 3, backup: input })); mocks.auth.currentUser = uid ? user(uid) : null; mocks.notify!(mocks.auth.currentUser); }); }
@@ -38,6 +42,20 @@ beforeEach(async () => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers(); });
 
 describe('account-scoped interrupted edits', () => {
+  it('keeps text still waiting in an editor when the account is lost', async () => {
+    await click('Type'); await auth(null);
+    expect(container.textContent).toContain('original account');
+    await auth('alice'); expect(container.querySelector('[data-theme]')?.textContent).toBe('dark');
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(mocks.save.mock.calls.at(-1)?.[1].settings.theme).toBe('dark');
+  });
+  it('saves text still waiting in an editor before the page is hidden', async () => {
+    await click('Type');
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(0); });
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    expect(mocks.save.mock.calls.at(-1)?.[1].settings.theme).toBe('dark');
+  });
   it('hides unsaved edits after auth loss and recovers them for the same account', async () => {
     await click('Edit'); await auth(null);
     expect(container.querySelector('[data-theme]')).toBeNull(); expect(container.textContent).toContain('original account');
