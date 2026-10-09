@@ -61,7 +61,7 @@ Appleログインは後続段階です. 初期βに広告は付けず, 正式提
 
 ### 0.6.0の準備 (2026-10-09, 未公開)
 
-Obsidianからの取り込み ([仕様](14_import.md)) と, WelcomeとQuick Referenceの編集保護 (削除は可能, 「複製して編集」) を実装し, ローカルの単体テスト･型チェック･Lintが成功しました. Emulatorでの分割保存テストと画面確認は, 作業PCにJavaがないため未実施です. Push･Deployは確認後に行います.
+Obsidianからの取り込み ([仕様](14_import.md)) と, WelcomeとQuick Referenceの編集保護 (削除は可能, 「複製して編集」) を実装し, ローカルの単体テスト･型チェック･Lint, Emulatorの分割保存･ルールテスト, 1440px･375pxの画面確認が成功しました. Push･Deployは確認後に行います.
 
 ## 設計前に確認する事項
 
