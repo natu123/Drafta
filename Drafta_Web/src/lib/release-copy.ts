@@ -11,8 +11,10 @@ import { a11yReleaseCopy } from './a11y-release-copy';
 import { importOrderReleaseCopy } from './import-order-release-copy';
 import { listFlipReleaseCopy } from './list-flip-release-copy';
 import { scrollReleaseCopy } from './scroll-release-copy';
+import { pwaReleaseCopy } from './pwa-release-copy';
 
 export interface ReleaseCopy {
+  release067: string;
   release066: string;
   release065: string;
   release064: string;
@@ -54,7 +56,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'previousCloudWarning' | 'legacyWarning'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'previousCloudWarning' | 'legacyWarning'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -361,5 +363,6 @@ export const releaseCopy = Object.fromEntries(
     release064: importOrderReleaseCopy[language as Lang],
     release065: listFlipReleaseCopy[language as Lang],
     release066: scrollReleaseCopy[language as Lang],
+    release067: pwaReleaseCopy[language as Lang],
   }]),
 ) as Record<Lang, ReleaseCopy>;
