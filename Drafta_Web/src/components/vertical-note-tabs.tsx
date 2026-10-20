@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { Note, OpenTab } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useLang } from '@/contexts/lang-context';
+import { a11yCopy, withName } from '@/lib/a11y-copy';
 
 type TabItem = Note & { type: 'note' };
 
@@ -24,7 +25,7 @@ interface VerticalTabsProps {
 }
 
 const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelect, onTabClose, onReorderTabs, searchTerm, onSearchChange, scrollDirection = 'top' }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const activeTabRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -171,7 +172,7 @@ const VerticalTabs: React.FC<VerticalTabsProps> = ({ items, activeId, onTabSelec
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Close ${item.title || t.untitledMemo}`}
+                        aria-label={withName(a11yCopy[lang].closeTab, item.title || t.untitledMemo)}
                         className="h-6 w-6 rounded-full ml-auto shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();

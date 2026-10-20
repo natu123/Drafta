@@ -49,13 +49,19 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
+import { a11yCopy, withName } from '@/lib/a11y-copy';
 
 
 
 const Editor = dynamic(() => import('@/components/editor'), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full flex-col" role="status" aria-label="Loading editor">
+  loading: () => <EditorLoading />,
+});
+
+function EditorLoading() {
+  const { lang } = useLang();
+  return (
+    <div className="flex h-full w-full flex-col" role="status" aria-label={a11yCopy[lang].loadingEditor}>
       <div className="flex h-[57px] shrink-0 items-center gap-2 border-b px-4">
         <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
         <div className="h-4 w-32 animate-pulse rounded bg-muted" />
@@ -66,8 +72,8 @@ const Editor = dynamic(() => import('@/components/editor'), {
         <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
       </div>
     </div>
-  ),
-});
+  );
+}
 
 // カスタムモディファイア: SortableContextの範囲内に制限
 const createRestrictToSortableArea = (sortableAreaRef: React.RefObject<HTMLDivElement | null>): Modifier => {
@@ -163,7 +169,8 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
   onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin,
   attributes, listeners, setNodeRef, transform, transition, isDragging,
 }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const a11y = a11yCopy[lang];
 
   // dnd-kit標準のtransform使用（モディファイアで軸制限）
   // ドラッグ中は非表示にしてDragOverlayのみ表示
@@ -190,7 +197,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
         <div className="w-8 flex justify-center shrink-0">
           {isSelectionMode && (
             <Checkbox
-              aria-label="Select separator"
+              aria-label={a11y.selectSeparator}
               checked={selectedIds.has(item.id)}
               onCheckedChange={() => onToggleSelect(item.id)}
             />
@@ -202,7 +209,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Delete separator"
+              aria-label={a11y.deleteSeparator}
               className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
             >
@@ -306,10 +313,10 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
         {/* Restore view actions only - normal delete uses selection mode */}
         {!isSelectionMode && isTrash && (
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || t.untitledMemo}`} className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+            <Button variant="ghost" size="icon" aria-label={withName(a11y.restoreMemo, stripColorMarkdown(item.title) || t.untitledMemo)} className="h-8 w-8 text-primary" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
               <RotateCcw className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" aria-label={`Delete ${stripColorMarkdown(item.title) || t.untitledMemo}`} className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
+            <Button variant="ghost" size="icon" aria-label={withName(a11y.deleteMemoForever, stripColorMarkdown(item.title) || t.untitledMemo)} className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onPermanentDeleteItem?.(item.id); }}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -348,7 +355,8 @@ interface SortableGroupItemProps {
 const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
   group, activeGroupId, hasNotes, onSelect, onDelete, onRename, rawName, onTogglePin
 }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const a11y = a11yCopy[lang];
   const [editingName, setEditingName] = React.useState(false);
   const {
     attributes,
@@ -387,7 +395,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Delete separator"
+            aria-label={a11y.deleteSeparator}
             className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
             onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
           >
@@ -448,7 +456,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction, onRenameTray, trayNameValue
 }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const a11y = a11yCopy[lang];
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const [isRenamingTray, setIsRenamingTray] = React.useState(false);
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
@@ -557,7 +566,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
               <span className="text-sm text-muted-foreground mr-1">{selectedIds.size}{t.selected}</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" disabled={selectedIds.size === 0} title="Move selected">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" disabled={selectedIds.size === 0} title={a11y.moveSelected} aria-label={a11y.moveSelected}>
                     <FolderInput className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -574,10 +583,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   </DropdownMenuSub>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={selectedIds.size === 0} onClick={onBulkDelete} title="Delete selected">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={selectedIds.size === 0} onClick={onBulkDelete} title={a11y.deleteSelected} aria-label={a11y.deleteSelected}>
                 <Trash2 className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={onToggleSelectionMode} title="Cancel selection">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={onToggleSelectionMode} title={a11y.cancelSelection} aria-label={a11y.cancelSelection}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -589,12 +598,13 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 size="icon"
                 className={cn("h-8 w-8 text-muted-foreground hover:text-primary", isSelectionMode && "text-primary")}
                 onClick={onToggleSelectionMode}
-                title="Select items (Edit)"
+                title={a11y.selectItems}
+                aria-label={a11y.selectItems}
               >
                 <CheckSquare className="w-4 h-4" />
               </Button>
               {!isTrash && onAddSeparator && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onAddSeparator} title="Add separator">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onAddSeparator} title={t.addSeparator} aria-label={t.addSeparator}>
                   <Minus className="w-4 h-4" />
                 </Button>
               )}
@@ -647,10 +657,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                           </div>
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title="Restore Tray">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title={a11y.restoreTray} aria-label={a11y.restoreTray}>
                             <RotateCcw className="w-3.5 h-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title="Delete Forever">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title={a11y.deleteTrayForever} aria-label={a11y.deleteTrayForever}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -716,10 +726,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title="Restore Tray">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary bg-background/50 hover:bg-background" onClick={() => onRestoreGroup?.(group.id)} title={a11y.restoreTray} aria-label={a11y.restoreTray}>
                           <RotateCcw className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title="Delete Forever">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive bg-background/50 hover:bg-background" onClick={() => onPermanentDeleteGroup?.(group.id)} title={a11y.deleteTrayForever} aria-label={a11y.deleteTrayForever}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -743,7 +753,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                       {/* Grid View Content */}
                       <div className="absolute top-2 right-2 z-10 flex gap-1">
                         {isTrash && (
-                          <Button variant="secondary" size="icon" aria-label={`Restore ${stripColorMarkdown(item.title) || t.untitledMemo}`} className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
+                          <Button variant="secondary" size="icon" aria-label={withName(a11y.restoreMemo, stripColorMarkdown(item.title) || t.untitledMemo)} className="h-7 w-7 bg-background/80" onClick={(e) => { e.stopPropagation(); onRestoreItem?.(item.id); }}>
                             <RotateCcw className="w-3.5 h-3.5" />
                           </Button>
                         )}
@@ -1352,7 +1362,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
           {layoutMode === 'tablet' && isTrayDrawerOpen && activeView === 'home' && (
             <button
               type="button"
-              aria-label="Close trays"
+              aria-label={a11yCopy[lang].closeTrays}
               className="absolute inset-0 z-30 bg-black/20"
               onClick={() => setIsTrayDrawerOpen(false)}
             />
@@ -1394,8 +1404,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 shrink-0"
-                      title="Back to memos"
-                      aria-label="Back to memos"
+                      title={a11yCopy[lang].backToMemos}
+                      aria-label={a11yCopy[lang].backToMemos}
                       onClick={() => layoutMode === 'mobile' ? setMobilePane('notes') : setIsTrayDrawerOpen(false)}
                     >
                       <ChevronLeft className="w-5 h-5" />
@@ -1404,7 +1414,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                   <h2 className="text-lg font-semibold truncate">{appT.trays}</h2>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title="Add separator">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title={appT.addSeparator} aria-label={appT.addSeparator}>
                     <Minus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -1549,8 +1559,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10 shrink-0"
-                  title="Open trays"
-                  aria-label="Open trays"
+                  title={a11yCopy[lang].openTrays}
+                  aria-label={a11yCopy[lang].openTrays}
                   onClick={() => layoutMode === 'mobile' ? setMobilePane('trays') : setIsTrayDrawerOpen(true)}
                 >
                   <Menu className="w-5 h-5" />
@@ -1593,8 +1603,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                      variant="ghost"
                      size="icon"
                      className="h-10 w-10 shrink-0"
-                     title="Back to memos"
-                     aria-label="Back to memos"
+                     title={a11yCopy[lang].backToMemos}
+                     aria-label={a11yCopy[lang].backToMemos}
                      onClick={() => setMobilePane('notes')}
                    >
                      <ChevronLeft className="w-5 h-5" />
