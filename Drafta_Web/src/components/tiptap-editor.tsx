@@ -636,6 +636,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     };
 
     const currentHtml = editor.getHTML();
+    // Keep the reading position: the same share of the memo stays in view after the switch.
+    const scroller = scrollContainerRef.current;
+    const readRatio = scroller && scroller.scrollHeight > scroller.clientHeight ? scroller.scrollTop / (scroller.scrollHeight - scroller.clientHeight) : 0;
 
     try {
       if (isPlainTextMode) {
@@ -702,13 +705,18 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
     setIsPlainTextMode(nextMode);
 
-    // REMOVED: forced focus('start') per user feedback.
-    // editor.commands.focus(); 
-    // We already set selection in the chain above. Just ensure focus.
-    if (!editor.isFocused) {
-      editor.commands.focus();
-    }
-
+    // Replacing the document leaves the caret at its end; put it where the reader was instead,
+    // after the new layout, without scrolling to it.
+    requestAnimationFrame(() => {
+      const box = scrollContainerRef.current;
+      if (!box || editor.isDestroyed) return;
+      box.scrollTop = readRatio * Math.max(0, box.scrollHeight - box.clientHeight);
+      const view = editor.view.dom.getBoundingClientRect();
+      const visibleTop = Math.max(view.top, box.getBoundingClientRect().top) + 8;
+      const hit = editor.view.posAtCoords({ left: view.left + 24, top: visibleTop });
+      if (hit) editor.commands.setTextSelection(hit.pos);
+      editor.commands.focus(null, { scrollIntoView: false });
+    });
   };
 
   const handleRemoveFormatting = () => {
