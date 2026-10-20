@@ -17,6 +17,10 @@
 
 ## 公開時の確認
 
+### Version 0.6.7 (2026-10-20公開)
+
+PWA (ホーム画面に追加してアプリとして起動) に対応し, 11言語の更新履歴を揃えました. iOSアプリ化の第一段階として, Glesさんが費用とMacの要らないPWAを選びました (TestFlight･App Storeは後続). Web App Manifest (`/manifest.webmanifest`, 起動先`/app/`, standalone, 192/512pxのアイコン) とiOS向けのメタ情報を加え, Service Workerは置いていません. 単体296テスト, Emulatorの保存11件･ルール6件, 型チェック, Lintが成功しました. ローカルと本番で, ChromeのDevTools Protocol (`Page.getAppManifest`) でmanifestのエラーが0件, インストール判定は計測用ブラウザーのシークレットモード由来の1件のみであることを確認しました. Pushし, 本番接続BuildをHostingへ公開しました. 公開トップ･アプリ･更新履歴･robots･sitemap･manifest (application/manifest+json) のHTTP 200と生成物の一致, JS/CSSとアイコン32件の一致, 1440px･375pxの日本語のLanding-page･ログイン画面･更新履歴の0.6.7表示, 横スクロール･Consoleエラーがないことを確認しました. iPhoneでのホーム画面への追加と, ホーム画面から起動したときのGoogleログインは未確認で, Glesさんに確認していただきます.
+
 ### Version 0.6.6 (2026-10-20公開)
 
 メモ一覧をRadixの独自スクロールバーからブラウザー標準のスクロールバー (細め･テーマの色) に替え, 11言語の更新履歴を揃えました. 本番のChrome (Glesさんの端末, 1680px, 144Hz) をClaude in Chromeで計測し, Evernoteトレイ (328件) でホイール･つまみ相当の移動とも約144fps･長い描画0件, 抜粋を200字に縮めても差がないことから, 原因は描画の重さではなく, つまみが7×24pxと小さく1pxで約32px動き, 普段は隠れているスクロールバーの作りと判断しました (B･C案と比べてGlesさんがA案を選択). 単体295テスト, Emulatorの保存11件･ルール6件, 型チェック, Lintが成功しました. Emulatorで328件の表示 (スクロールバー幅10px), 並べ替え, チャットスタイルでの最下部への移動, 375pxの横スクロールなしを確認しました. 標準スクロールバーのドラッグはHeadlessのChromeでは操作が届かず未確認で, 本番でGlesさんに確認していただきます. Pushし, 本番接続BuildをHostingへ公開しました. 公開トップ･アプリ･更新履歴･robots･sitemapのHTTP 200と生成物の一致, JS/CSS30件の一致, 1440px･375pxの日本語のLanding-page･ログイン画面･更新履歴の0.6.6表示, 横スクロール･Consoleエラーがないことを確認しました. 本番データの変更は行っていません (計測は閲覧とスクロールのみ).
