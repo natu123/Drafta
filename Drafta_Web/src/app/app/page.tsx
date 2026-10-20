@@ -50,6 +50,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
+import { notesForListStyle } from '@/lib/list-style';
 
 
 
@@ -867,6 +868,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   const workspaceSettings = { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } as const;
 
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
+    // Only a local switch mirrors the memos; a synced setting arrives with its synced order.
+    setNotes(previous => notesForListStyle(previous, scrollDirection, direction));
     setScrollDirection(direction);
   };
 
