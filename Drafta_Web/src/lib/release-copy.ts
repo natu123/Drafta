@@ -7,8 +7,10 @@ import { loginErrorsReleaseCopy } from './login-errors-release-copy';
 import { importReleaseCopy } from './import-release-copy';
 import { limitsReleaseCopy } from './limits-release-copy';
 import { readsReleaseCopy } from './reads-release-copy';
+import { a11yReleaseCopy } from './a11y-release-copy';
 
 export interface ReleaseCopy {
+  release063: string;
   release062: string;
   release061: string;
   release060: string;
@@ -46,7 +48,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'previousCloudWarning' | 'legacyWarning'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'previousCloudWarning' | 'legacyWarning'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -349,5 +351,6 @@ export const releaseCopy = Object.fromEntries(
     release060: importReleaseCopy[language as Lang],
     release061: limitsReleaseCopy[language as Lang],
     release062: readsReleaseCopy[language as Lang],
+    release063: a11yReleaseCopy[language as Lang],
   }]),
 ) as Record<Lang, ReleaseCopy>;
