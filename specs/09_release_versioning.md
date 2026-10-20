@@ -17,6 +17,10 @@
 
 ## 公開時の確認
 
+### Version 0.6.8 (2026-10-20公開)
+
+リストスタイルの既定を「下に追加 (チャットスタイル)」に変え (設定のない新しいワークスペースのみ, 初期サンプルはWelcomeが最下部側), チャットスタイルではピン留めの見出しとメモを通常メモの後 (最下部) に表示するようにして, 11言語の更新履歴を揃えました. Glesさんの判断です. 単体297テスト, Emulatorの保存11件･ルール6件, 型チェック, Lintが成功しました. Emulatorの新しいアカウントで, 既定がチャットスタイルであること, InboxでWelcomeが最下部, ToDoトレイで通常メモの後にピン留めが並ぶこと, ToDoスタイルへ切り替えるとピン留めが先頭に戻ること, 開いたときに最下部 (差0px) にあること, 375pxで横スクロールがないことを確認しました. Pushし, 本番接続BuildをHostingへ公開しました. 公開トップ･アプリ･更新履歴･robots･sitemap･manifestのHTTP 200と生成物の一致, JS/CSSとアイコン32件の一致, 1440px･375pxの日本語のLanding-page･ログイン画面･更新履歴の0.6.8表示, 横スクロール･Consoleエラーがないことを確認しました. 本番データの変更は行っていません (保存済みの設定は変わりません).
+
 ### Version 0.6.7 (2026-10-20公開)
 
 PWA (ホーム画面に追加してアプリとして起動) に対応し, 11言語の更新履歴を揃えました. iOSアプリ化の第一段階として, Glesさんが費用とMacの要らないPWAを選びました (TestFlight･App Storeは後続). Web App Manifest (`/manifest.webmanifest`, 起動先`/app/`, standalone, 192/512pxのアイコン) とiOS向けのメタ情報を加え, Service Workerは置いていません. 単体296テスト, Emulatorの保存11件･ルール6件, 型チェック, Lintが成功しました. ローカルと本番で, ChromeのDevTools Protocol (`Page.getAppManifest`) でmanifestのエラーが0件, インストール判定は計測用ブラウザーのシークレットモード由来の1件のみであることを確認しました. Pushし, 本番接続BuildをHostingへ公開しました. 公開トップ･アプリ･更新履歴･robots･sitemap･manifest (application/manifest+json) のHTTP 200と生成物の一致, JS/CSSとアイコン32件の一致, 1440px･375pxの日本語のLanding-page･ログイン画面･更新履歴の0.6.7表示, 横スクロール･Consoleエラーがないことを確認しました. iPhoneでのホーム画面への追加と, ホーム画面から起動したときのGoogleログインは未確認で, Glesさんに確認していただきます.
