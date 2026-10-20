@@ -1,5 +1,7 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { siteMetadata } from './site-metadata';
+import manifest from '@/app/manifest';
 
 describe('siteMetadata', () => {
   it.each(['/', '/app/'] as const)('keeps the canonical and share URL scoped to %s', (path) => {
@@ -26,5 +28,15 @@ describe('siteMetadata', () => {
       icon: [{ url: '/brand/feather.png', sizes: '128x128', type: 'image/png' }],
       apple: [{ url: '/brand/apple-touch-icon.png', sizes: '180x180' }],
     });
+    expect(metadata.appleWebApp).toEqual({ capable: true, title: 'Drafta', statusBarStyle: 'default' });
+  });
+});
+
+describe('web app manifest', () => {
+  it('opens the app standalone from the home screen with existing icons', () => {
+    const app = manifest();
+    expect(app).toMatchObject({ name: 'Drafta', short_name: 'Drafta', start_url: '/app/', scope: '/', display: 'standalone' });
+    expect(app.icons?.map(icon => [icon.src, icon.sizes])).toEqual([['/brand/icon-192.png', '192x192'], ['/brand/icon-512.png', '512x512']]);
+    for (const icon of app.icons ?? []) expect(existsSync(`public${icon.src}`), icon.src).toBe(true);
   });
 });

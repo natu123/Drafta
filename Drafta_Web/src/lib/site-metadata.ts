@@ -21,6 +21,8 @@ export function siteMetadata(path: '/' | '/app/' | '/updates/'): Metadata {
       apple: [{ url: '/brand/apple-touch-icon.png', sizes: '180x180' }],
       icon: [{ url: '/brand/feather.png', sizes: '128x128', type: 'image/png' }],
     },
+    // iOS home-screen launch (AGENTS.md, PWA); the default status bar keeps content below it.
+    appleWebApp: { capable: true, title: siteName, statusBarStyle: 'default' },
     openGraph: {
       type: 'website',
       siteName,
