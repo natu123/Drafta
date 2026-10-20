@@ -91,4 +91,16 @@ describe('Rich-mode Markdown prefixes', () => {
     expect(editor.state.doc.child(1).firstChild!.childCount).toBe(2);
     expect(editor.state.doc.child(1).firstChild!.textContent).toBe('NameStatus');
   });
+
+  it.each(['---', '___', '***'])('converts %s to a horizontal rule on Enter and keeps typing below it', text => {
+    createEditor();type(text);
+    const enter = () => editor.view.someProp('handleKeyDown', handler => handler(editor.view, new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13 })));
+    expect(enter()).toBe(true);
+    expect(editor.state.doc.child(1).type.name).toBe('horizontalRule');
+    expect(editor.state.selection.$from.parent.type.name).toBe('paragraph');
+    // A rule in the middle of a sentence stays text.
+    createEditor();type('a ---');enter();
+    expect(editor.state.doc.child(1).textContent).toBe('a ---');
+    expect([...Array(editor.state.doc.childCount).keys()].some(index => editor.state.doc.child(index).type.name === 'horizontalRule')).toBe(false);
+  });
 });

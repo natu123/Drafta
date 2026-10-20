@@ -23,6 +23,8 @@ export const RichMarkdownInputRules = Extension.create<{ isEnabled: () => boolea
         if (!empty || $from.parent.type.name !== 'paragraph' || $from.parentOffset !== $from.parent.content.size) return false;
         const fence = /^(?:```|~~~)([\w+-]*)$/.exec($from.parent.textContent);
         if (fence) return this.editor.chain().deleteRange({ from: $from.start(), to: $from.end() }).setCodeBlock({ language: fence[1] || 'plaintext' }).run();
+        // Markdown habit: a rule line followed by Enter, not only by a space.
+        if (/^(?:---|___|\*\*\*)$/.test($from.parent.textContent)) return this.editor.chain().deleteRange({ from: $from.start(), to: $from.end() }).setHorizontalRule().run();
         // A Markdown table starts with a header paragraph and a delimiter paragraph.
         if ($from.depth !== 1 || $from.index(0) < 2) return false;
         const previous = state.doc.child($from.index(0) - 1);
