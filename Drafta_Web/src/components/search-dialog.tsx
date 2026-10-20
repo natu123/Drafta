@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { cn, stripColorMarkdown } from '@/lib/utils';
 import type { Note, Group } from '@/lib/types';
 import { useLang } from '@/contexts/lang-context';
+import { searchGroups, searchNotes } from '@/lib/global-search';
 
 interface SearchDialogProps {
   open: boolean;
@@ -40,26 +41,9 @@ const SearchDialogContent: React.FC<SearchDialogProps> = ({
     return () => clearTimeout(focusTimer);
   }, [open]);
 
-  const filteredNotes = React.useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    const term = searchTerm.toLowerCase();
-    return notes
-      .filter(n => !n.isDeleted && n.type !== 'separator')
-      .filter(n =>
-        n.title.toLowerCase().includes(term) ||
-        (n.plainTextContent && n.plainTextContent.toLowerCase().includes(term))
-      )
-      .slice(0, 10);
-  }, [notes, searchTerm]);
-
-  const filteredGroups = React.useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    const term = searchTerm.toLowerCase();
-    return groups
-      .filter(g => !g.isDeleted && g.type !== 'separator')
-      .filter(g => g.name.toLowerCase().includes(term))
-      .slice(0, 5);
-  }, [groups, searchTerm]);
+  // No cap: the results area scrolls (AGENTS.md, Search).
+  const filteredNotes = React.useMemo(() => searchNotes(notes, searchTerm), [notes, searchTerm]);
+  const filteredGroups = React.useMemo(() => searchGroups(groups, searchTerm), [groups, searchTerm]);
 
   const handleSelect = (type: 'note' | 'group', id: string) => {
     if (type === 'note') {
@@ -104,7 +88,7 @@ const SearchDialogContent: React.FC<SearchDialogProps> = ({
               {filteredGroups.length > 0 && (
                 <div>
                   <div className="px-4 py-1 text-xs font-medium text-muted-foreground uppercase">
-                    {t.traysSection}
+                    {t.traysSection} ({filteredGroups.length})
                   </div>
                   {filteredGroups.map(group => (
                     <button
@@ -126,7 +110,7 @@ const SearchDialogContent: React.FC<SearchDialogProps> = ({
               {filteredNotes.length > 0 && (
                 <div>
                   <div className="px-4 py-1 text-xs font-medium text-muted-foreground uppercase">
-                    {t.memosSection}
+                    {t.memosSection} ({filteredNotes.length})
                   </div>
                   {filteredNotes.map(note => (
                     <button
@@ -143,7 +127,7 @@ const SearchDialogContent: React.FC<SearchDialogProps> = ({
                         </p>
                         {note.plainTextContent && (
                           <p className="text-xs text-muted-foreground truncate">
-                            {note.plainTextContent}
+                            {note.plainTextContent.slice(0, 200)}
                           </p>
                         )}
                       </div>
