@@ -1,0 +1,15 @@
+import type { Lang } from '@/app/languages';
+
+export const readsReleaseCopy: Record<Lang, string> = {
+  en: 'Opening the app now loads about half as much from the server, and typing in large memos is lighter. After an import, a completion screen shows the destination tray, the number of memos and any files that could not be imported. Also fixed the memo count missing from the Indonesian import screen.',
+  ja: 'アプリを開くときにサーバーから読み込む量を約半分に減らし, 大きなメモでも入力が軽くなりました. 取り込みの後には, 取り込み先のトレイ名とメモ数, 取り込めなかったファイルを示す完了画面を表示します. インドネシア語の取り込み画面でメモ数が表示されない不具合も直しました.',
+  'zh-CN': '打开应用时从服务器读取的数据减少了约一半, 在较大的备忘录中输入也更流畅了. 导入完成后会显示完成画面, 列出目标托盘、备忘录数量以及未能导入的文件. 另外修正了印度尼西亚语导入画面中不显示备忘录数量的问题.',
+  ko: '앱을 열 때 서버에서 읽어 오는 양을 약 절반으로 줄였고, 큰 메모에서도 입력이 가벼워졌습니다. 가져오기 후에는 대상 트레이 이름, 메모 수, 가져오지 못한 파일을 보여 주는 완료 화면이 표시됩니다. 인도네시아어 가져오기 화면에서 메모 수가 표시되지 않던 문제도 고쳤습니다.',
+  es: 'Al abrir la app ahora se carga aproximadamente la mitad de datos del servidor, y escribir en notas grandes es más fluido. Tras una importación, una pantalla final muestra la bandeja de destino, el número de notas y los archivos que no se pudieron importar. También se corrigió el número de notas que faltaba en la pantalla de importación en indonesio.',
+  fr: 'L’ouverture de l’app charge désormais environ deux fois moins de données depuis le serveur, et la saisie dans les grandes notes est plus fluide. Après une importation, un écran final indique le bac de destination, le nombre de notes et les fichiers qui n’ont pas pu être importés. Le nombre de notes manquant sur l’écran d’importation en indonésien a aussi été corrigé.',
+  'pt-BR': 'Abrir o app agora carrega cerca de metade dos dados do servidor, e digitar em notas grandes ficou mais leve. Após uma importação, uma tela de conclusão mostra a bandeja de destino, o número de notas e os arquivos que não puderam ser importados. Também foi corrigida a contagem de notas que não aparecia na tela de importação em indonésio.',
+  hi: 'ऐप खोलते समय अब सर्वर से लगभग आधा डेटा ही लोड होता है, और बड़े नोट में लिखना भी हल्का हो गया है. आयात के बाद एक पूर्णता स्क्रीन लक्ष्य ट्रे, नोट की संख्या और आयात न हो सकी फ़ाइलें दिखाती है. इंडोनेशियाई आयात स्क्रीन पर नोट की संख्या न दिखने की समस्या भी ठीक की गई.',
+  ar: 'أصبح فتح التطبيق يحمّل نحو نصف البيانات فقط من الخادم، وأصبحت الكتابة في الملاحظات الكبيرة أخف. بعد الاستيراد تعرض شاشة الإكمال الدرج الوجهة وعدد الملاحظات والملفات التي تعذّر استيرادها. كما تم إصلاح عدم ظهور عدد الملاحظات في شاشة الاستيراد باللغة الإندونيسية.',
+  ru: 'При открытии приложения с сервера теперь загружается примерно вдвое меньше данных, а ввод в больших заметках стал легче. После импорта экран завершения показывает целевой лоток, число заметок и файлы, которые не удалось импортировать. Также исправлено отсутствие числа заметок на экране импорта на индонезийском.',
+  id: 'Membuka aplikasi kini memuat sekitar separuh data dari server, dan mengetik di catatan besar terasa lebih ringan. Setelah impor, layar selesai menampilkan nampan tujuan, jumlah catatan, dan berkas yang tidak dapat diimpor. Jumlah catatan yang tidak tampil di layar impor berbahasa Indonesia juga telah diperbaiki.',
+};
