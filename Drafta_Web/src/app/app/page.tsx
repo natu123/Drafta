@@ -502,8 +502,16 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   const activeDragItem = activeDragId ? items.find(item => item.id === activeDragId) : null;
 
-  // Center column scroll based on scrollDirection
+  // Center column scroll based on scrollDirection: when the list opens, the style changes, or the
+  // user adds a memo. Memos synced from another device or deleted keep the reading position.
+  const scrollAfterAdd = React.useRef(false);
+  const createMemo = React.useCallback((title: string) => { scrollAfterAdd.current = true; onQuickAdd?.(title); }, [onQuickAdd]);
+  const lastCount = React.useRef(items.length);
   React.useEffect(() => {
+    const countChanged = items.length !== lastCount.current;
+    lastCount.current = items.length;
+    if (countChanged && !scrollAfterAdd.current) return;
+    scrollAfterAdd.current = false;
     if (!isVisible) return; // Only scroll when visible
     setTimeout(() => {
       const scrollContainer = scrollAreaRef.current;
@@ -616,7 +624,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         {/* Keep the draft local until the inline form is confirmed. */}
         {onQuickAdd && !isTrash && (
           <div className="px-2 py-1.5 shrink-0 border-b" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-            <InlineCreate label={t.addMemo} placeholder={t.untitledMemo} onCreate={onQuickAdd} />
+            <InlineCreate label={t.addMemo} placeholder={t.untitledMemo} onCreate={createMemo} />
           </div>
         )}
 
