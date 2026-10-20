@@ -1440,11 +1440,12 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                   >
                     <div className="flex flex-col gap-0 pb-2">
                       <div ref={groupSortableAreaRef}>
-                        {[true, false].map(pinned => {
+                        {/* Pinned trays follow the memo list: bottom in the chat style (AGENTS.md, Tray Pins). */}
+                        {(scrollDirection === 'bottom' ? [false, true] : [true, false]).map(pinned => {
                           const section = filteredGroups.filter(group => Boolean(group.isPinned) === pinned);
                           if (!section.length) return null;
                           return <React.Fragment key={String(pinned)}>
-                          {pinned && <Button variant="ghost" className="pinned-summary w-full justify-start h-9" aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
+                          {pinned && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9", scrollDirection === 'bottom' && "mt-1")} aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
                           {!(pinned && trayPinsCollapsed) && <div id={pinned ? 'pinned-trays' : undefined}>
                         <SortableContext
                           items={section.map(g => g.id)}
