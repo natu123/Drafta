@@ -3,6 +3,7 @@ import { version } from '../../package.json';
 // The package version is the single source for the public version number.
 export const PUBLIC_VERSION = version;
 export const RELEASES = [
+  { version: '0.6.5', date: '2026-10-20', copyKey: 'release065' },
   { version: '0.6.4', date: '2026-10-20', copyKey: 'release064' },
   { version: '0.6.3', date: '2026-10-20', copyKey: 'release063' },
   { version: '0.6.2', date: '2026-10-20', copyKey: 'release062' },
