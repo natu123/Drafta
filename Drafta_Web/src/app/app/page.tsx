@@ -858,7 +858,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   React.useEffect(() => { commitWaiters.current.splice(0).forEach(resolve => resolve()); }, [sourceNotes, sourceGroups]);
   const handleImportBatch = async (newGroups: Group[], newNotes: Note[]) => {
     const committed = new Promise<void>(resolve => { commitWaiters.current.push(resolve); });
-    // Imported trays go to the end; their memos keep the vault's file order.
+    // Imported trays go to the end; their memos keep the plan's order (list style, then file name).
     if (newGroups.length) setGroups(previous => [...previous, ...newGroups]);
     setNotes(previous => [...previous, ...newNotes]);
     await committed;

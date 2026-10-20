@@ -52,7 +52,7 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
     if (!list?.length) return;
     setStage({ kind: 'reading' });
     const files = Array.from(list).map(file => ({ path: file.webkitRelativePath || file.name, size: file.size, lastModified: file.lastModified, read: () => file.text() }));
-    const plan = await planObsidianImport(files, { dom: document, labels: { image: labels.image, file: labels.file, vault: 'Obsidian' }, newId: () => crypto.randomUUID() });
+    const plan = await planObsidianImport(files, { dom: document, labels: { image: labels.image, file: labels.file, vault: 'Obsidian' }, newId: () => crypto.randomUUID(), listStyle: existing.settings.listStyle });
     setStage({ kind: 'preview', plan, limit: plan.notes.length ? checkImportLimits(existing, plan, document) : null });
   };
 

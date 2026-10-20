@@ -214,7 +214,7 @@ export function obsidianMarkdownToHtml(markdown: string, labels: EmbedLabels): C
 export type ImportFile = { path: string; size: number; lastModified: number; read: () => Promise<string> };
 export type SkippedFile = { path: string; reason: 'tooLarge' | 'unsupported' | 'invalid' };
 export type ImportPlan = { vaultName: string; groups: Group[]; notes: Note[]; noteBytes: Map<string, number>; embeds: number; skipped: SkippedFile[] };
-export type PlanOptions = { dom: Document; labels: EmbedLabels & { vault: string }; newId: () => string };
+export type PlanOptions = { dom: Document; labels: EmbedLabels & { vault: string }; newId: () => string; listStyle: BackupSettings['listStyle'] };
 
 const segmentsOf = (path: string) => path.replace(/\\/g, '/').split('/').filter(Boolean);
 const naturalOrder = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -270,8 +270,13 @@ export async function planObsidianImport(files: ImportFile[], options: PlanOptio
       embeds += converted.embeds;
     } catch { skipped.push({ path, reason: 'invalid' }); }
   }
-  const used = new Set(notes.map(note => note.group));
-  return { vaultName, groups: [...groups.values()].filter(group => used.has(group.id)), notes, noteBytes, embeds, skipped };
+  // Within each tray, newer memos sit where the list style adds new memos (specs/14).
+  // The sort is stable, so equal times keep the natural file order from above.
+  const direction = options.listStyle === 'bottom' ? 1 : -1;
+  const ordered = [...groups.values()].flatMap(group => notes.filter(note => note.group === group.id)
+    .sort((a, b) => direction * (Date.parse(a.updatedAt) - Date.parse(b.updatedAt))));
+  const used = new Set(ordered.map(note => note.group));
+  return { vaultName, groups: [...groups.values()].filter(group => used.has(group.id)), notes: ordered, noteBytes, embeds, skipped };
 }
 
 export type ImportLimitError = 'notes' | 'groups' | 'size';

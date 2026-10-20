@@ -10,7 +10,7 @@ const labels = { image: 'Image', file: 'File', vault: 'Obsidian' };
 const convert = (markdown: string) => obsidianMarkdownToHtml(markdown, labels);
 const file = (path: string, text: string, lastModified = Date.UTC(2026, 9, 1)): ImportFile => ({ path, size: new TextEncoder().encode(text).byteLength, lastModified, read: async () => text });
 let sequence = 0;
-const options = { dom: document, labels, newId: () => `id${++sequence}` };
+const options = { dom: document, labels, newId: () => `id${++sequence}`, listStyle: 'top' as const };
 const settings = { language: null, theme: 'system' as const, listStyle: 'top' as const, noteSort: 'manual' as const };
 
 describe('Obsidian Markdown conversion', () => {
@@ -79,6 +79,23 @@ describe('Obsidian import plan', () => {
     expect(plan.notes[1].group).toBe(plan.groups[1].id);
     expect(plan.notes[0].createdAt).toBe('2026-10-01T00:00:00.000Z');
     expect(plan.skipped).toEqual([{ path: 'Vault/assets/photo.png', reason: 'unsupported' }]);
+  });
+
+  it('orders memos in each tray by modification time on the side where the list style adds new memos', async () => {
+    const day = (date: number) => Date.UTC(2026, 9, date);
+    const files = () => [
+      file('Vault/Work/Old.md', 'o', day(1)),
+      file('Vault/Root note 10.md', 'r', day(5)),
+      file('Vault/Work/New.md', 'n', day(9)),
+      file('Vault/Root note 2.md', 'r', day(5)),
+      file('Vault/Root newest.md', 'r', day(7)),
+    ];
+    const top = await planObsidianImport(files(), { ...options, listStyle: 'top' });
+    expect(top.groups.map(group => group.name)).toEqual(['Vault', 'Vault / Work']);
+    // Same time: natural file-name order, in both styles.
+    expect(top.notes.map(note => note.title)).toEqual(['Root newest', 'Root note 2', 'Root note 10', 'New', 'Old']);
+    const bottom = await planObsidianImport(files(), { ...options, listStyle: 'bottom' });
+    expect(bottom.notes.map(note => note.title)).toEqual(['Root note 2', 'Root note 10', 'Root newest', 'Old', 'New']);
   });
 
   it('puts loose files into one tray and skips files above the memo size limit', async () => {
