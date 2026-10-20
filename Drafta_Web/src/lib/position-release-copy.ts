@@ -1,0 +1,15 @@
+import type { Lang } from '@/app/languages';
+
+export const positionReleaseCopy: Record<Lang, string> = {
+  en: 'The memo list no longer jumps to its end when memos are synced from another device or deleted; it only moves when you open it, switch the list style or add a memo. Switching between Plain and Rich keeps your reading position, and typing ---, ___ or *** then Enter now adds a divider.',
+  ja: '他の端末からの同期やメモの削除で, メモ一覧が端へ飛ばないようにしました (一覧を開いたとき, リストスタイルを切り替えたとき, メモを追加したときだけ移動します). プレーン/リッチの切り替えでは読んでいた位置を保ちます. ---, ___, *** の後にEnterを押しても区切り線になります.',
+  'zh-CN': '从其他设备同步或删除备忘录时, 备忘录列表不再跳到末端 (只在打开列表、切换列表样式或添加备忘录时移动). 在纯文本与富文本之间切换时会保留阅读位置. 输入 ---、___ 或 *** 后按 Enter 也会添加分隔线.',
+  ko: '다른 기기에서 동기화되거나 메모를 삭제해도 메모 목록이 끝으로 이동하지 않습니다 (목록을 열 때, 목록 스타일을 바꿀 때, 메모를 추가할 때만 이동합니다). 일반 텍스트와 서식 있는 텍스트를 전환해도 읽던 위치를 유지합니다. ---, ___, *** 뒤에 Enter를 눌러도 구분선이 됩니다.',
+  es: 'La lista de notas ya no salta al final cuando llegan notas sincronizadas de otro dispositivo o se eliminan; solo se mueve al abrirla, cambiar el estilo de lista o añadir una nota. Cambiar entre texto plano y enriquecido conserva la posición de lectura, y escribir ---, ___ o *** y pulsar Enter añade un separador.',
+  fr: 'La liste des notes ne saute plus à son extrémité lorsque des notes sont synchronisées depuis un autre appareil ou supprimées ; elle ne bouge qu’à l’ouverture, au changement de style de liste ou à l’ajout d’une note. Passer du texte brut au texte enrichi conserve la position de lecture, et saisir ---, ___ ou *** puis Entrée ajoute un séparateur.',
+  'pt-BR': 'A lista de notas não pula mais para o fim quando notas são sincronizadas de outro dispositivo ou excluídas; ela só se move ao abrir, trocar o estilo da lista ou adicionar uma nota. Alternar entre texto simples e formatado mantém a posição de leitura, e digitar ---, ___ ou *** e Enter adiciona um separador.',
+  hi: 'दूसरे डिवाइस से सिंक होने या नोट हटाने पर नोट सूची अब छोर पर नहीं कूदती; वह केवल खोलने, सूची शैली बदलने या नोट जोड़ने पर हिलती है. सादे और रिच टेक्स्ट के बीच बदलने पर पढ़ने की जगह बनी रहती है, और ---, ___ या *** के बाद Enter दबाने से विभाजक जुड़ता है.',
+  ar: 'لم تعد قائمة الملاحظات تقفز إلى طرفها عند مزامنة ملاحظات من جهاز آخر أو حذفها؛ فهي تتحرك فقط عند فتحها أو تغيير نمط القائمة أو إضافة ملاحظة. ويحافظ التبديل بين النص العادي والمنسّق على موضع القراءة، كما يضيف كتابة --- أو ___ أو *** ثم Enter فاصلًا.',
+  ru: 'Список заметок больше не перескакивает к краю при синхронизации заметок с другого устройства или их удалении: он сдвигается только при открытии, смене стиля списка или добавлении заметки. Переключение между обычным и форматированным текстом сохраняет место чтения, а ввод ---, ___ или *** и Enter добавляет разделитель.',
+  id: 'Daftar catatan tidak lagi melompat ke ujung saat catatan disinkronkan dari perangkat lain atau dihapus; daftar hanya bergeser saat dibuka, gaya daftar diganti, atau catatan ditambahkan. Beralih antara teks biasa dan kaya mempertahankan posisi baca, dan mengetik ---, ___, atau *** lalu Enter menambahkan pemisah.',
+};
