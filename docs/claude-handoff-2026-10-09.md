@@ -2,6 +2,8 @@
 
 作業開始時は`AGENTS.md`を正本として読み, 最新のコード・Git・本番状態を改めて確認してください. 開発手順 (Emulator・テスト・Deploy) は`docs/claude-handoff-2026-10-08.md`と`README.md`を参照します.
 
+> 2026-10-20追記: 0.6.2は公開済みです (`specs/09_release_versioning.md`). 下の表のCommitはPush前にまとめ直したため, 現在のHashは次のとおりです: `d14d8f9` → `b7b2022` (テストを含む通常Commit), `836f7be` → `f5f01ec`, `fa49b88` → `ba7e1b9`. WIPのTag `wip/diff-subscription-0.6.2` はローカルに残っています.
+
 ## 公開状態
 
 - 本番は0.6.1 (2026-10-09公開, 記録Commit `f4b1d29`). ワークスペース全体の部品数上限の見直し (1メモ10万個・全体100万個), 取り込みの上限超過の説明修正, 大きなワークスペースでの入力の固まりの解消 (変わったメモだけの変換など) を含みます. 詳細は`specs/15_limits_and_reads.md`, 公開確認は`specs/09_release_versioning.md`です.
