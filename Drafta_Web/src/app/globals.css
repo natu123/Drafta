@@ -129,6 +129,12 @@
     max-width: 100% !important;
 }
 
+/* Memo list: the browser's own scrollbar, thin and in theme colors (AGENTS.md, Memo Scroll) */
+.memo-list-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+}
+
 
 /* Tiptap styles - No min-height restriction to let content flow naturally */
 

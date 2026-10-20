@@ -506,14 +506,12 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   React.useEffect(() => {
     if (!isVisible) return; // Only scroll when visible
     setTimeout(() => {
-      if (scrollAreaRef.current) {
-        const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollContainer) {
-          if (scrollDirection === 'bottom') {
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-          } else {
-            scrollContainer.scrollTop = 0;
-          }
+      const scrollContainer = scrollAreaRef.current;
+      if (scrollContainer) {
+        if (scrollDirection === 'bottom') {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        } else {
+          scrollContainer.scrollTop = 0;
         }
       }
     }, 50);
@@ -625,7 +623,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
       </div>
 
       <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full flex flex-col">
-        <ScrollArea className="flex-1 w-full" ref={scrollAreaRef}>
+        {/* The browser's own scrollbar keeps long lists easy to drag (AGENTS.md, Memo Scroll). */}
+        <div className="memo-list-scroll flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden" ref={scrollAreaRef}>
           <div className="w-full max-w-full overflow-hidden">
 
             {/* Combined List for Trash View (Groups + Notes) or Just Notes */}
@@ -780,7 +779,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
               </div>
             )}
           </div>
-        </ScrollArea >
+        </div>
 
       </CardContent >
     </Card >
