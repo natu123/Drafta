@@ -27,6 +27,7 @@ describe('accessible labels for icon-only controls', () => {
   it('inserts the item name into named labels', () => {
     expect(withName(a11yCopy.ja.restoreMemo, '買い物')).toBe('買い物を復元');
     expect(withName(a11yCopy.en.deleteMemoForever, 'Groceries')).toBe('Delete Groceries forever');
+    expect(withName(a11yCopy.en.restoreMemo, 'Price $& $1')).toBe('Restore Price $& $1');
   });
 
   it('leaves no hard-coded English aria-label or title in the app UI', () => {

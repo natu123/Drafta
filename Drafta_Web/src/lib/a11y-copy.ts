@@ -19,4 +19,5 @@ export const a11yCopy: Record<Lang, A11yCopy> = {
   'pt-BR': copy(['Carregando editor', 'Selecionar separador', 'Excluir separador', 'Restaurar {name}', 'Excluir {name} permanentemente', 'Mover selecionados', 'Excluir selecionados', 'Cancelar seleção', 'Selecionar itens', 'Restaurar bandeja', 'Excluir bandeja permanentemente', 'Abrir bandejas', 'Fechar bandejas', 'Voltar às notas', 'Fechar {name}']),
 };
 
-export const withName = (template: string, name: string) => template.replace('{name}', name);
+// A function replacement keeps `$` patterns in titles literal.
+export const withName = (template: string, name: string) => template.replace('{name}', () => name);
