@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { notesForListStyle } from './list-style';
+import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from './list-style';
 import type { Note } from './types';
 
 const note = (id: string, group: string, isPinned = false) => ({ id, title: id, content: '', group, stars: 0, createdAt: '', updatedAt: '', isPinned }) as Note;
@@ -18,5 +18,13 @@ describe('switching the list style', () => {
 
   it('keeps the order when the style does not change', () => {
     expect(notesForListStyle(notes, 'top', 'top')).toBe(notes);
+  });
+});
+
+describe('the default list style', () => {
+  it('starts new workspaces in the chat style with the newest sample at the bottom', () => {
+    const samples = [{ ...note('old', 'a'), createdAt: '2026-01-01T00:00:00.000Z' }, { ...note('new', 'a'), createdAt: '2026-02-01T00:00:00.000Z' }, { ...note('mid', 'a'), createdAt: '2026-01-15T00:00:00.000Z' }];
+    expect(DEFAULT_LIST_STYLE).toBe('bottom');
+    expect(initialSampleOrder(samples).map(item => item.id)).toEqual(['old', 'mid', 'new']);
   });
 });

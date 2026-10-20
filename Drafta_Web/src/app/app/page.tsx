@@ -50,7 +50,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
-import { notesForListStyle } from '@/lib/list-style';
+import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from '@/lib/list-style';
 
 
 
@@ -537,10 +537,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
     onIconChange: (id: string, icon: string) => cardProps.current.onIconChange?.(id, icon),
     onTogglePin: (id: string) => cardProps.current.onTogglePin(id),
   }), []);
-  const sections = isTrash ? [{ pinned: false, list: items }] : [
-    { pinned: true, list: pinnedNotes(items) },
-    { pinned: false, list: regularNotes(items) },
-  ];
+  const pinnedSection = { pinned: true, list: pinnedNotes(items) };
+  const regularSection = { pinned: false, list: regularNotes(items) };
+  // Pins sit on the side where the list opens: top for Add to Top, bottom for Add to Bottom (AGENTS.md, Pins).
+  const sections = isTrash ? [{ pinned: false, list: items }] : scrollDirection === 'bottom' ? [regularSection, pinnedSection] : [pinnedSection, regularSection];
   // IDs match [A-Za-z0-9_-], so the joined key is unambiguous; dnd-kit sees the same arrays while order is unchanged.
   const sectionKey = sections.map(section => section.list.map(item => item.id).join(' ')).join('|');
   const sectionIds = React.useMemo(() => sectionKey.split('|').map(ids => ids ? ids.split(' ') : []), [sectionKey]);
@@ -676,7 +676,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
                   <div ref={sortableAreaRef}>
                     {sections.map((section, index) => <React.Fragment key={String(section.pinned)}>
-                      {section.pinned && section.list.length > 0 && <Button variant="ghost" className="pinned-summary w-full justify-start h-9 mb-2" aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
+                      {section.pinned && section.list.length > 0 && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 mb-2", scrollDirection === 'bottom' && "mt-2")} aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
                       <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
                         <SortableContext items={sectionIds[index]} strategy={verticalListSortingStrategy}>
                           {section.list.map(item => <SortableNoteItem key={item.id} item={item} activeId={activeId}
@@ -797,7 +797,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   const { theme } = useTheme();
 
   // Preserve the former newest-first sample display as the initial manual order.
-  const [sourceNotes, setNotes] = React.useState<Note[]>(() => initialState?.notes ?? [...initialNotes].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
+  const [sourceNotes, setNotes] = React.useState<Note[]>(() => initialState?.notes ?? initialSampleOrder(initialNotes));
   const modKey = useShortcutMod();
   const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
   const [sourceGroups, setGroups] = React.useState<Group[]>(() => initialState?.groups ?? initialGroups);
@@ -823,7 +823,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
   const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
   const [activeGroupId, setActiveGroupId] = React.useState<string>(() => initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox');
-  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? 'top');
+  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? DEFAULT_LIST_STYLE);
   const appliedRemote = React.useRef<WorkspaceUpdate | undefined>(undefined);
   const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
   const [editorSyncRevision, setEditorSyncRevision] = React.useState(0);
