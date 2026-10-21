@@ -15,6 +15,8 @@ export type AccountMenuProps = {
   status: SaveStatus;
   busy: boolean;
   errorCode?: string | null;
+  /** Replaces the status label, e.g. with how many memo bodies have arrived (specs/17). */
+  statusText?: string;
   onLogin: () => void;
   onLogout: () => void;
   onRetry: () => void;
@@ -22,8 +24,8 @@ export type AccountMenuProps = {
 };
 
 /** Parent owns authentication, error handling and unsaved-change confirmation. */
-export function AccountMenu({ labels, name, status, busy, errorCode, onLogin, onLogout, onRetry, onReload }: AccountMenuProps) {
-  const statusLabel = labels.status[status];
+export function AccountMenu({ labels, name, status, busy, errorCode, statusText, onLogin, onLogout, onRetry, onReload }: AccountMenuProps) {
+  const statusLabel = statusText ?? labels.status[status];
   const StatusIcon = status === 'saved' ? CloudCheck : status === 'loading' || status === 'saving' ? LoaderCircle : CloudOff;
   return (
     <div className="flex shrink-0 items-center gap-1">

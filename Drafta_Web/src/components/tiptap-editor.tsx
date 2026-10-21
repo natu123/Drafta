@@ -37,6 +37,7 @@ interface TiptapEditorProps {
   onNoteUpdate: (updatedNote: Partial<Note>, noteId: string) => void;
   /** Creates an editable copy of a read-only guide sample. */
   onDuplicate?: () => void;
+  forceReadOnly?: boolean;
   onIconChange: (icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
   navigationAction?: React.ReactNode;
@@ -56,9 +57,9 @@ const baseColors = [
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, onDuplicate, externalRevision = 0, historyAction }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, onDuplicate, externalRevision = 0, historyAction, forceReadOnly = false }) => {
   // isProtected also blocks deletion; guide samples only block editing.
-  const readOnly = Boolean(note.isProtected) || isEditLockedSample(note);
+  const readOnly = forceReadOnly || Boolean(note.isProtected) || isEditLockedSample(note);
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
   const { t, lang } = useLang();

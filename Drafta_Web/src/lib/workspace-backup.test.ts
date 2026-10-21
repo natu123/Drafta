@@ -160,9 +160,11 @@ describe('workspace backup', () => {
 
   it('keeps rejecting oversized memos and workspaces when other memos come from the cache', () => {
     const memo = (id: string, content: string) => ({ ...notes[5], id, sampleKey: undefined, content });
-    const big = memo('big-a', `<p>${'x'.repeat(900_000)}</p>`.repeat(10));
+    // Two memos just over half of the workspace limit each (a text run holds up to 1,000,000 characters).
+    const paragraphs = Math.ceil(BACKUP_LIMITS.bytes / 2 / 900_000) + 1;
+    const big = memo('big-a', `<p>${'x'.repeat(900_000)}</p>`.repeat(paragraphs));
     expect(snapshotWorkspace({ notes: [big], groups, settings }, document, exportedAt).notes).toHaveLength(1);
-    expect(() => snapshotWorkspace({ notes: [big, memo('big-b', `<p>${'y'.repeat(900_000)}</p>`.repeat(10))], groups, settings }, document, exportedAt)).toThrow('size');
+    expect(() => snapshotWorkspace({ notes: [big, memo('big-b', `<p>${'y'.repeat(900_000)}</p>`.repeat(paragraphs))], groups, settings }, document, exportedAt)).toThrow('size');
     const complex = memo('complex', '<p>x</p>'.repeat(50001));
     for (let attempt = 0; attempt < 2; attempt++) expect(() => snapshotWorkspace({ notes: [big, complex], groups, settings }, document, exportedAt)).toThrow('complexity');
   }, 30000);

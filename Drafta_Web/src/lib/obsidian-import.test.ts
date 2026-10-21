@@ -117,7 +117,7 @@ describe('Obsidian import plan', () => {
     expect(importBatches(plan, { notes: 2, bytes: 1e9 }).map(batch => batch.length)).toEqual([2, 2, 1]);
     const one = plan.noteBytes.get(plan.notes[0].id)!;
     expect(importBatches(plan, { notes: 100, bytes: one * 3 }).map(batch => batch.length)).toEqual([3, 2]);
-    expect(importBatches({ ...plan, notes: Array(801).fill(plan.notes[0]) }).map(batch => batch.length)).toEqual([350, 350, 101]);
+    expect(importBatches({ ...plan, notes: Array(401).fill(plan.notes[0]) }).map(batch => batch.length)).toEqual([200, 200, 1]);
     expect(checkImportLimits({ notes: [], groups: [], settings }, plan, document)).toBeNull();
     const many = Array.from({ length: 9998 }, (_, index) => ({ ...plan.notes[0], id: `existing-${index}` }));
     expect(checkImportLimits({ notes: many, groups: plan.groups, settings }, plan, document)).toBe('notes');
@@ -126,14 +126,14 @@ describe('Obsidian import plan', () => {
 
 describe('Obsidian import saving', () => {
   it('keeps every queued save below the cloud change limit and resumes after a failure', async () => {
-    const plan = await planObsidianImport(Array.from({ length: 801 }, (_, index) => file(`V/n${index}.md`, `memo ${index}`)), options);
+    const plan = await planObsidianImport(Array.from({ length: 401 }, (_, index) => file(`V/n${index}.md`, `memo ${index}`)), options);
     let failNext = true;
     const writes: number[] = [];
-    // Mirrors cloudWorkspace.save: count changed memos against CLOUD_LIMITS.changedNotes.
+    // Mirrors cloudWorkspace.save: a new memo writes its summary and its body (specs/17).
     const save = async (value: WorkspaceBackup, base: SavedWorkspace | null): Promise<SavedWorkspace> => {
       const previous = new Set((base?.backup.notes ?? []).map(note => note.id));
       const changed = value.notes.filter(note => !previous.has(note.id)).length;
-      if (changed > CLOUD_LIMITS.changedNotes) throw new WorkspaceStorageError('Too many changes in one save');
+      if (changed * 2 > CLOUD_LIMITS.documentWrites) throw new WorkspaceStorageError('Too many changes in one save');
       if (writes.length === 1 && failNext) { failNext = false; throw new WorkspaceStorageError('Simulated outage'); }
       writes.push(changed);
       return { uid: 'u', revision: (base?.revision ?? 0) + 1, backup: value };
@@ -153,7 +153,7 @@ describe('Obsidian import saving', () => {
     await queue.retry();
     expect(queue.status).toBe('saved');
     expect(await saveBatch(batches[2], [])).toBe(true);
-    expect(writes).toEqual([350, 350, 101]);
+    expect(writes).toEqual([200, 200, 1]);
     await expect(save(createWorkspaceBackup({ ...state, notes: plan.notes }, document), null)).rejects.toThrow('Too many changes');
   }, 60000);
 });

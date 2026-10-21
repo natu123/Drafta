@@ -1,25 +1,12 @@
-import type { JSONContent } from '@tiptap/core';
 import type { Group, Note } from './types';
 import { editorDocumentToHtml } from './document-codec';
 import { BackupValidationError, isTrustedBackup, parseTrustedWorkspaceBackup, type BackupNote, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
 import { createNoteSource, isLazyNote, LAZY_CONTENT, sourceOf } from './note-source';
+import { previewText, titleText } from './note-text';
+import { noteMetadata, type NoteSummary, type WorkspaceEnvelope } from './note-summary';
 
 export type WorkspaceState = { groups: Group[]; notes: Note[]; settings: BackupSettings };
 export type WorkspaceUpdate = { sequence: number; state: WorkspaceState; copies: { originalId: string; copyId: string }[] };
-
-function titleText(node: JSONContent): string {
-  return (node.content ?? []).map(child => {
-    if (child.type !== 'text' || typeof child.text !== 'string') throw new BackupValidationError('title', 'Unsupported title content');
-    if (child.marks?.some(mark => mark.type !== 'textStyle')) throw new BackupValidationError('title', 'Unsupported title formatting');
-    const color = child.marks?.find(mark => mark.type === 'textStyle')?.attrs?.color;
-    if (!color) return child.text;
-    let hex = String(color);
-    const rgb = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/.exec(hex);
-    if (rgb) hex = '#' + rgb.slice(1).map(value => Number(value).toString(16).padStart(2, '0')).join('');
-    if (!/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) throw new BackupValidationError('title', 'Unsupported title color');
-    return `{color:${hex}}${child.text}{/color}`;
-  }).join('');
-}
 
 // One validation, in the trusted parse that follows.
 function stringifyBackup(value: WorkspaceBackup): string {
@@ -35,20 +22,6 @@ function editorHtml(value: BackupNote['document'], dom: Document) {
   template.content.querySelectorAll('p,div,li,h1,h2,h3,pre').forEach(element => element.after(' '));
   const plainTextContent = (template.content.textContent ?? '').replace(/\s+/g, ' ').trim();
   return { content, plainTextContent };
-}
-
-// The same preview text as the HTML path, read straight from the stored document: the blocks
-// that HTML follows with a space (p, div, li, h1-h3, pre) end with one here too.
-const SPACED_BLOCKS = new Set(['paragraph', 'heading', 'listItem', 'taskItem', 'codeBlock', 'tableCell', 'tableHeader']);
-function previewText(value: BackupNote['document']): string {
-  const parts: string[] = [];
-  const walk = (node: JSONContent) => {
-    if (typeof node.text === 'string') parts.push(node.text);
-    node.content?.forEach(walk);
-    if (node.type && SPACED_BLOCKS.has(node.type)) parts.push(' ');
-  };
-  value.document.content?.slice(1).forEach(walk);
-  return parts.join('').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -71,14 +44,28 @@ export function workspaceToState(input: WorkspaceBackup, dom: Document, options:
   return { groups: structuredClone(backup.groups), notes, settings: structuredClone(backup.settings) };
 }
 
+/**
+ * The list before the bodies arrive (specs/17): every memo from its summary, unopened, with the
+ * excerpt as preview text. Bodies are attached to the memos' tokens as they are read (attachBody).
+ * Validated summaries only (validateSummaries); nothing here is saved.
+ */
+export function summariesToState(envelope: WorkspaceEnvelope, list: NoteSummary[]): WorkspaceState {
+  if (envelope.settings.noteSort !== 'manual') throw new BackupValidationError('settings.noteSort', 'Only manual order is supported');
+  const notes = list.map((summary): Note => {
+    const metadata = noteMetadata(summary);
+    return { ...structuredClone(metadata), title: summary.title, content: LAZY_CONTENT, plainTextContent: summary.excerpt, source: createNoteSource(Object.freeze(structuredClone(metadata)), summary.title) };
+  });
+  return { groups: structuredClone(envelope.groups), notes, settings: structuredClone(envelope.settings) };
+}
+
 /** The memo with its editor HTML, made from the stored document the first time it is opened. */
 const openedBodies = new WeakMap<object, string>();
 export function noteWithContent(note: Note, dom: Document): Note {
   if (!isLazyNote(note)) return note;
-  const source = sourceOf(note);
-  if (!source) throw new BackupValidationError(`notes.${note.id}`, 'Memo body is not loaded');
+  const document = sourceOf(note)?.note.document;
+  if (!document) throw new BackupValidationError(`notes.${note.id}`, 'Memo body is not loaded');
   let content = openedBodies.get(note.source!);
-  if (content === undefined) { content = editorHtml(source.note.document, dom).content; openedBodies.set(note.source!, content); }
+  if (content === undefined) { content = editorHtml(document, dom).content; openedBodies.set(note.source!, content); }
   return { ...note, content };
 }
 

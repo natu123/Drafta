@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { disableNetwork, doc, enableNetwork, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
-import { cloudWorkspace, WorkspaceConflictError, type SavedWorkspace } from './cloud-workspace';
+import { disableNetwork, doc, enableNetwork, getDoc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
+import { cloudWorkspace, LegacyWorkspaceError, WorkspaceConflictError, type SavedWorkspace } from './cloud-workspace';
+import { readLegacyWorkspace, writeLegacyWorkspace } from './cloud-workspace-legacy';
+import { downgradeWorkspace, finishMigration, migrateWorkspace, sameWorkspace } from './cloud-workspace-migration';
 import type { WorkspaceBackup } from './workspace-backup';
 import { watchCloudWorkspace } from './cloud-workspace-watch';
 import { IMPORT_BATCH_LIMITS } from './obsidian-import';
@@ -148,7 +150,7 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
       saved = await owner.save({ ...base, notes: imported.slice(0, start + IMPORT_BATCH_LIMITS.notes) }, saved);
     }
     const loaded = await repository('alice').load();
-    expect(loaded?.revision).toBe(4);
+    expect(loaded?.revision).toBe(1 + Math.ceil(imported.length / IMPORT_BATCH_LIMITS.notes));
     expect(loaded?.backup.notes.map(note => note.id)).toEqual(imported.map(note => note.id));
   }, 120000);
 
@@ -240,11 +242,13 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
       const stop = watchCloudWorkspace(db, 'alice', () => {}, error => { throw error; }, () => false, from);
       try { await vi.waitFor(() => expect(queryResults.length).toBeGreaterThan(0)); return queryResults[0]; } finally { stop(); }
     };
-    // load(): root twice + every memo; then the watcher's root and its memo query.
-    const before = 2 + 429 + 1 + await opened(null);
-    const after = 2 + 429 + 1 + Math.max(1, await opened(base));
+    // load(): root twice + every summary, then every body + root (specs/17); then the watcher's
+    // root and its summary query (its body query reads as many).
+    const load = 2 + 429 + 429 + 1;
+    const before = load + 1 + 2 * await opened(null);
+    const after = load + 1 + 2 * Math.max(1, await opened(base));
     console.info(`[reads] 429 memos: before ${before}, after ${after}`);
-    expect([before, after]).toEqual([2 + 429 + 1 + 429, 2 + 429 + 1 + 1]);
+    expect([before, after]).toEqual([load + 1 + 2 * 429, load + 1 + 2]);
   }, 120000);
 
   it('rebuilds the server workspace from a device cache and the memos saved since it', async () => {
@@ -271,5 +275,154 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
     expect((await device.loadSince(broken))!.saved).toEqual(full.saved);
     // Another account's cache is never used.
     expect((await device.loadSince({ ...cached, saved: { ...cached.saved, uid: 'bob' } }))!.saved).toEqual(full.saved);
+  });
+
+  // Summaries and bodies (specs/17).
+  const stored = async (path: string) => {
+    let data: Record<string, unknown> | undefined;
+    await env.withSecurityRulesDisabled(async context => { data = (await getDoc(doc(context.firestore(), `users/alice/workspaces/default/${path}`))).data(); });
+    return data;
+  };
+  const time = (data: Record<string, unknown> | undefined) => (data?.updatedAt as { toMillis: () => number }).toMillis();
+  const db = (uid = 'alice') => env.authenticatedContext(uid).firestore() as unknown as Firestore;
+
+  it('stores each memo as a summary and a body and writes only the part that changed', async () => {
+    const owner = repository('alice');
+    let saved = await owner.save({ ...fresh(), notes: [memo('a', 'first body'), memo('b', 'second body')] }, null);
+    const summary = await stored('notes/a');
+    expect(summary?.schemaVersion).toBe(2);
+    expect(Object.keys(summary!).sort()).toEqual(['schemaVersion', 'summaryJson', 'updatedAt']);
+    expect(JSON.parse(summary!.summaryJson as string)).toMatchObject({ id: 'a', title: 'a', excerpt: 'first body' });
+    expect(JSON.parse(summary!.summaryJson as string).document).toBeUndefined();
+    expect(JSON.parse((await stored('bodies/a'))!.documentJson as string)).toEqual(saved.backup.notes[0].document);
+    // A pin changes the summary only; an edit changes both.
+    const before = { summary: time(await stored('notes/a')), body: time(await stored('bodies/a')), other: time(await stored('notes/b')) };
+    saved = await owner.save({ ...saved.backup, notes: saved.backup.notes.map(note => note.id === 'a' ? { ...note, isPinned: true } : note) }, saved);
+    expect(time(await stored('notes/a'))).toBeGreaterThan(before.summary);
+    expect(time(await stored('bodies/a'))).toBe(before.body);
+    expect(time(await stored('notes/b'))).toBe(before.other);
+    saved = await owner.save({ ...saved.backup, notes: saved.backup.notes.map(note => note.id === 'b' ? memo('b', 'edited') : note) }, saved);
+    expect(JSON.parse((await stored('notes/b'))!.summaryJson as string).excerpt).toBe('edited');
+    expect((await stored('bodies/b'))!.documentJson).toContain('edited');
+    // Deleting a memo deletes both documents.
+    await owner.save({ ...saved.backup, notes: saved.backup.notes.filter(note => note.id !== 'a') }, saved);
+    expect(await stored('notes/a')).toBeUndefined();
+    expect(await stored('bodies/a')).toBeUndefined();
+  });
+
+  it('opens from summaries, then reads every body and catches up with a save made meanwhile', async () => {
+    const owner = repository('alice');
+    const notes = Array.from({ length: 250 }, (_, index) => memo(`m${index}`, `body ${index}`));
+    let saved = await owner.save(fresh(), null);
+    for (let start = 0; start < notes.length; start += IMPORT_BATCH_LIMITS.notes) saved = await owner.save({ ...fresh(), notes: notes.slice(0, start + IMPORT_BATCH_LIMITS.notes) }, saved);
+    const device = repository('alice');
+    const partial = (await device.loadSummaries())!;
+    expect(partial.revision).toBe(saved.revision);
+    expect(partial.summaries.map(summary => [summary.id, summary.title, summary.excerpt])[3]).toEqual(['m3', 'm3', 'body 3']);
+    expect(partial.summaries.some(summary => 'document' in summary)).toBe(false);
+    // The opened memo is read first.
+    const opened = (await device.loadBody('m42'))!;
+    expect(opened).toEqual(saved.backup.notes[42].document);
+    // Another device saves after the summaries were read: an edit, a deletion and a new memo.
+    const latest = await owner.save({ ...saved.backup, notes: [...saved.backup.notes.filter(note => note.id !== 'm1').map(note => note.id === 'm5' ? memo('m5', 'edited') : note), memo('new', 'later')] }, saved);
+    const arrived: string[] = [];
+    const hydrated = (await device.hydrate(partial, { onBody: id => arrived.push(id), known: new Map([['m42', opened]]) }))!;
+    expect(hydrated.saved).toEqual(latest);
+    expect(hydrated.saved).toEqual(await repository('alice').load());
+    expect(new Set(arrived).size).toBeGreaterThanOrEqual(249);
+    expect(arrived).toContain('new');
+  }, 120000);
+
+  it('refuses a summary that does not agree with its body', async () => {
+    await repository('alice').save({ ...fresh(), notes: [memo('a', 'body')] }, null);
+    await env.withSecurityRulesDisabled(async context => {
+      const ref = doc(context.firestore(), 'users/alice/workspaces/default/notes/a');
+      const data = (await getDoc(ref)).data()!;
+      await setDoc(ref, { ...data, summaryJson: JSON.stringify({ ...JSON.parse(data.summaryJson), excerpt: 'something else' }) });
+    });
+    await expect(repository('alice').load()).rejects.toThrow('Memo summary does not match its body');
+  });
+
+  it('migrates a 0.7 workspace with every memo, order, tray and setting, and stops the older app', async () => {
+    let legacy = await writeLegacyWorkspace(db(), 'alice', { ...fresh(), groups: [...fresh().groups, { id: 'tray2', name: 'Second', type: 'group' }],
+      notes: [memo('a', 'one'), { ...memo('b', 'two', 'tray2'), isPinned: true, isCompleted: true }, memo('c', '日本語')] }, null);
+    legacy = await writeLegacyWorkspace(db(), 'alice', { ...legacy.backup, notes: [...legacy.backup.notes].reverse() }, legacy);
+    await expect(repository('alice').load()).rejects.toBeInstanceOf(LegacyWorkspaceError);
+    const steps: string[] = [];
+    let kept: WorkspaceBackup | null = null;
+    expect(await migrateWorkspace(db(), 'alice', { onProgress: progress => steps.push(progress.step), keepBackup: async backup => { kept = backup; } })).toBe('migrated');
+    expect(kept).toEqual(legacy.backup);
+    expect([...new Set(steps)]).toEqual(['reading', 'bodies', 'summaries', 'switching', 'verifying', 'cleaning', 'done']);
+    const loaded = (await repository('alice').load())!;
+    expect(loaded.revision).toBe(legacy.revision + 1);
+    expect(sameWorkspace(loaded.backup, legacy.backup)).toBe(true);
+    for (const id of ['a', 'b', 'c']) expect(Object.keys((await stored(`notes/${id}`))!).sort()).toEqual(['schemaVersion', 'summaryJson', 'updatedAt']);
+    // 0.7.3 checks the storage version before it saves.
+    await expect(writeLegacyWorkspace(db(), 'alice', legacy.backup, legacy)).rejects.toThrow('Invalid server workspace');
+    expect(await migrateWorkspace(db(), 'alice')).toBe('already');
+    expect((await repository('alice').load())!.revision).toBe(legacy.revision + 1);
+  });
+
+  it('reads everything again when an older app saves before the switch', async () => {
+    let legacy = await writeLegacyWorkspace(db(), 'alice', { ...fresh(), notes: [memo('a', 'one'), memo('b', 'two'), memo('c', 'three')] }, null);
+    let late = false;
+    expect(await migrateWorkspace(db(), 'alice', { before: async step => {
+      if (step !== 'switching' || late) return;
+      late = true;
+      legacy = await writeLegacyWorkspace(db(), 'alice', { ...legacy.backup, notes: [...legacy.backup.notes.filter(note => note.id !== 'b'), memo('d', 'late')] }, legacy);
+    } })).toBe('migrated');
+    expect(late).toBe(true);
+    expect(sameWorkspace((await repository('alice').load())!.backup, legacy.backup)).toBe(true);
+    // The body of the memo deleted by the older app does not stay behind.
+    expect(await stored('bodies/b')).toBeUndefined();
+  });
+
+  it('goes back to the 0.7 storage when the check after the switch fails', async () => {
+    const legacy = await writeLegacyWorkspace(db(), 'alice', { ...fresh(), notes: [memo('a', 'one'), memo('b', 'two')] }, null);
+    await expect(migrateWorkspace(db(), 'alice', { before: async step => {
+      if (step !== 'verifying') return;
+      await env.withSecurityRulesDisabled(async context => {
+        await setDoc(doc(context.firestore(), 'users/alice/workspaces/default/bodies/a'), { schemaVersion: 2, documentJson: JSON.stringify(memo('a', 'damaged').document), updatedAt: serverTimestamp() });
+      });
+    } })).rejects.toThrow('Migration check failed');
+    const back = await readLegacyWorkspace(db(), 'alice');
+    expect(back?.kind).toBe('legacy');
+    expect(back?.kind === 'legacy' && sameWorkspace(back.saved.backup, legacy.backup)).toBe(true);
+    // The older app works again.
+    if (back?.kind === 'legacy') await writeLegacyWorkspace(db(), 'alice', { ...back.saved.backup, notes: [memo('a', 'after')] }, back.saved);
+  });
+
+  it('finishes a migration stopped after the switch without touching memos saved since', async () => {
+    const legacy = await writeLegacyWorkspace(db(), 'alice', { ...fresh(), notes: [memo('a', 'one'), memo('b', 'two'), memo('c', 'three')] }, null);
+    await expect(migrateWorkspace(db(), 'alice', { before: async step => { if (step === 'cleaning') throw new Error('Closed the tab'); } })).rejects.toThrow('Closed the tab');
+    // The new app works on the switched workspace and saves one memo meanwhile.
+    const switched = (await repository('alice').load())!;
+    expect(sameWorkspace(switched.backup, legacy.backup)).toBe(true);
+    expect((await stored('notes/a'))!.payloadJson).toBeTypeOf('string');
+    const edited = await repository('alice').save({ ...switched.backup, notes: switched.backup.notes.map(note => note.id === 'a' ? memo('a', 'new app') : note) }, switched);
+    expect(await finishMigration(db(), 'alice')).toEqual({ cleaned: 2, kept: 0 });
+    expect((await repository('alice').load())).toEqual(edited);
+    for (const id of ['a', 'b', 'c']) expect((await stored(`notes/${id}`))!.payloadJson).toBeUndefined();
+  });
+
+  it('can go back to the 0.7 storage after the migration, keeping later edits', async () => {
+    await writeLegacyWorkspace(db(), 'alice', { ...fresh(), notes: [memo('a', 'one'), memo('b', 'two')] }, null);
+    await migrateWorkspace(db(), 'alice');
+    const current = (await repository('alice').load())!;
+    const edited = await repository('alice').save({ ...current.backup, notes: [...current.backup.notes, memo('c', 'new app')] }, current);
+    await downgradeWorkspace(db(), 'alice');
+    const back = await readLegacyWorkspace(db(), 'alice');
+    expect(back?.kind === 'legacy' && sameWorkspace(back.saved.backup, edited.backup)).toBe(true);
+    await expect(repository('alice').load()).rejects.toBeInstanceOf(LegacyWorkspaceError);
+    // Migrating again brings the same workspace back.
+    expect(await migrateWorkspace(db(), 'alice')).toBe('migrated');
+    expect(sameWorkspace((await repository('alice').load())!.backup, edited.backup)).toBe(true);
+  });
+
+  it('reports a workspace still in the 0.7 storage to a watching device', async () => {
+    await writeLegacyWorkspace(db(), 'alice', { ...fresh(), notes: [memo('a', 'one')] }, null);
+    const errors: unknown[] = [];
+    const stop = watchCloudWorkspace(db(), 'alice', () => { throw new Error('Unexpected update'); }, error => errors.push(error));
+    try { await vi.waitFor(() => expect(errors[0]).toBeInstanceOf(LegacyWorkspaceError)); } finally { stop(); }
   });
 });

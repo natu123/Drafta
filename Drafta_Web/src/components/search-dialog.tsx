@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { cn, stripColorMarkdown } from '@/lib/utils';
 import type { Note, Group } from '@/lib/types';
 import { useLang } from '@/contexts/lang-context';
+import { storageCopy } from '@/lib/storage-copy';
 import { searchGroups, searchNotes } from '@/lib/global-search';
 
 interface SearchDialogProps {
@@ -21,6 +22,8 @@ interface SearchDialogProps {
   groups: Group[];
   onNoteSelect: (id: string) => void;
   onGroupSelect: (id: string) => void;
+  /** Set while the memo bodies of a new device are still arriving; their text is searched once they do (specs/17). */
+  progress?: { loaded: number; total: number } | null;
 }
 
 const SearchDialogContent: React.FC<SearchDialogProps> = ({
@@ -30,8 +33,9 @@ const SearchDialogContent: React.FC<SearchDialogProps> = ({
   groups,
   onNoteSelect,
   onGroupSelect,
+  progress,
 }) => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [searchTerm, setSearchTerm] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -74,6 +78,7 @@ const SearchDialogContent: React.FC<SearchDialogProps> = ({
           </div>
         </div>
 
+        {progress && <p role="status" className="px-4 pb-2 text-xs text-muted-foreground">{storageCopy[lang].searchPreparing(progress.loaded, progress.total)}</p>}
         <div className="max-h-[400px] overflow-y-auto">
           {searchTerm.trim() === '' ? (
             <div className="p-4 text-center text-muted-foreground text-sm">

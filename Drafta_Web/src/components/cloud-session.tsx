@@ -7,8 +7,8 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
 import { getFirebaseClient, type FirebaseClient } from '@/lib/firebase-client';
-import { cloudWorkspace, type SavedWorkspace, type WorkspaceSince } from '@/lib/cloud-workspace';
-import { cacheWriter, deleteCachedWorkspace, readCachedWorkspace, writeCachedWorkspace } from '@/lib/workspace-cache';
+import { cloudWorkspace, LegacyWorkspaceError, type Body, type PartialWorkspace, type SavedWorkspace, type WorkspaceSince } from '@/lib/cloud-workspace';
+import { cacheWriter, deleteCachedWorkspace, deleteMigrationBackup, readCachedWorkspace, writeCachedWorkspace } from '@/lib/workspace-cache';
 import { clearViewState } from '@/lib/view-state';
 import { watchCloudWorkspace } from '@/lib/cloud-workspace-watch';
 import { mergeWorkspaces, preserveWorkspaceCopy } from '@/lib/workspace-merge';
@@ -18,7 +18,10 @@ import { snapshotWorkspace } from '@/lib/workspace-backup';
 import type { WorkspaceBackup } from '@/lib/workspace-backup';
 import type { Note } from '@/lib/types';
 import { requiresImmediateSave } from '@/lib/workspace-change';
-import { workspaceToState, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
+import { summariesToState, workspaceToState, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
+import { attachBody } from '@/lib/note-source';
+import { storageCopy } from '@/lib/storage-copy';
+import { StorageMigration } from './storage-migration';
 import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
 import { flushPendingEdits } from '@/lib/pending-edits';
 import { AccountMenu, type SaveStatus } from './account-menu';
@@ -35,7 +38,8 @@ import { playgroundCopy } from '@/lib/playground-copy';
 import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
-type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean>; viewKey?: string };
+type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean>; viewKey?: string;
+  readOnly?: boolean; bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void };
 // Each memo's JSON is reused while its field values are unchanged, so one keystroke serializes one memo.
 const noteFingerprints = new WeakMap<Note, { fields: Note; text: string }>();
 const noteFingerprint = (note: Note) => {
@@ -83,7 +87,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const heldEdits = React.useRef(new Map<string, { base: SavedWorkspace | null; backup: WorkspaceBackup; invalid: WorkspaceState | null }>());
   const [hasHeldEdits, setHasHeldEdits] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState; history?: MemoHistoryRepository } | null>(null);
+  // `readOnly` while the memo bodies of a device without a copy arrive; `migration` for the 0.7 storage (specs/17).
+  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState; history?: MemoHistoryRepository; readOnly?: boolean; migration?: boolean } | null>(null);
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
@@ -91,6 +96,12 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [remoteUpdate, setRemoteUpdate] = React.useState<WorkspaceUpdate | undefined>(undefined);
   const [reviewRemote, setReviewRemote] = React.useState<SavedWorkspace | null>(null);
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  // Bodies arriving after the summaries (specs/17): each goes to its memo's token as it is read.
+  const [bodyProgress, setBodyProgress] = React.useState<{ loaded: number; total: number } | null>(null);
+  const bodyTokens = React.useRef(new Map<string, object>());
+  const arrivedBodies = React.useRef(new Map<string, Body>());
+  const askedBodies = React.useRef(new Set<string>());
+  const bodyRepository = React.useRef<ReturnType<typeof cloudWorkspace> | null>(null);
   // Device cache (specs/16): the server time read at start-up bounds every later revision of this session.
   const sessionSince = React.useRef<WorkspaceSince | null>(null);
   const cachedRevision = React.useRef(0);
@@ -151,6 +162,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     setErrorCode(null);
     setLoginNotice(null);
     setSession(null); setStatus('loading');
+    setBodyProgress(null); bodyRepository.current = null;
+    bodyTokens.current = new Map(); arrivedBodies.current = new Map(); askedBodies.current = new Set();
     if (!user) {
       setStatus('guest'); return;
     }
@@ -162,17 +175,52 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       // Held edits after an auth loss keep the full load and their own merge.
       const cached = held ? null : await readCachedWorkspace(user.uid);
       if (id !== generation.current) return;
-      let stored: SavedWorkspace | null;
+      let stored: SavedWorkspace | null = null;
+      let partial: PartialWorkspace | null = null;
       if (cached) {
         stored = cached.saved;
         cachedRevision.current = cached.saved.revision;
-      } else {
+      } else if (held) {
         const loaded = await repository.loadWithSince();
         if (id !== generation.current) return;
         stored = loaded?.saved ?? null;
         sessionSince.current = loaded?.since ?? null;
         serverChecked.current = true;
+      } else {
+        // Without a copy on this device, the list comes from the summaries first (specs/17).
+        partial = await repository.loadSummaries();
+        if (id !== generation.current) return;
+        if (!partial) serverChecked.current = true;
       }
+      if (partial) {
+        // View only until every body has arrived and the workspace is one revision again.
+        const seed = summariesToState(partial.envelope, partial.summaries);
+        restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme);
+        bodyTokens.current = new Map(seed.notes.map(note => [note.id, note.source!]));
+        bodyRepository.current = repository;
+        activeOwner.current = user.uid;
+        setBodyProgress({ loaded: 0, total: partial.summaries.length });
+        setSession({ key: id, user, seed, readOnly: true });
+        const loaded = await repository.hydrate(partial, { known: arrivedBodies.current, onBody: (noteId, body) => {
+          const token = bodyTokens.current.get(noteId);
+          if (token) attachBody(token, body);
+          arrivedBodies.current.set(noteId, body);
+          setBodyProgress(value => value && { loaded: Math.min(arrivedBodies.current.size, value.total), total: value.total });
+        } });
+        if (id !== generation.current) return;
+        if (!loaded) { void reloadAccount.current?.(user); return; }
+        stored = loaded.saved;
+        sessionSince.current = loaded.since;
+        serverChecked.current = true;
+        lastBackup.current = stored.backup;
+        queue.current = makeQueue(stored, repository, id);
+        applyRemote(stored.backup, []);
+        bodyRepository.current = null;
+        bodyTokens.current = new Map(); arrivedBodies.current = new Map(); askedBodies.current = new Set();
+        setBodyProgress(null);
+        setSession({ key: id, user, seed, readOnly: false, history: repository.history });
+        setStatus(queue.current.status);
+      } else {
       const seed = held ? held.invalid ?? workspaceToState(held.backup, document, { lazyBodies: true }) : stored ? workspaceToState(stored.backup, document, { lazyBodies: true }) : undefined;
       if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
       lastState.current = seed ? stateFingerprint(seed) : '';
@@ -203,6 +251,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         cachedRevision.current = 0;
         setStatus(invalidState.current ? 'error' : queue.current.status);
       }
+      }
       keepCache();
       restartWatching.current = () => {
         stopWatching.current?.();
@@ -212,8 +261,11 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
           synced();
           if (!invalidState.current) queue.current?.acceptRemote(remote);
           setStatus(invalidState.current ? 'error' : queue.current?.status ?? 'saved');
-        }, () => {
-          if (id === generation.current) { syncUnavailable.current = true; setErrorCode('sync-unavailable'); setStatus('error'); }
+        }, failure => {
+          if (id !== generation.current) return;
+          // The account went back to the 0.7 storage: show the update instead.
+          if (failure instanceof LegacyWorkspaceError) { void reloadAccount.current?.(user); return; }
+          syncUnavailable.current = true; setErrorCode('sync-unavailable'); setStatus('error');
         }, revision => {
           // acceptRemote would ignore it anyway; skip parsing the whole workspace for our own save.
           if (id !== generation.current || !queue.current || revision > queue.current.revision) return false;
@@ -223,6 +275,14 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       };
       restartWatching.current();
     } catch (error) {
+      if (id === generation.current && error instanceof LegacyWorkspaceError) {
+        // The account still uses the 0.7 storage: offer the update instead of the workspace (specs/17).
+        queue.current?.dispose(); queue.current = null;
+        activeOwner.current = user.uid;
+        setSession({ key: id, user, migration: true });
+        setStatus('saved');
+        return;
+      }
       if (id === generation.current) {
         const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
         const name = error instanceof Error ? error.name : 'load-failed';
@@ -230,7 +290,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         setStatus('error');
       }
     }
-  }, [restoreLanguage, makeQueue, repositoryFor, keepCache]);
+  }, [restoreLanguage, makeQueue, repositoryFor, keepCache, applyRemote]);
   React.useEffect(() => { reloadAccount.current = load; }, [load]);
 
   React.useEffect(() => {
@@ -270,6 +330,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const changed = React.useCallback((state: WorkspaceState) => {
     if (sessionKey !== generation.current) return;
     if (!uid) return;
+    // No saving while the bodies arrive or before the update (specs/17).
+    if (!queue.current) return;
     if (!flushingForAccountChange.current && client.current?.auth.currentUser?.uid !== uid) return;
     const fingerprint = stateFingerprint(state);
     if (fingerprint === lastState.current) {
@@ -301,6 +363,24 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     return false;
   }, []);
 
+  // The memo being opened is read before the others while the bodies arrive (specs/17).
+  const needBody = React.useCallback((noteId: string) => {
+    const repository = bodyRepository.current, token = bodyTokens.current.get(noteId);
+    if (!repository || !token || arrivedBodies.current.has(noteId) || askedBodies.current.has(noteId)) return;
+    askedBodies.current.add(noteId);
+    const id = generation.current;
+    repository.loadBody(noteId).then(body => {
+      if (id !== generation.current || !body || bodyTokens.current.get(noteId) !== token) return;
+      attachBody(token, body);
+      arrivedBodies.current.set(noteId, body);
+      setBodyProgress(value => value && { loaded: Math.min(arrivedBodies.current.size, value.total), total: value.total });
+    }).catch(() => { askedBodies.current.delete(noteId); });
+  }, []);
+  const afterMigration = React.useCallback(() => {
+    const user = client.current?.auth.currentUser;
+    if (user) void reloadAccount.current?.(user);
+  }, []);
+
   const act = async (action: () => Promise<unknown>, loginAttempt = false) => {
     if (busy) return;
     setBusy(true);
@@ -326,6 +406,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     const signedOut = client.current!.auth.currentUser?.uid;
     cacheWrites.current.cancel();
     if (signedOut) await deleteCachedWorkspace(signedOut).catch(() => {});
+    if (signedOut) await deleteMigrationBackup(signedOut).catch(() => {});
     if (signedOut) clearViewState(signedOut);
     await client.current!.logout();
   }); };
@@ -342,8 +423,9 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     // Before the server check finished, only a new load can bring the workspace up to date.
     if (queue.current && serverChecked.current) void queue.current.retry(); else reload();
   };
-  const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
+  const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} statusText={bodyProgress ? storageCopy[lang].hydrating(bodyProgress.loaded, bodyProgress.total) : undefined} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
   if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p>{status !== 'guest' && <p role="status" aria-live="polite">{labels.status[status]}</p>}{loginNotice && <p role="alert" className="max-w-lg">{authErrorCopy[lang][loginNotice]}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}{!isAuthenticated && !hasHeldEdits && <Link href="/playground/" className="text-sm text-muted-foreground underline underline-offset-4">{playgroundCopy[lang].tryIt}</Link>}</main>;
+  if (session.migration) return <StorageMigration uid={session.user.uid} accountMenu={menu} onDone={afterMigration} />;
   const resolveReview = () => {
     if (!reviewRemote || !lastBackup.current || !session.user) return;
     const remote = reviewRemote;
@@ -354,5 +436,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} readOnly={session.readOnly} bodyProgress={bodyProgress} onNeedBody={needBody} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }

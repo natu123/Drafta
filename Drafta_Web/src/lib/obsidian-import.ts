@@ -14,7 +14,8 @@ const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg|bmp|avif|heic)$/i;
 // Raw files above this are skipped before conversion; the stored JSON limit is checked after.
 export const IMPORT_RAW_FILE_BYTES = 2 * 1024 * 1024;
 // Headroom below CLOUD_LIMITS so edits made during an import still fit in the same save.
-export const IMPORT_BATCH_LIMITS = { notes: 350, bytes: 7000000 } as const;
+// A new memo is two documents (summary and body, specs/17), so 200 memos stay below 480 writes.
+export const IMPORT_BATCH_LIMITS = { notes: 200, bytes: 7000000 } as const;
 
 export type EmbedLabels = { image: string; file: string };
 export type ConvertedMarkdown = { html: string; embeds: number; tags: string[] };

@@ -1,4 +1,4 @@
-import { parseTrustedWorkspaceBackup, serializeWorkspaceBackup } from './workspace-backup';
+import { parseTrustedWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
 import type { LoadedWorkspace } from './cloud-workspace';
 
 /** Where cached workspaces live; IndexedDB in the browser, a map in tests (specs/16). */
@@ -64,6 +64,15 @@ export async function writeCachedWorkspace(loaded: LoadedWorkspace, store: Cache
 
 export async function deleteCachedWorkspace(uid: string, store: CacheStore | null = defaultStore()): Promise<void> {
   if (store) await store.delete(keyFor(uid));
+}
+
+// The workspace as read before the storage update (specs/17), kept until sign-out like the cache.
+const backupKeyFor = (uid: string) => `migration-backup:${uid}`;
+export async function keepMigrationBackup(uid: string, backup: WorkspaceBackup, store: CacheStore | null = defaultStore()): Promise<void> {
+  if (store) await store.put(backupKeyFor(uid), { format: 'drafta-migration-backup', version: 1, uid, savedAt: new Date().toISOString(), backupJson: JSON.stringify(backup) });
+}
+export async function deleteMigrationBackup(uid: string, store: CacheStore | null = defaultStore()): Promise<void> {
+  if (store) await store.delete(backupKeyFor(uid));
 }
 
 /**

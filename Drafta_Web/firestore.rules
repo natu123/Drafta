@@ -9,7 +9,8 @@ service cloud.firestore {
       function validWorkspace() {
         return owns(uid) && workspaceId == 'default'
         && request.resource.data.keys().hasOnly(['schemaVersion', 'revision', 'metadataJson', 'updatedAt'])
-        && request.resource.data.schemaVersion == 1
+        // 1: 0.7 storage, 2: summaries and bodies (specs/17). Both until the migration is complete.
+        && request.resource.data.schemaVersion in [1, 2]
         && request.resource.data.revision is int
         && request.resource.data.metadataJson is string
         && request.resource.data.metadataJson.size() < 500000
@@ -19,14 +20,35 @@ service cloud.firestore {
       allow update: if validWorkspace() && request.resource.data.revision == resource.data.revision + 1;
       match /notes/{noteId} {
         allow read: if owns(uid) && workspaceId == 'default';
+        function legacyMemo() {
+          // 0.7: the whole memo; the migration adds its summary next to it.
+          return request.resource.data.keys().hasOnly(['schemaVersion', 'payloadJson', 'summaryJson', 'updatedAt'])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.payloadJson is string
+            && request.resource.data.payloadJson.size() < 500000
+            && (!('summaryJson' in request.resource.data) || (request.resource.data.summaryJson is string && request.resource.data.summaryJson.size() < 500000));
+        }
+        function summary() {
+          return request.resource.data.keys().hasOnly(['schemaVersion', 'summaryJson', 'updatedAt'])
+            && request.resource.data.schemaVersion == 2
+            && request.resource.data.summaryJson is string
+            && request.resource.data.summaryJson.size() < 500000;
+        }
         allow create, update: if owns(uid) && workspaceId == 'default'
           && noteId.matches('^[A-Za-z0-9_-]{1,128}$')
-          && request.resource.data.keys().hasOnly(['schemaVersion', 'payloadJson', 'updatedAt'])
-          && request.resource.data.schemaVersion == 1
-          && request.resource.data.payloadJson is string
-          && request.resource.data.payloadJson.size() < 500000
+          && (legacyMemo() || summary())
           && request.resource.data.updatedAt == request.time;
         allow delete: if owns(uid) && workspaceId == 'default';
+      }
+      match /bodies/{noteId} {
+        allow read, delete: if owns(uid) && workspaceId == 'default';
+        allow create, update: if owns(uid) && workspaceId == 'default'
+          && noteId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && request.resource.data.keys().hasOnly(['schemaVersion', 'documentJson', 'updatedAt'])
+          && request.resource.data.schemaVersion == 2
+          && request.resource.data.documentJson is string
+          && request.resource.data.documentJson.size() < 500000
+          && request.resource.data.updatedAt == request.time;
       }
       match /memoHistory/{noteId} {
         function historyOwner() {

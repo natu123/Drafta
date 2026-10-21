@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (host && host !== '127.0.0.1:8080') throw new Error('Rules tests only support the local emulator at 127.0.0.1:8080');
@@ -9,6 +9,8 @@ const projectId = 'demo-drafta';
 let env: RulesTestEnvironment;
 const workspace = (revision = 1) => ({ schemaVersion: 1, revision, metadataJson: '{}', updatedAt: serverTimestamp() });
 const note = () => ({ schemaVersion: 1, payloadJson: '{}', updatedAt: serverTimestamp() });
+const summary = () => ({ schemaVersion: 2, summaryJson: '{}', updatedAt: serverTimestamp() });
+const body = () => ({ schemaVersion: 2, documentJson: '{}', updatedAt: serverTimestamp() });
 
 describe.skipIf(!host)('Firestore owner isolation (emulator only)', () => {
   beforeAll(async () => {
@@ -81,5 +83,43 @@ describe.skipIf(!host)('Firestore owner isolation (emulator only)', () => {
     await assertFails(setDoc(ref, { ...head, capturedAt: 'fake' }));
     await assertFails(setDoc(ref, { ...head, public: true }));
     await assertFails(setDoc(doc(db, 'users/alice/workspaces/other/memoHistory/memo-1'), head));
+  });
+  it('accepts both storage versions while the migration runs (specs/17)', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    const root = doc(db, 'users/alice/workspaces/default');
+    await assertSucceeds(setDoc(root, workspace()));
+    await assertSucceeds(setDoc(root, { ...workspace(2), schemaVersion: 2 }));
+    await assertSucceeds(setDoc(root, { ...workspace(3), schemaVersion: 1 }));
+    await assertFails(setDoc(root, { ...workspace(4), schemaVersion: 3 }));
+    const memo = doc(db, 'users/alice/workspaces/default/notes/memo-1');
+    await assertSucceeds(setDoc(memo, note()));
+    // The migration adds the summary next to the 0.7 field, then the summary stands alone.
+    await assertSucceeds(updateDoc(memo, { summaryJson: '{}', updatedAt: serverTimestamp() }));
+    await assertSucceeds(setDoc(memo, summary()));
+    await assertFails(setDoc(memo, { ...summary(), payloadJson: '{}' }));
+    await assertFails(setDoc(memo, { ...summary(), summaryJson: 42 }));
+    await assertFails(setDoc(memo, { ...summary(), summaryJson: 'x'.repeat(500000) }));
+    await assertFails(setDoc(memo, { ...summary(), schemaVersion: 1 }));
+    await assertFails(setDoc(memo, { ...note(), summaryJson: 42 }));
+    await assertFails(setDoc(memo, { ...summary(), updatedAt: 'fake' }));
+  });
+  it('keeps memo bodies to their owner and checks their envelope', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    const ref = doc(db, 'users/alice/workspaces/default/bodies/memo-1');
+    await assertSucceeds(setDoc(ref, body()));
+    await assertSucceeds(getDoc(ref));
+    for (const other of [env.unauthenticatedContext().firestore(), env.authenticatedContext('bob').firestore()]) {
+      await assertFails(getDoc(doc(other, ref.path)));
+      await assertFails(setDoc(doc(other, ref.path), body()));
+      await assertFails(deleteDoc(doc(other, ref.path)));
+    }
+    await assertFails(setDoc(ref, { ...body(), schemaVersion: 1 }));
+    await assertFails(setDoc(ref, { ...body(), documentJson: 42 }));
+    await assertFails(setDoc(ref, { ...body(), extra: true }));
+    await assertFails(setDoc(ref, { ...body(), documentJson: 'x'.repeat(500000) }));
+    await assertFails(setDoc(ref, { ...body(), updatedAt: 'fake' }));
+    await assertFails(setDoc(doc(db, 'users/alice/workspaces/default/bodies/bad id'), body()));
+    await assertFails(setDoc(doc(db, 'users/alice/workspaces/other/bodies/memo-1'), body()));
+    await assertSucceeds(deleteDoc(ref));
   });
 });

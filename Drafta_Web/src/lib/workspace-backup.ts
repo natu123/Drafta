@@ -22,9 +22,10 @@ export type WorkspaceBackup = {
   settings: BackupSettings;
 };
 
-// Defensive import limits, not subscription quotas. Large-file support is a separate milestone.
-// nodes and table cells are per memo; workspaceNodes bounds all memos together (specs/15).
-export const BACKUP_LIMITS = { bytes: 16 * 1024 * 1024, notes: 10000, groups: 1000, nodes: 100000, workspaceNodes: 1000000, depth: 32 } as const;
+// Defensive limits, not subscription quotas. nodes and table cells are per memo; workspaceNodes bounds
+// all memos together (specs/15). Every memo body stays on the device and in memory, so the workspace
+// keeps a bound: 64MB since 0.8.0, when memos moved to their own documents (specs/17).
+export const BACKUP_LIMITS = { bytes: 64 * 1024 * 1024, notes: 10000, groups: 1000, nodes: 100000, workspaceNodes: 4000000, depth: 32 } as const;
 
 export class BackupValidationError extends Error {
   constructor(public readonly path: string, message: string) {
@@ -244,6 +245,39 @@ export function parseTrustedWorkspaceBackup(text: string): WorkspaceBackup {
   return value;
 }
 
+/**
+ * One stored memo body, validated and frozen like the bodies of parseTrustedWorkspaceBackup, so a
+ * workspace assembled from it does not walk it again (specs/17).
+ */
+export function parseStoredDocument(text: string, path: string): SerializedEditorDocument {
+  requireValue(typeof text === 'string' && text.length <= BACKUP_LIMITS.bytes, path, 'Document size limit exceeded');
+  let value: unknown;
+  try { value = JSON.parse(text); } catch { throw new BackupValidationError(path, 'Invalid JSON'); }
+  const nodes = documentValue(value, path, { nodes: 0 });
+  deepFreeze(value);
+  validatedDocuments.set(value as object, nodes);
+  return value as SerializedEditorDocument;
+}
+
+/**
+ * Trusts a workspace put together from stored parts (specs/17). Bodies from parseStoredDocument or an
+ * earlier trusted workspace are not walked again; any other body is walked and frozen. `bytes` is the
+ * caller's count of the stored text, checked against the same limit as a backup file.
+ */
+export function trustAssembledBackup(value: unknown, bytes: number): WorkspaceBackup {
+  requireValue(bytes <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  const walked = new Map<object, number>();
+  validate(value, validatedDocuments, walked);
+  for (const [document, nodes] of walked) { deepFreeze(document); validatedDocuments.set(document, nodes); }
+  trustedBackups.add(value);
+  return value;
+}
+
+/** Field, tray and parent checks of a whole workspace without keeping it (specs/17, memo summaries). */
+export function checkWorkspaceShape(value: unknown): void {
+  validate(value);
+}
+
 /** True for a backup from parseTrustedWorkspaceBackup or snapshotWorkspace. */
 export function isTrustedBackup(value: WorkspaceBackup): boolean {
   return trustedBackups.has(value) || validatedBackups.has(value);
@@ -304,7 +338,7 @@ function convertNote(note: Note, dom: Document): ConvertedNote {
 // change (pin, tray, order), its body cannot. Without the stored document nothing is saved.
 function reuseStoredBody(note: Note): ConvertedNote {
   const source = sourceOf(note);
-  requireValue(source && source.note.id === note.id, `notes.${note.id}`, 'Memo body is not loaded');
+  requireValue(source && source.note.id === note.id && source.note.document, `notes.${note.id}`, 'Memo body is not loaded');
   const { title, content: _content, plainTextContent: _preview, children, source: _source, ...metadata } = note;
   void _content; void _preview; void _source;
   requireValue(title === source.title, `notes.${note.id}.title`, 'Memo title changed without its body');
