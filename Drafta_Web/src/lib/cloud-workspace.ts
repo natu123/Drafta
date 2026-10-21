@@ -1,5 +1,5 @@
 import { collection, doc, getDocFromServer, getDocsFromServer, limit, query, runTransaction, serverTimestamp, startAfter, Timestamp, where, type Firestore, type QueryDocumentSnapshot } from 'firebase/firestore';
-import { BACKUP_LIMITS, isValidatedBackup, parseWorkspaceBackup, serializeWorkspaceBackup, storedNoteText, type WorkspaceBackup, type BackupNote } from './workspace-backup';
+import { BACKUP_LIMITS, isValidatedBackup, parseTrustedWorkspaceBackup, parseWorkspaceBackup, serializeWorkspaceBackup, storedNoteText, type WorkspaceBackup, type BackupNote } from './workspace-backup';
 import { memoHistory, historyCandidate } from './memo-history';
 
 export class WorkspaceConflictError extends Error {
@@ -66,7 +66,7 @@ export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryF
   // The same validator as every save; the order list decides which memos exist.
   function assemble(head: ReturnType<typeof readHead>, notes: Map<string, BackupNote>): WorkspaceBackup {
     const { noteOrder, ...envelope } = head.metadata;
-    return parseWorkspaceBackup(JSON.stringify({ ...envelope, notes: noteOrder.map(id => {
+    return parseTrustedWorkspaceBackup(JSON.stringify({ ...envelope, notes: noteOrder.map(id => {
       if (!notes.has(id)) throw new WorkspaceStorageError('Missing memo');
       return notes.get(id);
     }) }));

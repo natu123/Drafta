@@ -1,4 +1,4 @@
-import { parseWorkspaceBackup, serializeWorkspaceBackup } from './workspace-backup';
+import { parseTrustedWorkspaceBackup, serializeWorkspaceBackup } from './workspace-backup';
 import type { LoadedWorkspace } from './cloud-workspace';
 
 /** Where cached workspaces live; IndexedDB in the browser, a map in tests (specs/16). */
@@ -46,7 +46,7 @@ export async function readCachedWorkspace(uid: string, store: CacheStore | null 
     if (!record) return null;
     if (record.format !== 'drafta-cache' || record.version !== 1 || record.uid !== uid || !Number.isSafeInteger(record.revision) || Number(record.revision) < 1 ||
         !record.since || !Number.isSafeInteger(record.since.seconds) || !Number.isSafeInteger(record.since.nanoseconds) || typeof record.backupJson !== 'string') throw new Error('Invalid cache');
-    const backup = parseWorkspaceBackup(record.backupJson);
+    const backup = parseTrustedWorkspaceBackup(record.backupJson);
     return { saved: { uid, revision: Number(record.revision), backup }, since: { seconds: record.since.seconds, nanoseconds: record.since.nanoseconds } };
   } catch {
     await store.delete(keyFor(uid)).catch(() => {});

@@ -3,7 +3,9 @@ export type Note = {
   type?: 'note' | 'separator';
   title: string;
   icon?: string;
-  content: string; // Can be HTML content from Tiptap
+  content: string; // Can be HTML content from Tiptap, or LAZY_CONTENT until the memo is opened (specs/17)
+  /** Points at the stored memo while `content` is LAZY_CONTENT; ignored once real HTML is set. */
+  source?: object;
   plainTextContent?: string; // Plain text version of content
   group: string;
   stars: 0 | 1 | 2 | 3;

@@ -1,3 +1,4 @@
+import { LAZY_CONTENT, sourceOf } from './note-source';
 import type { JSONContent } from '@tiptap/core';
 import { documentSchema } from '@/components/tiptap-extensions/document-schema';
 import { TableMap } from '@tiptap/pm/tables';
@@ -153,7 +154,7 @@ function documentValue(value: unknown, path: string, workspace: { nodes: number 
  * `documents` lists frozen documents this module already validated, with their node counts.
  * Only createWorkspaceBackup passes it; parsed or external input is always walked in full.
  */
-function validate(value: unknown, documents?: WeakMap<object, number>): asserts value is WorkspaceBackup {
+function validate(value: unknown, documents?: WeakMap<object, number>, walked?: Map<object, number>): asserts value is WorkspaceBackup {
   const data = record(value, 'backup', ['format', 'version', 'exportedAt', 'groups', 'notes', 'settings']);
   requireValue(data.format === 'drafta-workspace' && data.version === 1, 'backup', 'Unsupported backup version');
   date(data.exportedAt, 'exportedAt');
@@ -192,8 +193,11 @@ function validate(value: unknown, documents?: WeakMap<object, number>): asserts 
     if (note.parentId !== undefined) id(note.parentId, `${path}.parentId`);
     if (note.sampleKey !== undefined) requireValue(Object.hasOwn(samples, note.id) && samples[note.id] === note.sampleKey && note.type !== 'separator', path, 'Invalid sample identity');
     const known = typeof note.document === 'object' && note.document !== null ? documents?.get(note.document) : undefined;
-    if (known === undefined) documentValue(note.document, `${path}.document`, budget);
-    else requireValue((budget.nodes += known) <= BACKUP_LIMITS.workspaceNodes, `${path}.document`, 'Document complexity limit exceeded');
+    if (known === undefined) {
+      const before = budget.nodes;
+      documentValue(note.document, `${path}.document`, budget);
+      walked?.set(note.document as object, budget.nodes - before);
+    } else requireValue((budget.nodes += known) <= BACKUP_LIMITS.workspaceNodes, `${path}.document`, 'Document complexity limit exceeded');
     notes.set(note.id, note);
   });
   const checked = new Set<string>();
@@ -216,6 +220,33 @@ export function parseWorkspaceBackup(text: string): WorkspaceBackup {
   try { value = JSON.parse(text); } catch { throw new BackupValidationError('backup', 'Invalid JSON'); }
   validate(value);
   return value;
+}
+
+const trustedBackups = new WeakSet<WorkspaceBackup>();
+
+/**
+ * parseWorkspaceBackup for workspaces loaded into the app (specs/17): each memo document is
+ * frozen and remembered as validated, so saves reuse it without walking it again, and the
+ * screen state can be made from it without validating twice.
+ */
+export function parseTrustedWorkspaceBackup(text: string): WorkspaceBackup {
+  requireValue(typeof text === 'string' && text.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  requireValue(new TextEncoder().encode(text).byteLength <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  let value: unknown;
+  try { value = JSON.parse(text); } catch { throw new BackupValidationError('backup', 'Invalid JSON'); }
+  const walked = new Map<object, number>();
+  validate(value, undefined, walked);
+  for (const note of value.notes) {
+    deepFreeze(note.document);
+    validatedDocuments.set(note.document, walked.get(note.document) ?? documentValue(note.document, `notes.${note.id}.document`, { nodes: 0 }));
+  }
+  trustedBackups.add(value);
+  return value;
+}
+
+/** True for a backup from parseTrustedWorkspaceBackup or snapshotWorkspace. */
+export function isTrustedBackup(value: WorkspaceBackup): boolean {
+  return trustedBackups.has(value) || validatedBackups.has(value);
 }
 
 export function serializeWorkspaceBackup(value: WorkspaceBackup): string {
@@ -250,8 +281,9 @@ const sameFields = (a: Note, b: Note) => {
 function convertNote(note: Note, dom: Document): ConvertedNote {
   const cached = convertedNotes.get(note);
   if (cached && sameFields(note, cached.fields)) return cached;
-  const { title, content, plainTextContent: _preview, children, ...metadata } = note;
-  void _preview; // Derived display text is regenerated, not a second content source.
+  if (note.content === LAZY_CONTENT) return reuseStoredBody(note);
+  const { title, content, plainTextContent: _preview, children, source: _source, ...metadata } = note;
+  void _preview; void _source; // Derived display text is regenerated, not a second content source.
   requireValue(title.length <= BACKUP_LIMITS.bytes && content.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
   const inputBytes = encoder.encode(title).byteLength + encoder.encode(content).byteLength;
   requireValue(inputBytes <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
@@ -264,6 +296,27 @@ function convertNote(note: Note, dom: Document): ConvertedNote {
   const bytes = encoder.encode(json).byteLength;
   storedNotes.set(stored, { json, bytes });
   const entry = { fields: { ...note }, note: stored, json, bytes, inputBytes };
+  convertedNotes.set(note, entry);
+  return entry;
+}
+
+// A memo never opened since loading keeps its stored document (specs/17): its other fields may
+// change (pin, tray, order), its body cannot. Without the stored document nothing is saved.
+function reuseStoredBody(note: Note): ConvertedNote {
+  const source = sourceOf(note);
+  requireValue(source && source.note.id === note.id, `notes.${note.id}`, 'Memo body is not loaded');
+  const { title, content: _content, plainTextContent: _preview, children, source: _source, ...metadata } = note;
+  void _content; void _preview; void _source;
+  requireValue(title === source.title, `notes.${note.id}.title`, 'Memo title changed without its body');
+  requireValue(children === undefined, `notes.${note.id}.children`, 'Flatten children into parentId references before export');
+  const document = source.note.document;
+  const known = validatedDocuments.get(document);
+  const stored = deepFreeze({ ...JSON.parse(JSON.stringify(metadata)), document } as BackupNote);
+  validatedDocuments.set(document, known ?? documentValue(document, `notes.${note.id}.document`, { nodes: 0 }));
+  const json = JSON.stringify(stored);
+  const bytes = encoder.encode(json).byteLength;
+  storedNotes.set(stored, { json, bytes });
+  const entry = { fields: { ...note }, note: stored, json, bytes, inputBytes: bytes };
   convertedNotes.set(note, entry);
   return entry;
 }

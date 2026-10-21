@@ -49,6 +49,8 @@ const noteFingerprint = (note: Note) => {
 // Writes text still waiting in an editor and lets React hand the new state to `changed` now.
 const flushEdits = () => { flushSync(() => { flushPendingEdits(); }); };
 const stateFingerprint = (state: WorkspaceState) => JSON.stringify({ groups: state.groups, settings: state.settings }) + state.notes.map(note => `\n${noteFingerprint(note)}`).join('');
+// Held edits copy each memo shallowly, so an unopened memo keeps the token to its stored body (specs/17).
+const cloneState = (state: WorkspaceState): WorkspaceState => ({ groups: structuredClone(state.groups), settings: structuredClone(state.settings), notes: state.notes.map(note => ({ ...note })) });
 
 export default function CloudSession({ Workspace }: { Workspace: React.ComponentType<ViewProps> }) {
   const { lang, restoreLanguage } = useLang();
@@ -109,7 +111,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   }), []);
 
   const applyRemote = React.useCallback((backup: WorkspaceBackup, copies: { originalId: string; copyId: string }[]) => {
-    const state = workspaceToState(backup, document);
+    const state = workspaceToState(backup, document, { lazyBodies: true });
     lastState.current = stateFingerprint(state); lastBackup.current = backup;
     restoreLanguage(state.settings.language); themeSetter.current(state.settings.theme);
     setRemoteUpdate({ sequence: ++updateSequence.current, state, copies });
@@ -135,7 +137,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     setIsAuthenticated(user !== null);
     const owner = activeOwner.current;
     if (owner && lastBackup.current && (queue.current?.dirty || invalidState.current)) {
-      heldEdits.current.set(owner, { base: queue.current?.acknowledged ?? null, backup: structuredClone(lastBackup.current), invalid: invalidState.current ? structuredClone(invalidState.current) : null });
+      heldEdits.current.set(owner, { base: queue.current?.acknowledged ?? null, backup: structuredClone(lastBackup.current), invalid: invalidState.current ? cloneState(invalidState.current) : null });
       setHasHeldEdits(true);
     }
     activeOwner.current = null;
@@ -170,7 +172,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         sessionSince.current = loaded?.since ?? null;
         serverChecked.current = true;
       }
-      const seed = held ? held.invalid ?? workspaceToState(held.backup, document) : stored ? workspaceToState(stored.backup, document) : undefined;
+      const seed = held ? held.invalid ?? workspaceToState(held.backup, document, { lazyBodies: true }) : stored ? workspaceToState(stored.backup, document, { lazyBodies: true }) : undefined;
       if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
       lastState.current = seed ? stateFingerprint(seed) : '';
       lastBackup.current = held?.backup ?? stored?.backup ?? null;

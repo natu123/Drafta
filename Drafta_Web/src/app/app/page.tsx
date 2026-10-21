@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
-import type { WorkspaceState, WorkspaceUpdate } from '@/lib/workspace-state';
+import { noteWithContent, sameNoteBody, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
 import type { MemoHistoryRepository, MemoHistoryVersion } from '@/lib/memo-history';
 import { restoreHistoryCopy } from '@/lib/memo-history-restore';
 import { memoHistoryCopy } from '@/lib/memo-history-copy';
@@ -858,7 +858,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
       const visibleIds = new Set(next.notes.filter(note => !note.isDeleted).map(note => note.id));
       setOpenTabs(previous => previous.map(tab => ({ ...tab, id: remap(tab.id) })).filter(tab => visibleIds.has(tab.id)));
       setSelectedNoteIds(previous => new Set([...previous].map(remap).filter(id => visibleIds.has(id))));
-      if (copy || before?.title !== after?.title || before?.content !== after?.content) setEditorSyncRevision(value => value + 1);
+      if (copy || before?.title !== after?.title || !sameNoteBody(before, after, document)) setEditorSyncRevision(value => value + 1);
       setNotes(next.notes); setGroups(next.groups); setScrollDirection(next.settings.listStyle);
       setActiveGroupId(previous => after && before?.group === previous ? after.group : next.groups.some(group => group.id === previous && !group.isDeleted) ? previous : next.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
       return;
@@ -1063,6 +1063,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
 
 
   const activeNote = activeTabId ? notes.find((note) => note.id === activeTabId) ?? null : null;
+  // Only the open memo gets editor HTML; the others keep their stored body (specs/17).
+  const editorNote = React.useMemo(() => activeNote && noteWithContent(activeNote, globalThis.document), [activeNote]);
   const handleHistoryRestore = (version: MemoHistoryVersion) => {
     const labels = memoHistoryCopy[lang];
     const restored = restoreHistoryCopy(version, sourceGroups, sourceNotes, { dom: document,
@@ -1606,7 +1608,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
               <Editor
                 externalRevision={editorSyncRevision}
                 continuityKey={editorContinuity?.noteId === activeNote.id ? editorContinuity.key : undefined}
-                note={activeNote}
+                note={editorNote!}
                 historyAction={memoHistory && activeNote.type !== 'separator' ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
                 onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
                   handleDeleteNote(activeNote.id);
