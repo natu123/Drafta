@@ -27,3 +27,7 @@
 
 - 単体: 11言語の文言, ページ離脱の確認を出す条件.
 - 画面: `/playground/` で見本メモが開き, メモの追加･編集･すべてのメモが使えること, Firebase (googleapis･firebaseapp) への通信がないこと, 再読み込みで初期サンプルに戻ること, 編集後の離脱確認, 帯のボタンで`/app/`へ移ること, 1440px･375px.
+
+## 公開 (0.7.3, 2026-10-21)
+
+単体332テストとEmulatorの保存･ルールのテストが成功し, 開発Serverと本番で上記の画面を確認しました (詳細は[09_release_versioning.md](09_release_versioning.md)). 本番のPlaygroundでFirebase (googleapis･firebaseapp等) への通信が0件であることを確認しました. チャットスタイルではメモを最下部から開くため, Playgroundでは帯の分だけ見本の「このガイドは編集できません」の案内が上に隠れて始まります (アプリと同じ動き).
