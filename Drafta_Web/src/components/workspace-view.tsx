@@ -909,6 +909,18 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     if (viewKey) writeViewState(viewKey, { groupId: activeGroupId, noteId: activeTabId, tabIds: openTabs.map(tab => tab.id), pane: mobilePane });
   }, [viewKey, activeGroupId, activeTabId, openTabs, mobilePane]);
   const [isTrayDrawerOpen, setIsTrayDrawerOpen] = React.useState(false);
+  // The tray list opens at the side where lists open, like the memo list: the bottom in the chat
+  // style. Only when it appears or the style changes; adding or pinning a tray keeps the position.
+  const trayScrollRef = React.useRef<HTMLDivElement>(null);
+  const traysShown = activeView === 'home' && (layoutMode === 'desktop' || (layoutMode === 'tablet' ? isTrayDrawerOpen : mobilePane === 'trays'));
+  React.useEffect(() => {
+    if (!traysShown) return;
+    const timer = setTimeout(() => {
+      const viewport = trayScrollRef.current?.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
+      if (viewport) viewport.scrollTop = scrollDirection === 'bottom' ? viewport.scrollHeight : 0;
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [traysShown, scrollDirection]);
 
   React.useLayoutEffect(() => {
     const updateLayout = () => {
@@ -1476,7 +1488,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
               </div>
 
-              <ScrollArea className="flex-1 px-4">
+              <ScrollArea ref={trayScrollRef} className="tray-scroll flex-1 px-4">
                 <div className="w-full max-w-full overflow-hidden">
                   <DndContext
                     id="groups-dnd"
