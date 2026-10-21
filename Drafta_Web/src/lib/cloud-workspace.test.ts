@@ -246,4 +246,30 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
     console.info(`[reads] 429 memos: before ${before}, after ${after}`);
     expect([before, after]).toEqual([2 + 429 + 1 + 429, 2 + 429 + 1 + 1]);
   }, 120000);
+
+  it('rebuilds the server workspace from a device cache and the memos saved since it', async () => {
+    const device = repository('alice');
+    const other = repository('alice');
+    let latest = await other.save({ ...fresh(), groups: [...fresh().groups, { id: 'tray2', name: 'Second', type: 'group' }], notes: ['a', 'b', 'c', 'd', 'e'].map(id => memo(id, 'one')) }, null);
+    const cached = (await device.loadWithSince())!;
+    expect(cached.since).not.toBeNull();
+    // Same revision: the cached workspace itself, no memo reads.
+    const same = await device.loadSince(cached);
+    expect(same?.saved).toBe(cached.saved);
+    // Two saves on another device: edit, delete, add, reorder, tray rename and move.
+    latest = await other.save({ ...latest.backup, groups: latest.backup.groups.map(group => group.id === 'tray2' ? { ...group, name: 'Renamed' } : group),
+      notes: [memo('f', 'new'), ...latest.backup.notes.filter(note => note.id !== 'b').map(note => note.id === 'a' ? memo('a', 'edited') : note.id === 'c' ? { ...note, group: 'tray2' } : note)].reverse() }, latest);
+    latest = await other.save({ ...latest.backup, notes: latest.backup.notes.filter(note => note.id !== 'd').map(note => note.id === 'e' ? memo('e', 'edited twice') : note) }, latest);
+    const full = (await repository('alice').loadWithSince())!;
+    const rebuilt = (await device.loadSince(cached))!;
+    expect(rebuilt.saved).toEqual(full.saved);
+    expect(rebuilt.since).toEqual(full.since);
+    // An older lower bound only reads more.
+    expect((await device.loadSince({ ...cached, since: { seconds: 0, nanoseconds: 0 } }))!.saved).toEqual(full.saved);
+    // A cache missing a memo that did not change falls back to the full load.
+    const broken = { ...cached, saved: { ...cached.saved, backup: { ...cached.saved.backup, notes: cached.saved.backup.notes.filter(note => note.id !== 'c' && note.id !== 'e') } } };
+    expect((await device.loadSince(broken))!.saved).toEqual(full.saved);
+    // Another account's cache is never used.
+    expect((await device.loadSince({ ...cached, saved: { ...cached.saved, uid: 'bob' } }))!.saved).toEqual(full.saved);
+  });
 });
