@@ -176,3 +176,25 @@ describe('Rich and Plain conversion', () => {
     );
   });
 });
+
+describe('literal HTML in Plain text', () => {
+  it('keeps tags typed as text through Plain and back to Rich', () => {
+    const rich = '<p>&lt;font color="#b2a2c7"&gt;2026-05-31&lt;/font&gt;</p><p>&lt;b&gt;not bold&lt;/b&gt; a &lt; b &amp;&amp; c &gt; d &amp;amp;</p>';
+    const plain = richToPlainMarkdown(rich);
+    expect(plain).toBe('<font color="#b2a2c7">2026-05-31</font>\n<b>not bold</b> a < b && c > d &amp;');
+    const back = document.createElement('div');
+    back.innerHTML = plainMarkdownToRich(plain);
+    expect([...back.querySelectorAll('p')].map(p => p.textContent)).toEqual(['<font color="#b2a2c7">2026-05-31</font>', '<b>not bold</b> a < b && c > d &amp;']);
+    expect(back.querySelector('font, b')).toBeNull();
+  });
+
+  it('never turns pasted or typed text into markup, while Drafta-MD still converts', () => {
+    const html = plainMarkdownToRich('- <img src=x onerror=alert(1)> **bold** {color:#64A364}green{/color} `<code>`');
+    const box = document.createElement('div');
+    box.innerHTML = html;
+    expect(box.querySelector('img')).toBeNull();
+    expect(box.querySelector('strong')?.textContent).toBe('bold');
+    expect(box.querySelector('span[style]')?.textContent).toBe('green');
+    expect(box.querySelector('code')?.textContent).toBe('<code>');
+  });
+});

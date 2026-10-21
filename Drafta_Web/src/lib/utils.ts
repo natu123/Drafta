@@ -569,6 +569,9 @@ export function plainMarkdownToRich(text: string): string {
 
   const processInline = (str: string): string => {
     return str
+      // Plain text is text: a typed or pasted "<font ...>" or "a < b" stays as written instead of
+      // becoming markup the editor drops (Rich -> Plain only writes Markdown, never HTML).
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       // Color syntax: {color:#XXXXXX}text{/color} → <span style="color: #XXXXXX">text</span>
       .replace(/\{color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})\}(.+?)\{\/color\}/gi, '<span style="color: $1">$2</span>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
