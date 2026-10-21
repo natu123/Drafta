@@ -25,8 +25,6 @@ export type WorkspaceViewProps = {
   viewKey?: string;
   /** Shown above the header, such as the Playground's not-saved notice. */
   notice?: React.ReactNode;
-  /** View only while the memo bodies of a new device arrive (specs/17); remote updates still apply. */
-  readOnly?: boolean;
   /** How many memo bodies are on this device; set only while they are arriving. */
   bodyProgress?: { loaded: number; total: number } | null;
   /** Asks for the body of the memo being opened before the others. */
@@ -815,17 +813,17 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 
 /** The app screen: signed in through CloudSession at /app/, or unsaved at /playground/ (AGENTS.md, Playground). */
-export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey, notice, readOnly = false, bodyProgress, onNeedBody }: WorkspaceViewProps) {
+export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey, notice, bodyProgress, onNeedBody }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
   // What was open last time on this device, where it still exists (AGENTS.md, View Restore).
   const [restoredView] = React.useState(() => initialState && viewKey ? restoreView(readViewState(viewKey), initialState) : null);
 
   // Preserve the former newest-first sample display as the initial manual order.
-  const [sourceNotes, setNotesState] = React.useState<Note[]>(() => initialState?.notes ?? initialSampleOrder(initialNotes));
+  const [sourceNotes, setNotes] = React.useState<Note[]>(() => initialState?.notes ?? initialSampleOrder(initialNotes));
   const modKey = useShortcutMod();
   const notes = React.useMemo(() => sourceNotes.map(note => localizeSampleNote(note, lang, modKey)), [sourceNotes, lang, modKey]);
-  const [sourceGroups, setGroupsState] = React.useState<Group[]>(() => initialState?.groups ?? initialGroups);
+  const [sourceGroups, setGroups] = React.useState<Group[]>(() => initialState?.groups ?? initialGroups);
   const groups = React.useMemo(() => sourceGroups.map(group => localizeUntitledGroup(group, appT.untitledTray)), [sourceGroups, appT.untitledTray]);
 
 
@@ -848,13 +846,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
   const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
   const [activeGroupId, setActiveGroupId] = React.useState<string>(() => restoredView?.groupId ?? (initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox'));
-  const [scrollDirection, setScrollDirectionState] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? DEFAULT_LIST_STYLE);
-  // While memo bodies arrive on a new device, edits are ignored (specs/17); remote updates use the state setters.
-  const readOnlyRef = React.useRef(readOnly);
-  React.useLayoutEffect(() => { readOnlyRef.current = readOnly; });
-  const setNotes: typeof setNotesState = React.useCallback(value => { if (!readOnlyRef.current) setNotesState(value); }, []);
-  const setGroups: typeof setGroupsState = React.useCallback(value => { if (!readOnlyRef.current) setGroupsState(value); }, []);
-  const setScrollDirection: typeof setScrollDirectionState = React.useCallback(value => { if (!readOnlyRef.current) setScrollDirectionState(value); }, []);
+  const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? DEFAULT_LIST_STYLE);
   const appliedRemote = React.useRef<WorkspaceUpdate | undefined>(undefined);
   const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
   const [editorSyncRevision, setEditorSyncRevision] = React.useState(0);
@@ -877,7 +869,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       setOpenTabs(previous => previous.map(tab => ({ ...tab, id: remap(tab.id) })).filter(tab => visibleIds.has(tab.id)));
       setSelectedNoteIds(previous => new Set([...previous].map(remap).filter(id => visibleIds.has(id))));
       if (copy || before?.title !== after?.title || !sameNoteBody(before, after, document)) setEditorSyncRevision(value => value + 1);
-      setNotesState(next.notes); setGroupsState(next.groups); setScrollDirectionState(next.settings.listStyle);
+      setNotes(next.notes); setGroups(next.groups); setScrollDirection(next.settings.listStyle);
       setActiveGroupId(previous => previous === ALL_MEMOS || previous === 'restore' ? previous : after && before?.group === previous ? after.group : next.groups.some(group => group.id === previous && !group.isDeleted) ? previous : next.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
       return;
     }
@@ -1152,7 +1144,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       }
       return note;
     }));
-  }, [activeTabId, lang, modKey, setNotes]);
+  }, [activeTabId, lang, modKey]);
 
   const openTab = React.useCallback((id: string, type: 'note') => {
     setOpenTabs(prev => prev.some(tab => tab.id === id) ? prev : [...prev, { id, type }]);
@@ -1254,7 +1246,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       addToHistory(note);
       if (layoutMode === 'mobile') setMobilePane('editor');
     }
-  }, [notes, layoutMode, openTab, addToHistory, setNotes]);
+  }, [notes, layoutMode, openTab, addToHistory]);
 
   const handleGroupSelect = React.useCallback((id: string) => {
     setActiveGroupId(id);
@@ -1291,7 +1283,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       );
       return result;
     });
-  }, [setNotes]);
+  }, []);
 
   // Delete helpers
   const handleDeleteNote = (id: string) => {
@@ -1351,7 +1343,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
   const handleIconChange = React.useCallback((id: string, icon: string) => {
     setNotes(prevNotes => prevNotes.map(note => note.id === id && !isEditLockedSample(note) ? { ...note, icon } : note));
-  }, [setNotes]);
+  }, []);
 
   const handleDuplicateSample = (id: string) => {
     const source = sourceNotes.find(note => note.id === id);
@@ -1467,7 +1459,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
               {/* Create a tray while retaining the current selection and pane. */}
               <div className="px-2 py-1.5 border-b shrink-0" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-                {!readOnly && <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />}
+                <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
               </div>
 
               <ScrollArea className="flex-1 px-4">
@@ -1601,8 +1593,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               onPermanentDeleteGroup={(id) => confirmPermanentDelete(id, 'group')}
 
               groups={groups}
-              onAddSeparator={activeGroupId === ALL_MEMOS || readOnly ? undefined : handleAddSeparator}
-              onQuickAdd={activeGroupId === ALL_MEMOS || readOnly ? undefined : handleQuickCreateNote}
+              onAddSeparator={activeGroupId === ALL_MEMOS ? undefined : handleAddSeparator}
+              onQuickAdd={activeGroupId === ALL_MEMOS ? undefined : handleQuickCreateNote}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'restore' && activeGroupId !== ALL_MEMOS ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
@@ -1641,12 +1633,11 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               <div role="status" className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">{storageCopy[lang].bodyLoading}</div>
             ) : activeNote && editorNote ? (
               <Editor
-                readOnly={readOnly}
                 externalRevision={editorSyncRevision}
                 continuityKey={editorContinuity?.noteId === activeNote.id ? editorContinuity.key : undefined}
                 note={editorNote}
                 historyAction={memoHistory && activeNote.type !== 'separator' ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
-                onDelete={!readOnly && !activeNote.isProtected && !activeNote.isDeleted ? () => {
+                onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
                   handleDeleteNote(activeNote.id);
                   setActiveView('home');
                   setMobilePane('notes');
@@ -1677,7 +1668,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 <h3 className="text-xl font-medium text-foreground mb-2">{appT.noActiveMemo}</h3>
                 <p className="max-w-xs">{appT.noActiveMemoDesc}</p>
                 {/* New memos need a tray; the all memos and restore views have none to add to. */}
-                {!readOnly && groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator') && <div className="mt-6 w-full max-w-sm"><InlineCreate label={appT.addMemo} placeholder={appT.untitledMemo} onCreate={title => {
+                {groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator') && <div className="mt-6 w-full max-w-sm"><InlineCreate label={appT.addMemo} placeholder={appT.untitledMemo} onCreate={title => {
                   handleQuickCreateNote(title);
                   setActiveView('home');
                   setMobilePane('notes');
@@ -1692,7 +1683,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           onOpenChange={setIsSettingsOpen}
           scrollDirection={scrollDirection}
           onScrollDirectionChange={handleListStyleChange}
-          onImport={readOnly ? undefined : () => { setIsSettingsOpen(false); setIsImportOpen(true); }}
+          // Imports save as they go, so they wait for the bodies of a new device (specs/17).
+          onImport={bodyProgress ? undefined : () => { setIsSettingsOpen(false); setIsImportOpen(true); }}
         />
 
         <ImportDialog

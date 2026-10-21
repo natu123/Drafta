@@ -23,6 +23,8 @@ export type LoadedWorkspace = { saved: SavedWorkspace; since: WorkspaceSince | n
 /** Every memo without its body, for the list before the bodies arrive (specs/17). */
 export type PartialWorkspace = { uid: string; revision: number; since: WorkspaceSince | null; envelope: WorkspaceEnvelope; summaries: NoteSummary[] };
 export type Body = BackupNote['document'];
+/** A whole workspace from summaries; `changed` lists the memos another device saved or deleted meanwhile ('all' when unknown). */
+export type HydratedWorkspace = LoadedWorkspace & { changed: ReadonlySet<string> | 'all' };
 
 /** Bodies read per query while bringing a new device up to date. */
 export const BODY_PAGE = 100;
@@ -194,7 +196,7 @@ export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryF
    * checks the revision: when another device saved meanwhile, the saved changes are read again, so
    * the result is one revision. `known` holds bodies already read for the memo being opened.
    */
-  async function hydrate(partial: PartialWorkspace, hooks: { onBody?: (id: string, body: Body) => void; known?: ReadonlyMap<string, Body> } = {}): Promise<LoadedWorkspace | null> {
+  async function hydrate(partial: PartialWorkspace, hooks: { onBody?: (id: string, body: Body) => void; known?: ReadonlyMap<string, Body> } = {}): Promise<HydratedWorkspace | null> {
     if (partial.uid !== uid) throw new WorkspaceStorageError('Account changed');
     const wanted = new Set(partial.summaries.map(summary => summary.id));
     const bodies = new Map<string, Body>();
@@ -218,10 +220,14 @@ export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryF
     const head = currentHead(finish.data());
     const summaries = new Map(partial.summaries.map(summary => [summary.id, summary]));
     let envelope = partial.envelope, order = partial.summaries.map(summary => summary.id), revision = partial.revision, since = partial.since;
+    const changed = new Set<string>();
+    const reload = async () => { const loaded = await loadWithSince(); return loaded && { ...loaded, changed: 'all' as const }; };
     if (head.revision !== partial.revision) {
-      if (!partial.since) return loadWithSince();
+      if (!partial.since) return reload();
       const changes = await changesSince(partial.since);
-      if (!changes?.head) return changes ? null : loadWithSince();
+      if (!changes?.head) return changes ? null : reload();
+      for (const id of [...changes.summaries.keys(), ...changes.bodies.keys()]) changed.add(id);
+      for (const id of order) if (!changes.head.metadata.noteOrder.includes(id)) changed.add(id);
       for (const [id, summary] of changes.summaries) summaries.set(id, summary);
       for (const [id, body] of changes.bodies) { bodies.set(id, body); hooks.onBody?.(id, body); }
       textBytes += changes.bytes;
@@ -236,7 +242,7 @@ export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryF
       const summary = summaries.get(id), body = bodies.get(id);
       return summary && body ? { ...noteMetadata(summary), document: body } : undefined;
     }, order.map(id => summaries.get(id)!), textBytes);
-    return { saved: { uid, revision, backup }, since };
+    return { saved: { uid, revision, backup }, since, changed };
   }
 
   async function loadWithSince(): Promise<LoadedWorkspace | null> {

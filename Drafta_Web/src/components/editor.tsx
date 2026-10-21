@@ -16,11 +16,9 @@ interface EditorProps {
   onDelete?: () => void;
   onDuplicate?: () => void;
   historyAction?: React.ReactNode;
-  /** View only, while the memo bodies of a new device are still arriving (specs/17). */
-  readOnly?: boolean;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete, onDuplicate, externalRevision, continuityKey, historyAction, readOnly }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, navigationAction, onDelete, onDuplicate, externalRevision, continuityKey, historyAction }) => {
 
   const handleContentUpdate = React.useCallback((updates: Partial<Note>, noteId: string) => {
     onNoteUpdate(updates, noteId);
@@ -44,7 +42,6 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
         onDelete={onDelete}
         onDuplicate={onDuplicate}
         historyAction={historyAction}
-        forceReadOnly={readOnly}
       />
     </div>
   );

@@ -20,6 +20,7 @@ import type { Note } from '@/lib/types';
 import { requiresImmediateSave } from '@/lib/workspace-change';
 import { summariesToState, workspaceToState, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
 import { attachBody } from '@/lib/note-source';
+import { heldEditsMerge } from '@/lib/held-edits';
 import { storageCopy } from '@/lib/storage-copy';
 import { StorageMigration } from './storage-migration';
 import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
@@ -39,7 +40,7 @@ import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
 type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean>; viewKey?: string;
-  readOnly?: boolean; bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void };
+  bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void };
 // Each memo's JSON is reused while its field values are unchanged, so one keystroke serializes one memo.
 const noteFingerprints = new WeakMap<Note, { fields: Note; text: string }>();
 const noteFingerprint = (note: Note) => {
@@ -87,8 +88,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const heldEdits = React.useRef(new Map<string, { base: SavedWorkspace | null; backup: WorkspaceBackup; invalid: WorkspaceState | null }>());
   const [hasHeldEdits, setHasHeldEdits] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  // `readOnly` while the memo bodies of a device without a copy arrive; `migration` for the 0.7 storage (specs/17).
-  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState; history?: MemoHistoryRepository; readOnly?: boolean; migration?: boolean } | null>(null);
+  // `migration` for an account in the 0.7 storage (specs/17).
+  const [session, setSession] = React.useState<{ key: number; user: User | null; seed?: WorkspaceState; history?: MemoHistoryRepository; migration?: boolean } | null>(null);
   const [status, setStatus] = React.useState<SaveStatus>('loading');
   const [busy, setBusy] = React.useState(false);
   const [errorCode, setErrorCode] = React.useState<string | null>(null);
@@ -102,6 +103,10 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const arrivedBodies = React.useRef(new Map<string, Body>());
   const askedBodies = React.useRef(new Set<string>());
   const bodyRepository = React.useRef<ReturnType<typeof cloudWorkspace> | null>(null);
+  // While they arrive, edits are held here and saved once the workspace is whole (0.8.1).
+  const hydratingSeed = React.useRef<WorkspaceState | null>(null);
+  const heldState = React.useRef<WorkspaceState | null>(null);
+  const heldDirty = React.useCallback(() => Boolean(hydratingSeed.current && heldState.current && stateFingerprint(heldState.current) !== stateFingerprint(hydratingSeed.current)), []);
   // Device cache (specs/16): the server time read at start-up bounds every later revision of this session.
   const sessionSince = React.useRef<WorkspaceSince | null>(null);
   const cachedRevision = React.useRef(0);
@@ -164,6 +169,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     setSession(null); setStatus('loading');
     setBodyProgress(null); bodyRepository.current = null;
     bodyTokens.current = new Map(); arrivedBodies.current = new Map(); askedBodies.current = new Set();
+    hydratingSeed.current = null; heldState.current = null;
     if (!user) {
       setStatus('guest'); return;
     }
@@ -193,14 +199,15 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         if (!partial) serverChecked.current = true;
       }
       if (partial) {
-        // View only until every body has arrived and the workspace is one revision again.
+        // Editable at once; edits are held until every body has arrived (specs/17, 0.8.1).
         const seed = summariesToState(partial.envelope, partial.summaries);
         restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme);
         bodyTokens.current = new Map(seed.notes.map(note => [note.id, note.source!]));
         bodyRepository.current = repository;
         activeOwner.current = user.uid;
         setBodyProgress({ loaded: 0, total: partial.summaries.length });
-        setSession({ key: id, user, seed, readOnly: true });
+        hydratingSeed.current = seed;
+        setSession({ key: id, user, seed });
         const loaded = await repository.hydrate(partial, { known: arrivedBodies.current, onBody: (noteId, body) => {
           const token = bodyTokens.current.get(noteId);
           if (token) attachBody(token, body);
@@ -212,13 +219,34 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         stored = loaded.saved;
         sessionSince.current = loaded.since;
         serverChecked.current = true;
-        lastBackup.current = stored.backup;
-        queue.current = makeQueue(stored, repository, id);
-        applyRemote(stored.backup, []);
+        // The editor's last keystrokes join the held edits first.
+        flushEdits();
+        // A ref read after an await; TypeScript would keep the narrowing from the reset above.
+        const local = heldDirty() ? heldState.current as WorkspaceState | null : null;
+        hydratingSeed.current = null; heldState.current = null;
         bodyRepository.current = null;
         bodyTokens.current = new Map(); arrivedBodies.current = new Map(); askedBodies.current = new Set();
         setBodyProgress(null);
-        setSession({ key: id, user, seed, readOnly: false, history: repository.history });
+        setSession({ key: id, user, seed, history: repository.history });
+        if (!local) {
+          lastBackup.current = stored.backup;
+          queue.current = makeQueue(stored, repository, id);
+          applyRemote(stored.backup, []);
+        } else {
+          const pending = heldEditsMerge({ partial, seed, local, remote: stored.backup, changed: loaded.changed, dom: document });
+          const unchanged = stored.revision === partial.revision;
+          queue.current = makeQueue(unchanged ? stored : { uid: user.uid, revision: partial.revision, backup: pending.base }, repository, id);
+          lastBackup.current = pending.local; lastState.current = stateFingerprint(local);
+          queue.current.enqueue(pending.local);
+          if (unchanged) {
+            // Untouched memos get the server's full preview text; the edited ones stay as they are.
+            const server = new Map(workspaceToState(stored.backup, document, { lazyBodies: true }).notes.map(note => [note.id, note]));
+            const seeded = new Map(seed.notes.map(note => [note.id, note]));
+            const state = { ...local, notes: local.notes.map(note => seeded.get(note.id) === note ? server.get(note.id) ?? note : note) };
+            lastState.current = stateFingerprint(state);
+            setRemoteUpdate({ sequence: ++updateSequence.current, state, copies: [] });
+          } else queue.current.acceptRemote(stored); // Merged like any other remote change.
+        }
         setStatus(queue.current.status);
       } else {
       const seed = held ? held.invalid ?? workspaceToState(held.backup, document, { lazyBodies: true }) : stored ? workspaceToState(stored.backup, document, { lazyBodies: true }) : undefined;
@@ -290,7 +318,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         setStatus('error');
       }
     }
-  }, [restoreLanguage, makeQueue, repositoryFor, keepCache, applyRemote]);
+  }, [restoreLanguage, makeQueue, repositoryFor, keepCache, applyRemote, heldDirty]);
   React.useEffect(() => { reloadAccount.current = load; }, [load]);
 
   React.useEffect(() => {
@@ -307,7 +335,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   React.useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
       flushEdits();
-      if (queue.current?.dirty || invalidState.current || heldEdits.current.size) { event.preventDefault(); event.returnValue = ''; }
+      if (queue.current?.dirty || invalidState.current || heldEdits.current.size || heldDirty()) { event.preventDefault(); event.returnValue = ''; }
     };
     const flush = () => { flushEdits(); void queue.current?.flush(); void cacheWrites.current.flush(); };
     // Focus can leave while React removes the editor; flush after that commit finishes.
@@ -323,15 +351,15 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     window.addEventListener('keydown', saveShortcut);
     document.addEventListener('visibilitychange', visibility);
     return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flushLater); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flushLater); window.removeEventListener('keydown', saveShortcut); };
-  }, []);
+  }, [heldDirty]);
 
   const sessionKey = session?.key;
   const uid = session?.user?.uid;
   const changed = React.useCallback((state: WorkspaceState) => {
     if (sessionKey !== generation.current) return;
     if (!uid) return;
-    // No saving while the bodies arrive or before the update (specs/17).
-    if (!queue.current) return;
+    // No saving before the update; while the bodies arrive, edits are held (specs/17, 0.8.1).
+    if (!queue.current) { if (hydratingSeed.current) heldState.current = state; return; }
     if (!flushingForAccountChange.current && client.current?.auth.currentUser?.uid !== uid) return;
     const fingerprint = stateFingerprint(state);
     if (fingerprint === lastState.current) {
@@ -412,7 +440,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   }); };
   const reload = () => {
     if (reviewRemote) { setReviewOpen(true); return; }
-    if ((queue.current?.dirty || invalidState.current) && !window.confirm(labels.discardConfirm)) return;
+    if ((queue.current?.dirty || invalidState.current || heldDirty()) && !window.confirm(labels.discardConfirm)) return;
     void load(client.current?.auth.currentUser ?? null);
   };
   const retry = () => {
@@ -436,5 +464,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} readOnly={session.readOnly} bodyProgress={bodyProgress} onNeedBody={needBody} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} bodyProgress={bodyProgress} onNeedBody={needBody} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }
