@@ -34,12 +34,10 @@ export interface ReleaseCopy {
   release060: string;
   release051: string;
   release050: string;
-  previousCloudWarning: string;
   release040: string;
   release030: string;
   release021: string;
   release020: string;
-  legacyWarning: string;
   release011: string;
   historyRich: string;
   historyInput: string;
@@ -66,7 +64,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'previousCloudWarning' | 'legacyWarning'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -358,12 +356,10 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
 export const releaseCopy = Object.fromEntries(
   Object.entries(previousReleaseCopy).map(([language, previous]) => [language, {
     ...previous,
-    legacyWarning: previous.warning,
     release021: authRetryReleaseCopy[language as Lang],
     ...persistenceReleaseCopy[language as Lang],
     ...syncReleaseCopy[language as Lang],
     ...memoHistoryReleaseCopy[language as Lang],
-    previousCloudWarning: persistenceReleaseCopy[language as Lang].warning,
     ...authRequiredReleaseCopy[language as Lang],
     release051: loginErrorsReleaseCopy[language as Lang],
     release060: importReleaseCopy[language as Lang],
