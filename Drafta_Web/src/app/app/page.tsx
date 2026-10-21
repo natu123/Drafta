@@ -24,7 +24,7 @@ export type WorkspaceViewProps = {
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
-import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown } from 'lucide-react';
+import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown, Layers } from 'lucide-react';
 import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,7 @@ import type { Modifier } from '@dnd-kit/core';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from '@/lib/list-style';
 import { readViewState, restoreView, writeViewState } from '@/lib/view-state';
+import { ALL_MEMOS, allMemos } from '@/lib/all-memos';
 
 
 
@@ -146,6 +147,8 @@ interface HomeSectionProps {
   leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
   trayNameValue?: string;
+  /** The all memos view: order follows edits, so memos are not dragged; each shows its tray. */
+  trayNames?: Map<string, string>;
 }
 
 // Sortable Note Item Component
@@ -164,12 +167,14 @@ interface SortableNoteItemProps {
   onRestoreItem?: (id: string) => void;
   onPermanentDeleteItem?: (id: string) => void;
   onIconChange?: (id: string, icon: string) => void;
+  /** Shown in the all memos view, where memos from every tray meet. */
+  trayName?: string;
 }
 
 type SortableBinding = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners' | 'setNodeRef' | 'isDragging'> & { transform: string | undefined; transition: string | undefined };
 
 const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = ({
-  item, activeId, isSelectionMode, selectedIds, isTrash, canDrag,
+  item, activeId, isSelectionMode, selectedIds, isTrash, canDrag, trayName,
   onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin,
   attributes, listeners, setNodeRef, transform, transition, isDragging,
 }) => {
@@ -307,6 +312,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
           </div>
           <div className={cn("flex justify-between items-center min-w-0 overflow-hidden", item.plainTextContent?.trim() ? "mt-1" : "absolute right-0 bottom-0")}>
             <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
+            {trayName !== undefined && <span className="memo-tray text-[10px] text-muted-foreground truncate max-w-[40%] shrink-0 mr-2">{trayName}</span>}
             <span className="memo-date text-[10px] text-muted-foreground shrink-0">
               {new Date(item.updatedAt).toLocaleDateString()}
             </span>
@@ -458,7 +464,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange, leadingAction, onRenameTray, trayNameValue
+  onIconChange, leadingAction, onRenameTray, trayNameValue, trayNames
 }) => {
   const { t, lang } = useLang();
   const a11y = a11yCopy[lang];
@@ -468,7 +474,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   // dnd-kit setup
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
-  const canDragNotes = !isSelectionMode && !isTrash;
+  const canDragNotes = !isSelectionMode && !isTrash && !trayNames;
 
   // SortableContext範囲内に制限するカスタムモディファイア
   const restrictToSortableArea = React.useMemo(
@@ -696,7 +702,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                             onItemSelect={cardActions.onItemSelect} onToggleComplete={onToggleComplete && cardActions.onToggleComplete}
                             onDeleteItem={cardActions.onDeleteItem} onRestoreItem={onRestoreItem && cardActions.onRestoreItem}
                             onPermanentDeleteItem={onPermanentDeleteItem && cardActions.onPermanentDeleteItem} onIconChange={onIconChange && cardActions.onIconChange}
-                            onTogglePin={cardActions.onTogglePin} />)}
+                            onTogglePin={cardActions.onTogglePin} trayName={trayNames?.get(item.group)} />)}
                         </SortableContext>
                       </div>
                     </React.Fragment>)}
@@ -860,7 +866,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
       setSelectedNoteIds(previous => new Set([...previous].map(remap).filter(id => visibleIds.has(id))));
       if (copy || before?.title !== after?.title || !sameNoteBody(before, after, document)) setEditorSyncRevision(value => value + 1);
       setNotes(next.notes); setGroups(next.groups); setScrollDirection(next.settings.listStyle);
-      setActiveGroupId(previous => after && before?.group === previous ? after.group : next.groups.some(group => group.id === previous && !group.isDeleted) ? previous : next.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
+      setActiveGroupId(previous => previous === ALL_MEMOS || previous === 'restore' ? previous : after && before?.group === previous ? after.group : next.groups.some(group => group.id === previous && !group.isDeleted) ? previous : next.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
       return;
     }
     onWorkspaceChange?.({ notes: sourceNotes, groups: sourceGroups, settings: { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } });
@@ -1341,7 +1347,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
       const index = scrollDirection === 'top' ? previous.findIndex(note => note.group === copy.group) : -1;
       return index === -1 ? [...previous, copy] : [...previous.slice(0, index), copy, ...previous.slice(index)];
     });
-    setActiveGroupId(copy.group);
+    if (activeGroupId !== ALL_MEMOS) setActiveGroupId(copy.group);
     openTab(copy.id, 'note');
     toast({ description: sampleLockCopy[lang].duplicated });
   };
@@ -1351,6 +1357,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   }, []);
 
   const sortedNotes = React.useMemo(() => {
+    if (activeGroupId === ALL_MEMOS) return allMemos(notes, groups, scrollDirection);
     let items = notes;
     if (activeGroupId === 'restore') {
       items = items.filter(note => note.isDeleted);
@@ -1358,7 +1365,8 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
       items = items.filter(note => note.group === activeGroupId && !note.isDeleted);
     }
     return items;
-  }, [notes, activeGroupId]);
+  }, [notes, groups, activeGroupId, scrollDirection]);
+  const allTrayNames = React.useMemo(() => activeGroupId === ALL_MEMOS ? new Map(groups.map(group => [group.id, group.name])) : undefined, [activeGroupId, groups]);
 
 
   return (
@@ -1457,6 +1465,13 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                     onDragCancel={() => setActiveDragGroupId(null)}
                   >
                     <div className="flex flex-col gap-0 pb-2">
+                      {/* Every memo in one list, whatever tray it is in (AGENTS.md, All Memos). */}
+                      <div className="pt-2 pb-2 mb-2 border-b">
+                        <Button variant="ghost" className={cn("all-memos w-full justify-start gap-2 h-9", activeGroupId === ALL_MEMOS && "bg-primary/15 hover:bg-primary/20 font-medium")} onClick={() => handleGroupSelect(ALL_MEMOS)}>
+                          <Layers className="w-4 h-4" />
+                          <span className="truncate">{appT.allMemos}</span>
+                        </Button>
+                      </div>
                       <div ref={groupSortableAreaRef}>
                         {/* Pinned trays follow the memo list: bottom in the chat style (AGENTS.md, Tray Pins). */}
                         {(scrollDirection === 'bottom' ? [false, true] : [true, false]).map(pinned => {
@@ -1542,8 +1557,9 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
               pinsCollapsed={Boolean(collapsedPins[activeGroupId])}
               onTogglePins={() => setCollapsedPins(prev => ({ ...prev, [activeGroupId]: !prev[activeGroupId] }))}
               onTogglePin={id => setNotes(prev => prev.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note))}
-              title={activeGroupId === 'restore' ? appT.restore : groups.find(g => g.id === activeGroupId)?.name || appT.inbox}
-              icon={activeGroupId === 'restore' ? RotateCcw : Inbox}
+              title={activeGroupId === 'restore' ? appT.restore : activeGroupId === ALL_MEMOS ? appT.allMemos : groups.find(g => g.id === activeGroupId)?.name || appT.inbox}
+              icon={activeGroupId === 'restore' ? RotateCcw : activeGroupId === ALL_MEMOS ? Layers : Inbox}
+              trayNames={allTrayNames}
               items={sortedNotes}
               onItemSelect={handleNoteSelect}
               activeId={activeTabId}
@@ -1568,10 +1584,10 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
               onPermanentDeleteGroup={(id) => confirmPermanentDelete(id, 'group')}
 
               groups={groups}
-              onAddSeparator={handleAddSeparator}
-              onQuickAdd={handleQuickCreateNote}
+              onAddSeparator={activeGroupId === ALL_MEMOS ? undefined : handleAddSeparator}
+              onQuickAdd={activeGroupId === ALL_MEMOS ? undefined : handleQuickCreateNote}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
-              onRenameTray={activeGroupId !== 'restore' ? (name) => {
+              onRenameTray={activeGroupId !== 'restore' && activeGroupId !== ALL_MEMOS ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
               } : undefined}
               onIconChange={handleIconChange}
@@ -1640,11 +1656,12 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
                 </div>
                 <h3 className="text-xl font-medium text-foreground mb-2">{appT.noActiveMemo}</h3>
                 <p className="max-w-xs">{appT.noActiveMemoDesc}</p>
-                <div className="mt-6 w-full max-w-sm"><InlineCreate label={appT.addMemo} placeholder={appT.untitledMemo} onCreate={title => {
+                {/* New memos need a tray; the all memos and restore views have none to add to. */}
+                {groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator') && <div className="mt-6 w-full max-w-sm"><InlineCreate label={appT.addMemo} placeholder={appT.untitledMemo} onCreate={title => {
                   handleQuickCreateNote(title);
                   setActiveView('home');
                   setMobilePane('notes');
-                }} /></div>
+                }} /></div>}
               </div>
             )}
           </div>

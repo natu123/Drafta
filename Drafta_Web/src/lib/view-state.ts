@@ -1,4 +1,5 @@
 import type { WorkspaceState } from './workspace-state';
+import { ALL_MEMOS } from './all-memos';
 
 /** What was open on this device for the account (AGENTS.md, View Restore). */
 export type ViewState = { groupId: string; noteId: string | null; tabIds: string[]; pane: 'trays' | 'notes' | 'editor' };
@@ -28,7 +29,7 @@ export function restoreView(saved: ViewState | null, state: WorkspaceState): Vie
   if (!saved) return null;
   const trays = new Set(state.groups.filter(group => !group.isDeleted && group.type !== 'separator').map(group => group.id));
   const memos = new Map(state.notes.filter(note => !note.isDeleted && note.type !== 'separator' && trays.has(note.group)).map(note => [note.id, note]));
-  const groupId = saved.groupId === 'restore' || trays.has(saved.groupId) ? saved.groupId : null;
+  const groupId = saved.groupId === 'restore' || saved.groupId === ALL_MEMOS || trays.has(saved.groupId) ? saved.groupId : null;
   if (!groupId) return null;
   const noteId = saved.noteId && memos.has(saved.noteId) ? saved.noteId : null;
   const tabIds = saved.tabIds.filter(id => memos.has(id));

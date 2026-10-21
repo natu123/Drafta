@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { clearViewState, readViewState, restoreView, writeViewState, type ViewState } from './view-state';
 import type { WorkspaceState } from './workspace-state';
 import type { Note } from './types';
+import { ALL_MEMOS } from './all-memos';
 
 const note = (id: string, group: string, extra: Partial<Note> = {}) => ({ id, title: id, content: '', group, stars: 0, createdAt: '', updatedAt: '', ...extra }) as Note;
 const state = { groups: [{ id: 'inbox', name: 'Inbox', type: 'group' }, { id: 'work', name: 'Work', type: 'group' }, { id: 'old', name: 'Old', type: 'group', isDeleted: true }],
@@ -36,6 +37,7 @@ describe('view restore', () => {
     // A memo in a deleted tray and a deleted tray fall back to the defaults.
     expect(restoreView(view({ groupId: 'old', noteId: 'orphan' }), state)).toBeNull();
     expect(restoreView(view({ groupId: 'restore', noteId: null, tabIds: [], pane: 'notes' }), state)?.groupId).toBe('restore');
+    expect(restoreView(view({ groupId: ALL_MEMOS }), state)).toEqual({ groupId: ALL_MEMOS, noteId: 'b', tabIds: ['a', 'b'], pane: 'editor' });
     expect(restoreView(null, state)).toBeNull();
   });
 });

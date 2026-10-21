@@ -78,6 +78,7 @@ export interface AppT {
   pinnedTrays: string;
   unpinMemo: string;
   pinnedMemos: string;
+  allMemos: string;
   // Editor toolbar
   untitledMemo: string;
   formatBold: string;
@@ -172,6 +173,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'Pinned trays',
     unpinMemo: 'Unpin memo',
     pinnedMemos: 'Pinned memos',
+    allMemos: 'All memos',
     untitledMemo: 'Untitled Memo',
     formatBold: "Bold",
     formatItalic: "Italic",
@@ -258,6 +260,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'ピン留め',
     unpinMemo: 'ピン留めを解除',
     pinnedMemos: 'ピン留め',
+    allMemos: 'すべてのメモ',
     untitledMemo: '無題のメモ',
     formatBold: "太字",
     formatItalic: "斜体",
@@ -344,6 +347,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: '已固定',
     unpinMemo: '取消固定',
     pinnedMemos: '已固定',
+    allMemos: '全部备忘录',
     untitledMemo: '无标题备忘录',
     formatBold: "粗体",
     formatItalic: "斜体",
@@ -430,6 +434,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'Fijadas',
     unpinMemo: 'Desfijar nota',
     pinnedMemos: 'Fijadas',
+    allMemos: 'Todas las notas',
     untitledMemo: 'Nota sin título',
     formatBold: "Negrita",
     formatItalic: "Cursiva",
@@ -516,6 +521,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: '고정됨',
     unpinMemo: '고정 해제',
     pinnedMemos: '고정됨',
+    allMemos: '모든 메모',
     untitledMemo: '제목 없는 메모',
     formatBold: "굵게",
     formatItalic: "기울임꼴",
@@ -602,6 +608,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'Épinglées',
     unpinMemo: 'Désépingler',
     pinnedMemos: 'Épinglées',
+    allMemos: 'Toutes les notes',
     untitledMemo: 'Note sans titre',
     formatBold: "Gras",
     formatItalic: "Italique",
@@ -688,6 +695,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'Fixadas',
     unpinMemo: 'Desafixar nota',
     pinnedMemos: 'Fixadas',
+    allMemos: 'Todas as notas',
     untitledMemo: 'Nota sem título',
     formatBold: "Negrito",
     formatItalic: "Itálico",
@@ -774,6 +782,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'पिन किए गए',
     unpinMemo: 'पिन हटाएँ',
     pinnedMemos: 'पिन किए गए',
+    allMemos: 'सभी नोट',
     untitledMemo: 'शीर्षकहीन नोट',
     formatBold: "बोल्ड",
     formatItalic: "इटैलिक",
@@ -860,6 +869,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'المثبتة',
     unpinMemo: 'إلغاء التثبيت',
     pinnedMemos: 'المثبتة',
+    allMemos: 'كل الملاحظات',
     untitledMemo: 'ملاحظة بلا عنوان',
     formatBold: "عريض",
     formatItalic: "مائل",
@@ -946,6 +956,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'Закреплённые',
     unpinMemo: 'Открепить',
     pinnedMemos: 'Закреплённые',
+    allMemos: 'Все заметки',
     untitledMemo: 'Заметка без названия',
     formatBold: "Жирный",
     formatItalic: "Курсив",
@@ -1032,6 +1043,7 @@ export const appTranslations: Record<Lang, AppT> = {
     pinnedTrays: 'Disematkan',
     unpinMemo: 'Lepas sematan',
     pinnedMemos: 'Disematkan',
+    allMemos: 'Semua catatan',
     untitledMemo: 'Catatan tanpa judul',
     formatBold: "Tebal",
     formatItalic: "Miring",
