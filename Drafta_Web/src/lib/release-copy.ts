@@ -16,8 +16,10 @@ import { chatDefaultReleaseCopy } from './chat-default-release-copy';
 import { searchReleaseCopy } from './search-release-copy';
 import { trayPinsReleaseCopy } from './tray-pins-release-copy';
 import { positionReleaseCopy } from './position-release-copy';
+import { caretReleaseCopy } from './caret-release-copy';
 
 export interface ReleaseCopy {
+  release0612: string;
   release0611: string;
   release0610: string;
   release069: string;
@@ -64,7 +66,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'previousCloudWarning' | 'legacyWarning'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'previousCloudWarning' | 'legacyWarning'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -376,5 +378,6 @@ export const releaseCopy = Object.fromEntries(
     release069: searchReleaseCopy[language as Lang],
     release0610: trayPinsReleaseCopy[language as Lang],
     release0611: positionReleaseCopy[language as Lang],
+    release0612: caretReleaseCopy[language as Lang],
   }]),
 ) as Record<Lang, ReleaseCopy>;
