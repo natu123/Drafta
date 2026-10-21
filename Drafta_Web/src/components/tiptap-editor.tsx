@@ -1079,17 +1079,24 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto px-4 cursor-text"
           onMouseDown={(e) => {
-            // Handle click-to-focus for the container background and editor empty area
-            // For clicks on actual content nodes (p, h1, etc.), let ProseMirror handle natively
-            if (editor && !readOnly) {
-              const target = e.target as HTMLElement;
-              // Intercept clicks on ScrollContainer (padding) or ProseMirror div (empty area below content)
-              // Actual content nodes (p, h1, li, etc.) won't match — ProseMirror handles those
-              if (target === e.currentTarget || target.classList.contains('ProseMirror')) {
-                e.preventDefault();
-                editor.commands.focus('end');
-              }
-            }
+            // Clicks land where they point. The scrollbar belongs to the browser; ProseMirror
+            // resolves its own area (gaps between blocks) to the nearest position. Only the space
+            // below the last line puts the caret at the end, and the side padding at the nearest
+            // text. Forcing focus('end') for every non-text click used to move the caret and the
+            // view to the end of the memo on most clicks.
+            if (!editor || readOnly || e.button !== 0) return;
+            const box = e.currentTarget;
+            const onPadding = e.target === box;
+            if (!onPadding && e.target !== editor.view.dom) return;
+            if (e.clientX >= box.getBoundingClientRect().left + box.clientLeft + box.clientWidth) return;
+            const last = editor.view.dom.lastElementChild?.getBoundingClientRect();
+            const belowContent = !last || e.clientY > last.bottom;
+            if (!onPadding && !belowContent) return;
+            e.preventDefault();
+            const doc = editor.view.dom.getBoundingClientRect();
+            const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low + 1), high - 1);
+            const hit = belowContent ? null : editor.view.posAtCoords({ left: clamp(e.clientX, doc.left, doc.right), top: clamp(e.clientY, doc.top, doc.bottom) });
+            editor.chain().setTextSelection(hit?.pos ?? editor.state.doc.content.size).focus(null, { scrollIntoView: false }).run();
           }}
         >
           {onDuplicate && isEditLockedSample(note) && !note.isDeleted && (
