@@ -31,6 +31,7 @@ import { freezeHistorySample } from '@/lib/memo-history-restore';
 import { useShortcutMod } from '@/hooks/use-client-ready';
 import { authRecoveryCopy } from '@/lib/auth-recovery-copy';
 import { loginRequiredCopy } from '@/lib/login-required-copy';
+import { playgroundCopy } from '@/lib/playground-copy';
 import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
@@ -342,7 +343,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (queue.current && serverChecked.current) void queue.current.retry(); else reload();
   };
   const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
-  if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p>{status !== 'guest' && <p role="status" aria-live="polite">{labels.status[status]}</p>}{loginNotice && <p role="alert" className="max-w-lg">{authErrorCopy[lang][loginNotice]}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}</main>;
+  if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p>{status !== 'guest' && <p role="status" aria-live="polite">{labels.status[status]}</p>}{loginNotice && <p role="alert" className="max-w-lg">{authErrorCopy[lang][loginNotice]}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}{!isAuthenticated && !hasHeldEdits && <Link href="/playground/" className="text-sm text-muted-foreground underline underline-offset-4">{playgroundCopy[lang].tryIt}</Link>}</main>;
   const resolveReview = () => {
     if (!reviewRemote || !lastBackup.current || !session.user) return;
     const remote = reviewRemote;

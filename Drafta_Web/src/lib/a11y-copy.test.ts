@@ -31,7 +31,7 @@ describe('accessible labels for icon-only controls', () => {
   });
 
   it('leaves no hard-coded English aria-label or title in the app UI', () => {
-    for (const file of ['src/app/app/page.tsx', 'src/components/vertical-note-tabs.tsx']) {
+    for (const file of ['src/components/workspace-view.tsx', 'src/components/playground.tsx', 'src/components/vertical-note-tabs.tsx']) {
       const source = readFileSync(file, 'utf8');
       expect(source, file).not.toMatch(/(?:aria-label|title)="(?!Drafta")[^"]*[A-Za-z]/);
       expect(source, file).not.toMatch(/(?:aria-label|title)=\{`[A-Z]/);

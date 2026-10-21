@@ -21,6 +21,7 @@ import { literalHtmlReleaseCopy } from './literal-html-release-copy';
 import { deviceCacheReleaseCopy } from './device-cache-release-copy';
 import { viewRestoreReleaseCopy } from './view-restore-release-copy';
 import { allMemosReleaseCopy } from './all-memos-release-copy';
+import { playgroundCopy } from './playground-copy';
 
 export interface ReleaseCopy {
   release072: string;
@@ -387,5 +388,7 @@ export const releaseCopy = Object.fromEntries(
     release070: deviceCacheReleaseCopy[language as Lang],
     release071: viewRestoreReleaseCopy[language as Lang],
     release072: allMemosReleaseCopy[language as Lang],
+    // Sign-in is for saving; the Playground lets anyone try without it (AGENTS.md, Playground).
+    warning: playgroundCopy[language as Lang].warning,
   }]),
 ) as Record<Lang, ReleaseCopy>;

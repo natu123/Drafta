@@ -1,24 +1,13 @@
 import { doc, getDocFromServer, runTransaction, serverTimestamp, type Firestore } from 'firebase/firestore';
-import { parseWorkspaceBackup, type BackupNote } from './workspace-backup';
+import type { BackupNote } from './workspace-backup';
+import { validId, validateHistoryNote, type MemoHistoryVersion } from './memo-history-note';
+
+export { validateHistoryNote, type MemoHistoryVersion };
 
 export const HISTORY_LIMITS = { versions: 20, intervalMs: 5 * 60 * 1000, payloadBytes: 450000 } as const;
-export type MemoHistoryVersion = { id: string; capturedAt: string; note: BackupNote };
 type Head = { versionIds: string[]; contentHash: string; capturedAtMs: number };
-const validId = (id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(id);
 const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
 
-export function validateHistoryNote(value: unknown): BackupNote {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid history memo');
-  const raw = value as Record<string, unknown>;
-  if (!validId(raw.id) || !validId(raw.group) || (raw.parentId !== undefined && !validId(raw.parentId))) throw new Error('Invalid history identity');
-  const { parentId, ...withoutParent } = raw;
-  void parentId;
-  const backup = parseWorkspaceBackup(JSON.stringify({ format: 'drafta-workspace', version: 1,
-    exportedAt: '2026-09-30T00:00:00.000Z', groups: [{ id: raw.group, name: '', type: 'group' }],
-    notes: [withoutParent], settings: { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' },
-  }));
-  return { ...backup.notes[0], ...(raw.parentId === undefined ? {} : { parentId: raw.parentId as string }) };
-}
 function timestampMs(value: unknown): number {
   if (!value || typeof value !== 'object' || !('toMillis' in value) || typeof value.toMillis !== 'function') throw new Error('Invalid history timestamp');
   const time: number = value.toMillis();

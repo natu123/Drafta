@@ -6,6 +6,7 @@ import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText
 import { BrandIcon } from '@/components/brand-icon';
 import { LandingRoadmap, ReleaseUpdates } from '@/components/release-updates';
 import { releaseCopy } from '@/lib/release-copy';
+import { playgroundCopy } from '@/lib/playground-copy';
 import { PUBLIC_VERSION } from '@/lib/release-info';
 import { LANGS, LANG_LABEL, translations } from './translations';
 import { useLang } from '@/contexts/lang-context';
@@ -120,6 +121,12 @@ export default function LandingPage() {
               <Button size="lg" className="text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all">
                 {t.ctaButton}
                 <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+            {/* Try the app without signing in; nothing is saved (AGENTS.md, Playground). */}
+            <Link href="/playground/">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-6 rounded-xl">
+                {playgroundCopy[lang].tryIt}
               </Button>
             </Link>
           </div>

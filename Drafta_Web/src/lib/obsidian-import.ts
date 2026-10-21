@@ -1,6 +1,6 @@
 import { editorHtmlToDocument } from './document-codec';
 import { BACKUP_LIMITS, createWorkspaceBackup, parseWorkspaceBackup, type BackupSettings } from './workspace-backup';
-import { CLOUD_LIMITS } from './cloud-workspace';
+import { CLOUD_LIMITS } from './cloud-limits';
 import type { Group, Note } from './types';
 
 /**

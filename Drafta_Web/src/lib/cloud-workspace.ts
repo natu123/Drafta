@@ -1,6 +1,9 @@
 import { collection, doc, getDocFromServer, getDocsFromServer, limit, query, runTransaction, serverTimestamp, startAfter, Timestamp, where, type Firestore, type QueryDocumentSnapshot } from 'firebase/firestore';
 import { BACKUP_LIMITS, isValidatedBackup, parseTrustedWorkspaceBackup, parseWorkspaceBackup, serializeWorkspaceBackup, storedNoteText, type WorkspaceBackup, type BackupNote } from './workspace-backup';
 import { memoHistory, historyCandidate } from './memo-history';
+import { CLOUD_LIMITS } from './cloud-limits';
+
+export { CLOUD_LIMITS };
 
 export class WorkspaceConflictError extends Error {
   constructor() { super('The server workspace changed. Reload before saving.'); this.name = 'WorkspaceConflictError'; }
@@ -12,7 +15,6 @@ export type SavedWorkspace = { uid: string; revision: number; backup: WorkspaceB
 /** A confirmed workspace and a lower bound of the server time of its revision (specs/16). */
 export type WorkspaceSince = { seconds: number; nanoseconds: number };
 export type LoadedWorkspace = { saved: SavedWorkspace; since: WorkspaceSince | null };
-export const CLOUD_LIMITS = { documentBytes: 450000, transactionBytes: 8000000, changedNotes: 400 } as const;
 const bytes = (text: string) => new TextEncoder().encode(text).byteLength;
 
 function checkSize(text: string): string {

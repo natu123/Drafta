@@ -1,4 +1,4 @@
-import { validateHistoryNote, type MemoHistoryVersion } from './memo-history';
+import { validateHistoryNote, type MemoHistoryVersion } from './memo-history-note';
 import { createWorkspaceBackup, type BackupNote } from './workspace-backup';
 import { workspaceToState } from './workspace-state';
 import { localizeSampleNote } from './sample-notes';
