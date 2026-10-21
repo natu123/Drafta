@@ -251,6 +251,13 @@
     /* changed to block to behave like normal lines */
 }
 
+/* The item text fills the row, like a task item, so a click right of the text lands in it
+   (caret at the line end) instead of on the flex li (caret at the item start). */
+.ProseMirror.drafta-editor li > p {
+    flex: 1;
+    min-width: 0;
+}
+
 /* CUSTOM BULLETS for standard UL */
 /* data-type="taskList" is handled separately below, so we target generic ul li */
 .ProseMirror.drafta-editor ul:not([data-type="taskList"]) li::before {
