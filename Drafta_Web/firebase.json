@@ -4,6 +4,7 @@
   },
   "hosting": {
     "public": "out",
+    "predeploy": ["node scripts/check-production-build.mjs"],
     "ignore": [
       "firebase.json",
       "**/.*",
