@@ -259,7 +259,7 @@ describe.skipIf(!host)('cloud workspace repository (emulator only)', () => {
     // Two saves on another device: edit, delete, add, reorder, tray rename and move.
     latest = await other.save({ ...latest.backup, groups: latest.backup.groups.map(group => group.id === 'tray2' ? { ...group, name: 'Renamed' } : group),
       notes: [memo('f', 'new'), ...latest.backup.notes.filter(note => note.id !== 'b').map(note => note.id === 'a' ? memo('a', 'edited') : note.id === 'c' ? { ...note, group: 'tray2' } : note)].reverse() }, latest);
-    latest = await other.save({ ...latest.backup, notes: latest.backup.notes.filter(note => note.id !== 'd').map(note => note.id === 'e' ? memo('e', 'edited twice') : note) }, latest);
+    await other.save({ ...latest.backup, notes: latest.backup.notes.filter(note => note.id !== 'd').map(note => note.id === 'e' ? memo('e', 'edited twice') : note) }, latest);
     const full = (await repository('alice').loadWithSince())!;
     const rebuilt = (await device.loadSince(cached))!;
     expect(rebuilt.saved).toEqual(full.saved);
