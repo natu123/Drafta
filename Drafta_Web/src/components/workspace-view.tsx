@@ -1327,6 +1327,20 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     if (!groups.some(group => !group.isDeleted && group.type !== 'separator')) setActiveGroupId(newGroup.id);
   };
 
+  // Every memo in one list, whatever tray it is in (AGENTS.md, All Memos).
+  const allMemosEntry = (
+    <Button variant="ghost" className={cn("all-memos w-full justify-start gap-2 h-9", activeGroupId === ALL_MEMOS && "bg-primary/15 hover:bg-primary/20 font-medium")} onClick={() => handleGroupSelect(ALL_MEMOS)}>
+      <Layers className="w-4 h-4" />
+      <span className="truncate">{appT.allMemos}</span>
+    </Button>
+  );
+  const restoreEntry = (
+    <Button variant="ghost" className={cn("restore-entry w-full justify-start gap-2 h-9", activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20")} onClick={() => handleGroupSelect('restore')}>
+      <RotateCcw className="w-4 h-4" />
+      <span>{appT.restore}</span>
+    </Button>
+  );
+
   const filteredGroups = React.useMemo(() => {
     return groups.filter(g => !g.isDeleted);
   }, [groups]);
@@ -1474,13 +1488,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                     onDragCancel={() => setActiveDragGroupId(null)}
                   >
                     <div className="flex flex-col gap-0 pb-2">
-                      {/* Every memo in one list, whatever tray it is in (AGENTS.md, All Memos). */}
-                      <div className="pt-2 pb-2 mb-2 border-b">
-                        <Button variant="ghost" className={cn("all-memos w-full justify-start gap-2 h-9", activeGroupId === ALL_MEMOS && "bg-primary/15 hover:bg-primary/20 font-medium")} onClick={() => handleGroupSelect(ALL_MEMOS)}>
-                          <Layers className="w-4 h-4" />
-                          <span className="truncate">{appT.allMemos}</span>
-                        </Button>
-                      </div>
+                      {/* All memos at the side where the list opens, restore at the other (AGENTS.md, All Memos). */}
+                      <div className="pt-2 pb-2 mb-2 border-b">{scrollDirection === 'bottom' ? restoreEntry : allMemosEntry}</div>
                       <div ref={groupSortableAreaRef}>
                         {/* Pinned trays follow the memo list: bottom in the chat style (AGENTS.md, Tray Pins). */}
                         {(scrollDirection === 'bottom' ? [false, true] : [true, false]).map(pinned => {
@@ -1515,19 +1524,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                         })}
                       </div>
 
-                      <div className="pt-2 mt-2 border-t">
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "w-full justify-start gap-2 h-9",
-                            activeGroupId === 'restore' && "bg-primary/10 text-primary hover:bg-primary/20"
-                          )}
-                          onClick={() => handleGroupSelect('restore')}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          <span>{appT.restore}</span>
-                        </Button>
-                      </div>
+                      <div className="pt-2 mt-2 border-t">{scrollDirection === 'bottom' ? allMemosEntry : restoreEntry}</div>
                     </div>
                     {groupOverlayContainer && createPortal(<DragOverlay>
                       {activeDragGroup && (
