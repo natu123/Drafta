@@ -19,6 +19,8 @@ export type WorkspaceViewProps = {
   onWorkspaceChange?: (state: WorkspaceState) => void;
   memoHistory?: Pick<MemoHistoryRepository, 'list'>;
   saveWorkspace?: () => Promise<boolean>;
+  /** This device's account key for restoring what was open (AGENTS.md, View Restore). */
+  viewKey?: string;
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
@@ -51,6 +53,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from '@/lib/list-style';
+import { readViewState, restoreView, writeViewState } from '@/lib/view-state';
 
 
 
@@ -800,9 +803,11 @@ export default function Page() {
   return <CloudSession Workspace={Home} />;
 }
 
-function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace }: WorkspaceViewProps) {
+function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
+  // What was open last time on this device, where it still exists (AGENTS.md, View Restore).
+  const [restoredView] = React.useState(() => initialState && viewKey ? restoreView(readViewState(viewKey), initialState) : null);
 
   // Preserve the former newest-first sample display as the initial manual order.
   const [sourceNotes, setNotes] = React.useState<Note[]>(() => initialState?.notes ?? initialSampleOrder(initialNotes));
@@ -814,13 +819,13 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
 
   // Initialize with 'Welcome to Drafta' note (note-1)
   const [openTabs, setOpenTabs] = React.useState<OpenTab[]>(
-    initialState ? [] : initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
+    initialState ? (restoredView?.tabIds ?? []).map(id => ({ id, type: 'note' as const })) : initialNotes.length > 0 ? [{ id: initialNotes[0].id, type: 'note' as const }] : []
   );
 
   const [activeView, setActiveView] = React.useState<'home' | 'editor'>('home');
 
   const [activeTabId, setActiveTabId] = React.useState<string | null>(
-    initialState ? null : initialNotes.length > 0 ? initialNotes[0].id : null
+    initialState ? restoredView?.noteId ?? null : initialNotes.length > 0 ? initialNotes[0].id : null
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -830,7 +835,7 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
   const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
-  const [activeGroupId, setActiveGroupId] = React.useState<string>(() => initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox');
+  const [activeGroupId, setActiveGroupId] = React.useState<string>(() => restoredView?.groupId ?? (initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox'));
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? DEFAULT_LIST_STYLE);
   const appliedRemote = React.useRef<WorkspaceUpdate | undefined>(undefined);
   const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
@@ -889,7 +894,10 @@ function Home({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memo
   const [notesWidth, setNotesWidth] = React.useState(400);
   const [editorWidth, setEditorWidth] = React.useState(400);
   const [layoutMode, setLayoutMode] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop');
-  const [mobilePane, setMobilePane] = React.useState<'trays' | 'notes' | 'editor'>('notes');
+  const [mobilePane, setMobilePane] = React.useState<'trays' | 'notes' | 'editor'>(restoredView?.pane ?? 'notes');
+  React.useEffect(() => {
+    if (viewKey) writeViewState(viewKey, { groupId: activeGroupId, noteId: activeTabId, tabIds: openTabs.map(tab => tab.id), pane: mobilePane });
+  }, [viewKey, activeGroupId, activeTabId, openTabs, mobilePane]);
   const [isTrayDrawerOpen, setIsTrayDrawerOpen] = React.useState(false);
 
   React.useLayoutEffect(() => {

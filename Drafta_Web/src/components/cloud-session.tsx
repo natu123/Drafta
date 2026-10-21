@@ -9,6 +9,7 @@ import { useLang } from '@/contexts/lang-context';
 import { getFirebaseClient, type FirebaseClient } from '@/lib/firebase-client';
 import { cloudWorkspace, type SavedWorkspace, type WorkspaceSince } from '@/lib/cloud-workspace';
 import { cacheWriter, deleteCachedWorkspace, readCachedWorkspace, writeCachedWorkspace } from '@/lib/workspace-cache';
+import { clearViewState } from '@/lib/view-state';
 import { watchCloudWorkspace } from '@/lib/cloud-workspace-watch';
 import { mergeWorkspaces, preserveWorkspaceCopy } from '@/lib/workspace-merge';
 import { syncCopy } from '@/lib/sync-copy';
@@ -33,7 +34,7 @@ import { loginRequiredCopy } from '@/lib/login-required-copy';
 import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
-type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean> };
+type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean>; viewKey?: string };
 // Each memo's JSON is reused while its field values are unchanged, so one keystroke serializes one memo.
 const noteFingerprints = new WeakMap<Note, { fields: Note; text: string }>();
 const noteFingerprint = (note: Note) => {
@@ -322,6 +323,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     const signedOut = client.current!.auth.currentUser?.uid;
     cacheWrites.current.cancel();
     if (signedOut) await deleteCachedWorkspace(signedOut).catch(() => {});
+    if (signedOut) clearViewState(signedOut);
     await client.current!.logout();
   }); };
   const reload = () => {
@@ -349,5 +351,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }
