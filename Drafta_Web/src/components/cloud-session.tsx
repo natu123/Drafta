@@ -7,7 +7,8 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { useTheme } from 'next-themes';
 import { useLang } from '@/contexts/lang-context';
 import { getFirebaseClient, type FirebaseClient } from '@/lib/firebase-client';
-import { cloudWorkspace, type SavedWorkspace } from '@/lib/cloud-workspace';
+import { cloudWorkspace, type SavedWorkspace, type WorkspaceSince } from '@/lib/cloud-workspace';
+import { cacheWriter, deleteCachedWorkspace, readCachedWorkspace, writeCachedWorkspace } from '@/lib/workspace-cache';
 import { watchCloudWorkspace } from '@/lib/cloud-workspace-watch';
 import { mergeWorkspaces, preserveWorkspaceCopy } from '@/lib/workspace-merge';
 import { syncCopy } from '@/lib/sync-copy';
@@ -86,6 +87,21 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [remoteUpdate, setRemoteUpdate] = React.useState<WorkspaceUpdate | undefined>(undefined);
   const [reviewRemote, setReviewRemote] = React.useState<SavedWorkspace | null>(null);
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  // Device cache (specs/16): the server time read at start-up bounds every later revision of this session.
+  const sessionSince = React.useRef<WorkspaceSince | null>(null);
+  const cachedRevision = React.useRef(0);
+  const serverChecked = React.useRef(false);
+  const reloadAccount = React.useRef<((user: User) => Promise<void>) | null>(null);
+  const cacheWrites = React.useRef(cacheWriter(value => writeCachedWorkspace(value)));
+  const keepCache = React.useCallback(() => {
+    const current = queue.current;
+    if (!current || !sessionSince.current || current.revision === 0 || current.revision === cachedRevision.current) return;
+    cachedRevision.current = current.revision;
+    cacheWrites.current.schedule(() => {
+      const saved = queue.current?.acknowledged;
+      return saved && sessionSince.current ? { saved, since: sessionSince.current } : null;
+    });
+  }, []);
   const repositoryFor = React.useCallback((uid: string, id: number) => cloudWorkspace(client.current!.db, uid, {
     onHistoryFailure: () => { if (id === generation.current) toast({ description: historyLabelsRef.current.warning }); },
     historySnapshot: note => freezeHistorySample(note, document, historyContext.current.lang, historyContext.current.shortcutMod),
@@ -99,14 +115,17 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (copies.length) toast({ description: syncLabelsRef.current.copied });
   }, [restoreLanguage]);
   const makeQueue = React.useCallback((stored: SavedWorkspace | null, repository: ReturnType<typeof cloudWorkspace>, id: number) => new WorkspaceSaveQueue(stored, repository.save, next => {
-    if (id === generation.current) setStatus(invalidState.current || syncUnavailable.current ? 'error' : next);
+    if (id !== generation.current) return;
+    setStatus(invalidState.current || syncUnavailable.current ? 'error' : next);
+    // Every change of the confirmed revision (own save or accepted remote) is followed by a report.
+    if (serverChecked.current) keepCache();
   }, {
     load: repository.load,
     prepare: flushEdits,
     merge: (base, local, remote) => mergeWorkspaces(base, local, remote, { now: new Date().toISOString(), newId: () => crypto.randomUUID(), copySuffix: syncLabelsRef.current.suffix }),
     apply: (backup, copies) => { if (id === generation.current) applyRemote(backup, copies); },
     review: remote => { if (id === generation.current) setReviewRemote(remote); },
-  }), [applyRemote]);
+  }), [applyRemote, keepCache]);
 
   const load = React.useCallback(async (user: User | null) => {
     // Keep the last keystrokes of the session that is ending with that session's held edits.
@@ -131,11 +150,25 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (!user) {
       setStatus('guest'); return;
     }
+    serverChecked.current = false; sessionSince.current = null; cachedRevision.current = 0;
     try {
       const repository = repositoryFor(user.uid, id);
-      const stored = await repository.load();
-      if (id !== generation.current) return;
       const held = heldEdits.current.get(user.uid);
+      // This device's copy shows at once and the server check below brings it up to date (specs/16).
+      // Held edits after an auth loss keep the full load and their own merge.
+      const cached = held ? null : await readCachedWorkspace(user.uid);
+      if (id !== generation.current) return;
+      let stored: SavedWorkspace | null;
+      if (cached) {
+        stored = cached.saved;
+        cachedRevision.current = cached.saved.revision;
+      } else {
+        const loaded = await repository.loadWithSince();
+        if (id !== generation.current) return;
+        stored = loaded?.saved ?? null;
+        sessionSince.current = loaded?.since ?? null;
+        serverChecked.current = true;
+      }
       const seed = held ? held.invalid ?? workspaceToState(held.backup, document) : stored ? workspaceToState(stored.backup, document) : undefined;
       if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
       lastState.current = seed ? stateFingerprint(seed) : '';
@@ -149,8 +182,24 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         setHasHeldEdits(heldEdits.current.size > 0);
       }
       activeOwner.current = user.uid;
-      setStatus(invalidState.current ? 'error' : queue.current.status);
+      setStatus(cached ? 'loading' : invalidState.current ? 'error' : queue.current.status);
       setSession({ key: id, user, seed, history: repository.history });
+      if (cached) {
+        const fresh = await repository.loadSince(cached);
+        if (id !== generation.current) return;
+        if (!fresh) {
+          // The server has no workspace for this account any more; start over without the copy.
+          await deleteCachedWorkspace(user.uid);
+          void reloadAccount.current?.(user); return;
+        }
+        sessionSince.current = fresh.since;
+        serverChecked.current = true;
+        // Edits made while checking merge like any other remote change.
+        if (fresh.saved.revision !== cached.saved.revision) queue.current.acceptRemote(fresh.saved);
+        cachedRevision.current = 0;
+        setStatus(invalidState.current ? 'error' : queue.current.status);
+      }
+      keepCache();
       restartWatching.current = () => {
         stopWatching.current?.();
         const synced = () => { syncUnavailable.current = false; setErrorCode(null); };
@@ -177,7 +226,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         setStatus('error');
       }
     }
-  }, [restoreLanguage, makeQueue, repositoryFor]);
+  }, [restoreLanguage, makeQueue, repositoryFor, keepCache]);
+  React.useEffect(() => { reloadAccount.current = load; }, [load]);
 
   React.useEffect(() => {
     const lifecycle = generation;
@@ -195,7 +245,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       flushEdits();
       if (queue.current?.dirty || invalidState.current || heldEdits.current.size) { event.preventDefault(); event.returnValue = ''; }
     };
-    const flush = () => { flushEdits(); void queue.current?.flush(); };
+    const flush = () => { flushEdits(); void queue.current?.flush(); void cacheWrites.current.flush(); };
     // Focus can leave while React removes the editor; flush after that commit finishes.
     const flushLater = () => { queueMicrotask(flush); };
     const visibility = () => { if (document.visibilityState === 'hidden') flush(); };
@@ -268,6 +318,10 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (invalidState.current) { setStatus('error'); return; }
     await queue.current?.flush();
     if (queue.current?.dirty) { setStatus(queue.current.status); return; }
+    // A signed-out device keeps no copy of the memos (specs/16).
+    const signedOut = client.current!.auth.currentUser?.uid;
+    cacheWrites.current.cancel();
+    if (signedOut) await deleteCachedWorkspace(signedOut).catch(() => {});
     await client.current!.logout();
   }); };
   const reload = () => {
@@ -280,7 +334,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (syncUnavailable.current) restartWatching.current?.();
     if (invalidState.current) changed(invalidState.current);
     if (invalidState.current) return;
-    if (queue.current) void queue.current.retry(); else reload();
+    // Before the server check finished, only a new load can bring the workspace up to date.
+    if (queue.current && serverChecked.current) void queue.current.retry(); else reload();
   };
   const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
   if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p>{status !== 'guest' && <p role="status" aria-live="polite">{labels.status[status]}</p>}{loginNotice && <p role="alert" className="max-w-lg">{authErrorCopy[lang][loginNotice]}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}</main>;

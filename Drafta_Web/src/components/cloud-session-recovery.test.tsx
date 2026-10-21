@@ -12,7 +12,7 @@ vi.mock('@/contexts/lang-context', () => ({ useLang: () => ({ lang: 'en', restor
 vi.mock('next-themes', () => ({ useTheme: () => ({ setTheme: mocks.setTheme }) }));
 vi.mock('@/lib/firebase-client', () => ({ getFirebaseClient: () => ({ auth: mocks.auth, db: {}, login: mocks.login }) }));
 vi.mock('firebase/auth', () => ({ onAuthStateChanged: (_auth: unknown, notify: (user: User | null) => void) => { mocks.notify = notify; notify(mocks.auth.currentUser); return () => {}; } }));
-vi.mock('@/lib/cloud-workspace', async importOriginal => ({ ...await importOriginal<object>(), cloudWorkspace: (_db: unknown, uid: string) => ({ load: () => mocks.load(uid), save: (input: WorkspaceBackup, base: unknown) => mocks.save(uid, input, base), history: { list: async () => [] } }) }));
+vi.mock('@/lib/cloud-workspace', async importOriginal => ({ ...await importOriginal<object>(), cloudWorkspace: (_db: unknown, uid: string) => ({ load: () => mocks.load(uid), loadWithSince: async () => { const saved = await mocks.load(uid); return saved ? { saved, since: null } : null; }, save: (input: WorkspaceBackup, base: unknown) => mocks.save(uid, input, base), history: { list: async () => [] } }) }));
 vi.mock('@/lib/cloud-workspace-watch', () => ({ watchCloudWorkspace: () => () => {} }));
 vi.mock('./account-menu', () => ({ AccountMenu: (props: AccountMenuProps) => <><span role="status">{props.status}</span><button onClick={props.onRetry}>Retry</button></> }));
 vi.mock('./delete-confirm-dialog', () => ({ DeleteConfirmDialog: ({ open, onConfirm }: { open: boolean; onConfirm: () => void }) => open ? <button onClick={onConfirm}>Confirm login</button> : null }));
