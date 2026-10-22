@@ -27,8 +27,10 @@ import { storageReleaseCopy } from './storage-release-copy';
 import { heldEditsReleaseCopy } from './held-edits-release-copy';
 import { trayEdgesReleaseCopy } from './tray-edges-release-copy';
 import { trayScrollReleaseCopy } from './tray-scroll-release-copy';
+import { speedReleaseCopy } from './speed-release-copy';
 
 export interface ReleaseCopy {
+  release084: string;
   release083: string;
   release082: string;
   release081: string;
@@ -83,7 +85,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -403,6 +405,7 @@ export const releaseCopy = Object.fromEntries(
     release081: heldEditsReleaseCopy[language as Lang],
     release082: trayEdgesReleaseCopy[language as Lang],
     release083: trayScrollReleaseCopy[language as Lang],
+    release084: speedReleaseCopy[language as Lang],
     // Sign-in is for saving; the Playground lets anyone try without it (AGENTS.md, Playground).
     warning: playgroundCopy[language as Lang].warning,
   }]),
