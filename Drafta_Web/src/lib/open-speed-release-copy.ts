@@ -1,0 +1,15 @@
+import type { Lang } from '@/app/languages';
+
+export const openSpeedReleaseCopy: Record<Lang, string> = {
+  en: 'Drafta is lighter again: a tray with hundreds of memos now shows the memos in view first and fills in the rest while you can already scroll and tap (about 2.5 times faster to first view), opening a memo takes about half the time, and the first save after loading no longer pauses typing for long.',
+  ja: '動作をさらに軽くしました. 数百件のメモがあるトレイは見えている部分から先に表示し, 残りはスクロールやタップを止めずに続けて表示します (最初の表示まで約2.5倍速く). メモを開く時間は約半分になり, 読み込み直後の最初の保存で入力が止まる時間も短くしました.',
+  'zh-CN': '运行更轻快了: 包含数百条备忘录的托盘会先显示可见部分, 其余部分在可以滚动和点击的同时继续显示 (首次显示快约2.5倍). 打开备忘录的时间缩短约一半, 加载后首次保存时输入停顿的时间也缩短了.',
+  ko: '동작을 더 가볍게 했습니다. 메모가 수백 개인 트레이는 보이는 부분부터 먼저 표시하고, 나머지는 스크롤과 탭을 막지 않고 이어서 표시합니다 (첫 표시까지 약 2.5배 빠름). 메모를 여는 시간은 약 절반이 되었고, 불러온 직후 첫 저장 때 입력이 멈추는 시간도 줄였습니다.',
+  es: 'Drafta es aún más ligero: una bandeja con cientos de notas muestra primero las notas visibles y completa el resto mientras ya puedes desplazarte y tocar (unas 2,5 veces más rápido hasta la primera vista), abrir una nota tarda aproximadamente la mitad y el primer guardado tras cargar ya no detiene la escritura tanto tiempo.',
+  fr: 'Drafta est encore plus léger : un bac de plusieurs centaines de notes affiche d’abord les notes visibles et complète le reste pendant que vous pouvez déjà faire défiler et toucher (environ 2,5 fois plus rapide jusqu’au premier affichage), ouvrir une note prend environ deux fois moins de temps, et le premier enregistrement après le chargement interrompt beaucoup moins la saisie.',
+  'pt-BR': 'O Drafta ficou ainda mais leve: uma bandeja com centenas de notas mostra primeiro as notas visíveis e completa o resto enquanto você já pode rolar e tocar (cerca de 2,5 vezes mais rápido até a primeira exibição), abrir uma nota leva cerca de metade do tempo e o primeiro salvamento após carregar interrompe bem menos a digitação.',
+  hi: 'Drafta अब और हल्का है: सैकड़ों नोट वाली ट्रे पहले दिखने वाले नोट दिखाती है और बाकी को भरती रहती है, जबकि आप स्क्रॉल और टैप कर सकते हैं (पहली झलक तक लगभग 2.5 गुना तेज़), नोट खोलने में लगभग आधा समय लगता है, और लोड होने के बाद पहली सेव पर टाइपिंग अब उतनी देर नहीं रुकती.',
+  ar: 'أصبح Drafta أخف من جديد: الدرج الذي يضم مئات الملاحظات يعرض أولًا الملاحظات الظاهرة ثم يكمل البقية بينما يمكنك التمرير والنقر (أسرع بنحو 2.5 مرة حتى أول عرض)، وصار فتح الملاحظة يستغرق نحو نصف الوقت، ولم يعد الحفظ الأول بعد التحميل يوقف الكتابة طويلًا.',
+  ru: 'Drafta стал ещё легче: лоток с сотнями заметок сначала показывает видимые заметки и дорисовывает остальные, пока вы уже можете прокручивать и нажимать (до первого показа примерно в 2,5 раза быстрее), открытие заметки занимает примерно вдвое меньше времени, а первое сохранение после загрузки больше не прерывает набор надолго.',
+  id: 'Drafta kini makin ringan: nampan berisi ratusan catatan menampilkan catatan yang terlihat lebih dulu dan melengkapi sisanya sementara Anda sudah bisa menggulir dan mengetuk (sekitar 2,5 kali lebih cepat hingga tampilan pertama), membuka catatan kini butuh sekitar separuh waktu, dan penyimpanan pertama setelah memuat tidak lagi lama menahan pengetikan.',
+};
