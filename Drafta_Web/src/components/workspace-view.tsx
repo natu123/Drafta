@@ -179,6 +179,9 @@ interface SortableNoteItemProps {
   trayName?: string;
 }
 
+// Characters of preview text a memo card renders (one line, cut off by CSS).
+const PREVIEW_CHARACTERS = 300;
+
 type SortableBinding = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners' | 'setNodeRef' | 'isDragging'> & { transform: string | undefined; transition: string | undefined };
 
 const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = ({
@@ -243,7 +246,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
     <div
       ref={setNodeRef}
       style={style}
-      className="memo-item relative mb-2 w-full"
+      className={cn("memo-item relative mb-2 w-full", !item.plainTextContent?.trim() && "memo-item-plain")}
     >
       <div
         {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
@@ -319,7 +322,8 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
             </div>
           </div>
           <div className={cn("flex justify-between items-center min-w-0 overflow-hidden", item.plainTextContent?.trim() ? "mt-1" : "absolute right-0 bottom-0")}>
-            <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent}</p>
+            {/* One truncated line shows a few dozen characters; laying out whole memos took most of a tray switch. */}
+            <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent?.slice(0, PREVIEW_CHARACTERS)}</p>
             {trayName !== undefined && <span className="memo-tray text-[10px] text-muted-foreground truncate max-w-[40%] shrink-0 mr-2">{trayName}</span>}
             <span className="memo-date text-[10px] text-muted-foreground shrink-0">
               {new Date(item.updatedAt).toLocaleDateString()}
@@ -530,16 +534,22 @@ const HomeSection: React.FC<HomeSectionProps> = ({
     if (countChanged && !scrollAfterAdd.current) return;
     scrollAfterAdd.current = false;
     if (!isVisible) return; // Only scroll when visible
-    setTimeout(() => {
+    let frame = 0;
+    const timer = setTimeout(() => {
       const scrollContainer = scrollAreaRef.current;
-      if (scrollContainer) {
-        if (scrollDirection === 'bottom') {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        } else {
-          scrollContainer.scrollTop = 0;
-        }
-      }
+      if (!scrollContainer) return;
+      if (scrollDirection !== 'bottom') { scrollContainer.scrollTop = 0; return; }
+      // Cards appear as they come into view and may differ from their estimated height, so the
+      // bottom is set again until it stays put (a few frames at most).
+      let tries = 0;
+      const toBottom = () => {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        if (++tries < 8 && scrollContainer.scrollHeight - scrollContainer.clientHeight - scrollContainer.scrollTop > 1) frame = requestAnimationFrame(toBottom);
+        else if (tries < 3) frame = requestAnimationFrame(toBottom);
+      };
+      toBottom();
     }, 50);
+    return () => { clearTimeout(timer); cancelAnimationFrame(frame); };
   }, [scrollDirection, items.length, isVisible]);
 
   const deletedGroups = React.useMemo(() => {

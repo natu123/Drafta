@@ -1,4 +1,4 @@
-import { parseTrustedWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
+import { isTrustedBackup, parseTrustedWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
 import type { LoadedWorkspace } from './cloud-workspace';
 
 /** Where cached workspaces live; IndexedDB in the browser, a map in tests (specs/16). */
@@ -58,7 +58,9 @@ export async function readCachedWorkspace(uid: string, store: CacheStore | null 
 export async function writeCachedWorkspace(loaded: LoadedWorkspace, store: CacheStore | null = defaultStore()): Promise<void> {
   if (!store || !loaded.since) return;
   const { uid, revision, backup } = loaded.saved;
-  const record: CacheRecord = { format: 'drafta-cache', version: 1, uid, revision, since: loaded.since, backupJson: serializeWorkspaceBackup(backup) };
+  // A workspace the app already validated is written as it is; it is checked again when read.
+  const backupJson = isTrustedBackup(backup) ? JSON.stringify(backup) : serializeWorkspaceBackup(backup);
+  const record: CacheRecord = { format: 'drafta-cache', version: 1, uid, revision, since: loaded.since, backupJson };
   await store.put(keyFor(uid), record);
 }
 
@@ -77,9 +79,10 @@ export async function deleteMigrationBackup(uid: string, store: CacheStore | nul
 
 /**
  * Writing a large workspace takes a moment, so writes are spaced out: the latest value is read
- * when a write starts, at most once per `interval`, and `flush` writes a pending one now.
+ * when a write starts, at most once per `interval` and never sooner than `delay` after it was
+ * asked for (so it does not land on the tap that caused it), and `flush` writes a pending one now.
  */
-export function cacheWriter(write: (value: LoadedWorkspace) => Promise<void>, interval = 10000) {
+export function cacheWriter(write: (value: LoadedWorkspace) => Promise<void>, interval = 10000, delay = 2000) {
   let pending: (() => LoadedWorkspace | null) | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let last = 0;
@@ -97,7 +100,7 @@ export function cacheWriter(write: (value: LoadedWorkspace) => Promise<void>, in
     schedule(read: () => LoadedWorkspace | null) {
       pending = read;
       if (timer !== undefined) return;
-      timer = setTimeout(run, Math.max(0, last + interval - Date.now()));
+      timer = setTimeout(run, Math.max(delay, last + interval - Date.now()));
     },
     flush() { clearTimeout(timer); return pending ? run() : running; },
     cancel() { clearTimeout(timer); timer = undefined; pending = null; },

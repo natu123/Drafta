@@ -118,7 +118,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (!current || !sessionSince.current || current.revision === 0 || current.revision === cachedRevision.current) return;
     cachedRevision.current = current.revision;
     cacheWrites.current.schedule(() => {
-      const saved = queue.current?.acknowledged;
+      const saved = queue.current?.confirmed;
       return saved && sessionSince.current ? { saved, since: sessionSince.current } : null;
     });
   }, []);
@@ -276,7 +276,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         serverChecked.current = true;
         // Edits made while checking merge like any other remote change.
         if (fresh.saved.revision !== cached.saved.revision) queue.current.acceptRemote(fresh.saved);
-        cachedRevision.current = 0;
+        // An unchanged workspace is already on the device; writing it again blocked the screen at start-up.
+        cachedRevision.current = fresh.saved.revision === cached.saved.revision ? cached.saved.revision : 0;
         setStatus(invalidState.current ? 'error' : queue.current.status);
       }
       }
@@ -299,7 +300,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
           if (id !== generation.current || !queue.current || revision > queue.current.revision) return false;
           synced(); setStatus(invalidState.current ? 'error' : queue.current.status);
           return true;
-        }, queue.current?.acknowledged ?? null);
+        }, queue.current?.confirmed ?? null);
       };
       restartWatching.current();
     } catch (error) {

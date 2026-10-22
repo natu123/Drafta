@@ -134,6 +134,15 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
 }
+/* Cards outside the visible part are not laid out or painted until they come near it. Their
+   estimated height is the real one (66px with preview text, 62px without), so nothing shifts. */
+.memo-list-scroll .memo-item {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 66px;
+}
+.memo-list-scroll .memo-item.memo-item-plain {
+    contain-intrinsic-size: auto 62px;
+}
 
 
 /* Tiptap styles - No min-height restriction to let content flow naturally */

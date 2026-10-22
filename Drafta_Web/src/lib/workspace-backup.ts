@@ -214,9 +214,12 @@ function validate(value: unknown, documents?: WeakMap<object, number>, walked?: 
   }
 }
 
+// UTF-8 takes at most 3 bytes per UTF-16 unit, so most text needs no encoding to be within the limit.
+const withinBytes = (text: string) => text.length * 3 <= BACKUP_LIMITS.bytes || new TextEncoder().encode(text).byteLength <= BACKUP_LIMITS.bytes;
+
 export function parseWorkspaceBackup(text: string): WorkspaceBackup {
   requireValue(typeof text === 'string' && text.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
-  requireValue(new TextEncoder().encode(text).byteLength <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  requireValue(withinBytes(text), 'backup', 'Backup size limit exceeded');
   let value: unknown;
   try { value = JSON.parse(text); } catch { throw new BackupValidationError('backup', 'Invalid JSON'); }
   validate(value);
@@ -232,7 +235,7 @@ const trustedBackups = new WeakSet<WorkspaceBackup>();
  */
 export function parseTrustedWorkspaceBackup(text: string): WorkspaceBackup {
   requireValue(typeof text === 'string' && text.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
-  requireValue(new TextEncoder().encode(text).byteLength <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  requireValue(withinBytes(text), 'backup', 'Backup size limit exceeded');
   let value: unknown;
   try { value = JSON.parse(text); } catch { throw new BackupValidationError('backup', 'Invalid JSON'); }
   const walked = new Map<object, number>();

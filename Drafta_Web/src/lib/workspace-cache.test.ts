@@ -50,14 +50,16 @@ describe('device workspace cache', () => {
 describe('spaced cache writes', () => {
   afterEach(() => { vi.useRealTimers(); });
 
-  it('writes the latest value at most once per interval and at once on flush', async () => {
+  it('writes the latest value at most once per interval, a moment after asked, and at once on flush', async () => {
     vi.useFakeTimers();
     const writes: number[] = [];
     let current = 1;
-    const writer = cacheWriter(async value => { writes.push(value.saved.revision); }, 10000);
+    const writer = cacheWriter(async value => { writes.push(value.saved.revision); }, 10000, 2000);
     const read = () => loaded('alice', current);
     writer.schedule(read);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(writes).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
     expect(writes).toEqual([1]);
     current = 2; writer.schedule(read);
     current = 3; writer.schedule(read);

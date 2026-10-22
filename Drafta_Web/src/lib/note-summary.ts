@@ -1,5 +1,5 @@
 import { BackupValidationError, checkWorkspaceShape, type BackupNote, type WorkspaceBackup } from './workspace-backup';
-import { previewText, titleText } from './note-text';
+import { previewTextStart, titleText } from './note-text';
 
 /**
  * A memo without its body (specs/17): what the list and search need before the body arrives.
@@ -13,15 +13,25 @@ export type NoteMetadata = Omit<BackupNote, 'document'>;
 export const EXCERPT_LENGTH = 200;
 const TITLE_LENGTH = 100000;
 
-export const excerptOf = (document: BackupNote['document']) => Array.from(previewText(document)).slice(0, EXCERPT_LENGTH).join('');
+export const excerptOf = (document: BackupNote['document']) => previewTextStart(document, EXCERPT_LENGTH);
 
-// Stored memos are frozen and reused while unchanged, so each is summarized once.
+// Stored memos and bodies are frozen and reused while unchanged, so each is summarized once; a
+// memo loaded into the app (not frozen itself) still reuses its frozen body's title and excerpt.
 const summaries = new WeakMap<BackupNote, { summary: NoteSummary; text: string }>();
+const bodyParts = new WeakMap<object, { title: string; excerpt: string }>();
+function partsOf(document: BackupNote['document']) {
+  let parts = bodyParts.get(document);
+  if (!parts) {
+    parts = { title: titleText(document.document.content![0]), excerpt: excerptOf(document) };
+    if (Object.isFrozen(document)) bodyParts.set(document, parts);
+  }
+  return parts;
+}
 function summaryEntry(note: BackupNote) {
   let entry = summaries.get(note);
   if (!entry) {
     const { document, ...metadata } = note;
-    const summary = { ...metadata, title: titleText(document.document.content![0]), excerpt: excerptOf(document) };
+    const summary = { ...metadata, ...partsOf(document) };
     entry = { summary, text: JSON.stringify(summary) };
     if (Object.isFrozen(note)) summaries.set(note, entry);
   }

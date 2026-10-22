@@ -6,6 +6,7 @@ import { createWorkspaceBackup, parseStoredDocument, snapshotWorkspace, trustAss
 import { EXCERPT_LENGTH, noteMetadata, parseSummary, summarizeNote, summaryMatches, summaryText, validateSummaries } from './note-summary';
 import { noteWithContent, summariesToState, workspaceToState } from './workspace-state';
 import { attachBody, hasBody } from './note-source';
+import { previewText, previewTextStart } from './note-text';
 
 const settings: BackupSettings = { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' };
 const date = '2026-09-28T00:00:00.000Z';
@@ -26,6 +27,22 @@ describe('memo summaries (specs/17)', () => {
       expect(parseSummary(summaryText(note), note.id)).toEqual(summary);
     }
     expect(value.notes.some(note => Array.from(summarizeNote(note).excerpt).length === EXCERPT_LENGTH)).toBe(true);
+  });
+
+  it('reads only the start of a long memo for its excerpt, with the same result as the whole text', () => {
+    const paragraph = (text: string) => ({ type: 'paragraph', content: text ? [{ type: 'text', text }] : undefined });
+    const doc = (...texts: string[]) => ({ format: 'drafta-document' as const, schemaVersion: 1 as const, document: { type: 'doc', content: [{ type: 'title' }, ...texts.map(paragraph)] } });
+    const cases = [
+      doc('short'), doc('', '  ', ''), doc('  leading and trailing  '),
+      doc('😀'.repeat(250)), doc('a'.repeat(199), ' ', '😀😀', 'b'.repeat(500)),
+      doc(...Array.from({ length: 300 }, (_, index) => ` line ${index}\n\t`)),
+      doc('x'.repeat(400), '   ', 'y'), doc('あ'.repeat(201)),
+    ];
+    for (const value of cases) {
+      for (const count of [1, 2, 199, 200, 201]) {
+        expect(previewTextStart(value, count)).toBe(Array.from(previewText(value)).slice(0, count).join(''));
+      }
+    }
   });
 
   it('refuses summaries that do not belong to the memo or do not validate as a workspace', () => {

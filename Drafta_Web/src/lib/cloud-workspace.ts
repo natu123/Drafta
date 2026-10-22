@@ -32,7 +32,8 @@ const encoder = new TextEncoder();
 const bytes = (text: string) => encoder.encode(text).byteLength;
 
 function checkSize(text: string): string {
-  if (bytes(text) > CLOUD_LIMITS.documentBytes) throw new WorkspaceStorageError('Document is too large to save');
+  // UTF-8 takes at most 3 bytes per UTF-16 unit: most text needs no encoding to be within the limit.
+  if (text.length * 3 > CLOUD_LIMITS.documentBytes && bytes(text) > CLOUD_LIMITS.documentBytes) throw new WorkspaceStorageError('Document is too large to save');
   return text;
 }
 function checkedBackup(input: WorkspaceBackup): WorkspaceBackup {

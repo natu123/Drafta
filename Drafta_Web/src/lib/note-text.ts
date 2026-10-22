@@ -20,13 +20,35 @@ export function titleText(node: JSONContent): string {
 // The same preview text as the HTML path, read straight from the stored document: the blocks
 // that HTML follows with a space (p, div, li, h1-h3, pre) end with one here too.
 const SPACED_BLOCKS = new Set(['paragraph', 'heading', 'listItem', 'taskItem', 'codeBlock', 'tableCell', 'tableHeader']);
+// The body's text in reading order; `visit` returns true to stop.
+function walkText(value: SerializedEditorDocument, visit: (text: string) => boolean): void {
+  const walk = (node: JSONContent): boolean => {
+    if (typeof node.text === 'string' && visit(node.text)) return true;
+    for (const child of node.content ?? []) if (walk(child)) return true;
+    return Boolean(node.type && SPACED_BLOCKS.has(node.type) && visit(' '));
+  };
+  for (const node of value.document.content?.slice(1) ?? []) if (walk(node)) return;
+}
 export function previewText(value: SerializedEditorDocument): string {
   const parts: string[] = [];
-  const walk = (node: JSONContent) => {
-    if (typeof node.text === 'string') parts.push(node.text);
-    node.content?.forEach(walk);
-    if (node.type && SPACED_BLOCKS.has(node.type)) parts.push(' ');
-  };
-  value.document.content?.slice(1).forEach(walk);
+  walkText(value, text => { parts.push(text); return false; });
   return parts.join('').replace(/\s+/g, ' ').trim();
+}
+/**
+ * The first `count` characters (code points) of previewText, reading only as much of the memo as
+ * they need: a summary's excerpt of a long memo no longer walks the whole memo (specs/17).
+ */
+export function previewTextStart(value: SerializedEditorDocument, count: number): string {
+  let text = '';
+  let stopped = false;
+  walkText(value, part => {
+    let piece = part.replace(/\s+/g, ' ');
+    // Whitespace runs collapse across pieces too, and leading whitespace is trimmed.
+    if ((!text || text.endsWith(' ')) && piece.startsWith(' ')) piece = piece.slice(1);
+    text += piece;
+    // More than 2 × count UTF-16 units hold more than count code points, so the end trim cannot reach them.
+    stopped = text.length > count * 2 + 1;
+    return stopped;
+  });
+  return Array.from(stopped ? text : text.trimEnd()).slice(0, count).join('');
 }

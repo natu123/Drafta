@@ -31,6 +31,11 @@ export class WorkspaceSaveQueue {
   get status() { return this.state; }
   get revision() { return this.base?.revision ?? 0; }
   get acknowledged() { return this.base ? structuredClone(this.base) : null; }
+  /**
+   * The acknowledged workspace itself, for reading only (the watcher's base, the device copy).
+   * Copying a large workspace blocked the screen for a third of a second at start-up.
+   */
+  get confirmed(): Readonly<SavedWorkspace> | null { return this.base; }
   acceptRemote(remote: SavedWorkspace) {
     if (this.disposed || !this.sync || (this.base && remote.uid !== this.base.uid)) return;
     if (this.base && remote.revision <= this.base.revision) return;
