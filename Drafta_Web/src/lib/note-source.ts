@@ -31,7 +31,7 @@ export const isLazyNote = (note: Pick<Note, 'content'>) => note.content === LAZY
 /** Gives a memo from a summary its validated, frozen body once it has been read. */
 export function attachBody(token: object, document: BackupNote['document']): void {
   const source = sources.get(token);
-  if (source && !source.note.document) source.note = { ...source.note, document };
+  if (source && !source.note.document) source.note = Object.freeze({ ...source.note, document });
 }
 
 /** False only for a memo from a summary whose body has not arrived yet. */

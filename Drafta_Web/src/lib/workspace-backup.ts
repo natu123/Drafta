@@ -243,6 +243,8 @@ export function parseTrustedWorkspaceBackup(text: string): WorkspaceBackup {
   for (const note of value.notes) {
     deepFreeze(note.document);
     validatedDocuments.set(note.document, walked.get(note.document) ?? documentValue(note.document, `notes.${note.id}.document`, { nodes: 0 }));
+    // Loaded memos are read, never changed; frozen, they can stand for themselves in later saves.
+    Object.freeze(note);
   }
   trustedBackups.add(value);
   return value;
@@ -252,14 +254,34 @@ export function parseTrustedWorkspaceBackup(text: string): WorkspaceBackup {
  * One stored memo body, validated and frozen like the bodies of parseTrustedWorkspaceBackup, so a
  * workspace assembled from it does not walk it again (specs/17).
  */
-export function parseStoredDocument(text: string, path: string): SerializedEditorDocument {
+export function parseStoredDocument(text: string, path: string, bytes?: number): SerializedEditorDocument {
   requireValue(typeof text === 'string' && text.length <= BACKUP_LIMITS.bytes, path, 'Document size limit exceeded');
   let value: unknown;
   try { value = JSON.parse(text); } catch { throw new BackupValidationError(path, 'Invalid JSON'); }
   const nodes = documentValue(value, path, { nodes: 0 });
   deepFreeze(value);
   validatedDocuments.set(value as object, nodes);
+  if (bytes !== undefined) documentBytes.set(value as object, bytes);
   return value as SerializedEditorDocument;
+}
+
+/**
+ * Learns the stored size of each body a little at a time, after loading, so that the first save
+ * does not serialize every body at once (it froze typing for about 0.3 s on a phone, 0.8.5).
+ */
+export function measureDocumentsLater(notes: readonly BackupNote[]): void {
+  const pending = notes.map(note => note.document).filter(document => Object.isFrozen(document) && !documentBytes.has(document));
+  if (!pending.length) return;
+  let index = 0;
+  const step = () => {
+    const until = Date.now() + 8;
+    while (index < pending.length && Date.now() < until) {
+      const document = pending[index++];
+      if (!documentBytes.has(document)) documentBytes.set(document, encoder.encode(JSON.stringify(document)).byteLength);
+    }
+    if (index < pending.length) setTimeout(step, 16);
+  };
+  setTimeout(step, 1000);
 }
 
 /**
@@ -272,6 +294,7 @@ export function trustAssembledBackup(value: unknown, bytes: number): WorkspaceBa
   const walked = new Map<object, number>();
   validate(value, validatedDocuments, walked);
   for (const [document, nodes] of walked) { deepFreeze(document); validatedDocuments.set(document, nodes); }
+  value.notes.forEach(note => Object.freeze(note));
   trustedBackups.add(value);
   return value;
 }
@@ -303,10 +326,12 @@ function deepFreeze<T>(value: T): T {
 
 // Converting every memo's HTML on each keystroke froze large workspaces (specs/15). A memo is
 // converted once per distinct set of field values; the result is frozen, so it cannot drift.
-type ConvertedNote = { fields: Note; note: BackupNote; json: string; bytes: number; inputBytes: number };
+type ConvertedNote = { fields: Note; note: BackupNote; bytes: number; inputBytes: number };
 const convertedNotes = new WeakMap<Note, ConvertedNote>();
 const validatedDocuments = new WeakMap<object, number>();
 const storedNotes = new WeakMap<BackupNote, { json: string; bytes: number }>();
+// UTF-8 size of each stored body, learned when it was read or later (measureDocumentsLater).
+const documentBytes = new WeakMap<object, number>();
 const validatedBackups = new WeakSet<WorkspaceBackup>();
 const encoder = new TextEncoder();
 const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -332,7 +357,7 @@ function convertNote(note: Note, dom: Document): ConvertedNote {
   validatedDocuments.set(stored.document, documentValue(stored.document, `notes.${note.id}.document`, { nodes: 0 }));
   const bytes = encoder.encode(json).byteLength;
   storedNotes.set(stored, { json, bytes });
-  const entry = { fields: { ...note }, note: stored, json, bytes, inputBytes };
+  const entry = { fields: { ...note }, note: stored, bytes, inputBytes };
   convertedNotes.set(note, entry);
   return entry;
 }
@@ -348,12 +373,18 @@ function reuseStoredBody(note: Note): ConvertedNote {
   requireValue(children === undefined, `notes.${note.id}.children`, 'Flatten children into parentId references before export');
   const document = source.note.document;
   const known = validatedDocuments.get(document);
-  const stored = deepFreeze({ ...JSON.parse(JSON.stringify(metadata)), document } as BackupNote);
   validatedDocuments.set(document, known ?? documentValue(document, `notes.${note.id}.document`, { nodes: 0 }));
-  const json = JSON.stringify(stored);
-  const bytes = encoder.encode(json).byteLength;
-  storedNotes.set(stored, { json, bytes });
-  const entry = { fields: { ...note }, note: stored, json, bytes, inputBytes: bytes };
+  const metadataJson = JSON.stringify(metadata);
+  const { document: _body, ...loaded } = source.note;
+  void _body;
+  // Unchanged since loading: the loaded memo itself, so later saves compare nothing for it.
+  const stored = Object.isFrozen(source.note) && JSON.stringify(loaded) === metadataJson
+    ? source.note as BackupNote
+    : deepFreeze({ ...JSON.parse(metadataJson), document } as BackupNote);
+  // Serializing every kept body here made the first save after loading freeze; their sizes are
+  // learned when read or soon after (measureDocumentsLater), and the memo's own fields are counted now.
+  const bytes = encoder.encode(metadataJson).byteLength + (documentBytes.get(document) ?? 0) + 12;
+  const entry = { fields: { ...note }, note: stored, bytes, inputBytes: bytes };
   convertedNotes.set(note, entry);
   return entry;
 }

@@ -163,9 +163,10 @@ interface HomeSectionProps {
 interface SortableNoteItemProps {
   onTogglePin?: (id: string) => void;
   item: Note;
-  activeId: string | null | undefined;
+  /** Whether this card is the open memo or selected: only cards whose own state changed re-render. */
+  isActive: boolean;
   isSelectionMode: boolean;
-  selectedIds: Set<string>;
+  isSelected: boolean;
   isTrash?: boolean;
   canDrag: boolean;
   onToggleSelect: (id: string) => void;
@@ -182,10 +183,34 @@ interface SortableNoteItemProps {
 // Characters of preview text a memo card renders (one line, cut off by CSS).
 const PREVIEW_CHARACTERS = 300;
 
+// Cards drawn when a tray opens, and per step after that (HomeSection, 0.8.5).
+const FIRST_CARDS = 24;
+const MORE_CARDS = 40;
+// Height of a card with its margin (globals.css, .memo-item), kept for cards not drawn yet.
+const cardHeight = (note: Note) => note.type === 'separator' ? 40 : note.plainTextContent?.trim() ? 74 : 70;
+
+type ListSection = { pinned: boolean; list: Note[] };
+/** The `count` cards nearest the side where the list opens, and the height of the cards left out. */
+function nearestCards(sections: ListSection[], count: number, fromEnd: boolean, pinsCollapsed: boolean) {
+  let left = count;
+  const drawn = new Map<ListSection, { cards: Note[]; rest: number }>();
+  for (const section of fromEnd ? [...sections].reverse() : sections) {
+    // Collapsed pins are hidden; they are drawn last, with no space kept for them.
+    const hidden = section.pinned && pinsCollapsed;
+    const take = hidden ? 0 : Math.min(left, section.list.length);
+    left -= take;
+    const cut = fromEnd ? section.list.length - take : take;
+    const cards = fromEnd ? section.list.slice(cut) : section.list.slice(0, cut);
+    const skipped = fromEnd ? section.list.slice(0, cut) : section.list.slice(cut);
+    drawn.set(section, { cards, rest: hidden ? 0 : skipped.reduce((sum, note) => sum + cardHeight(note), 0) });
+  }
+  return sections.map(section => ({ ...section, ...drawn.get(section)! }));
+}
+
 type SortableBinding = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners' | 'setNodeRef' | 'isDragging'> & { transform: string | undefined; transition: string | undefined };
 
 const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = ({
-  item, activeId, isSelectionMode, selectedIds, isTrash, canDrag, trayName,
+  item, isActive, isSelectionMode, isSelected, isTrash, canDrag, trayName,
   onToggleSelect, onItemSelect, onToggleComplete, onDeleteItem, onRestoreItem, onPermanentDeleteItem, onIconChange, onTogglePin,
   attributes, listeners, setNodeRef, transform, transition, isDragging,
 }) => {
@@ -210,7 +235,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
         {...(canDrag ? { ...attributes, ...listeners } : {})}
         className={cn(
           "memo-drag-target group relative w-full flex items-center px-0 py-2 mx-[-8px] width-[calc(100%+16px)]",
-          isSelectionMode && selectedIds.has(item.id) ? "bg-primary/10" : ""
+          isSelectionMode && isSelected ? "bg-primary/10" : ""
         )}
         onClick={() => isSelectionMode && onToggleSelect(item.id)}
       >
@@ -218,7 +243,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
           {isSelectionMode && (
             <Checkbox
               aria-label={a11y.selectSeparator}
-              checked={selectedIds.has(item.id)}
+              checked={isSelected}
               onCheckedChange={() => onToggleSelect(item.id)}
             />
           )}
@@ -252,12 +277,12 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
         {...(canDrag && !item.isProtected ? { ...attributes, ...listeners } : {})}
         className={cn(
           "memo-drag-target flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer group hover:shadow-md min-w-0 overflow-hidden",
-          activeId === item.id && !isSelectionMode
+          isActive && !isSelectionMode
             ? "bg-primary/10 border-primary/50 shadow-xs"
             : item.isProtected
               ? "bg-[#64A364]/10 border-[#64A364]/30 hover:border-[#64A364]/50"
               : "bg-card border-border/60 hover:border-primary/30",
-          isSelectionMode && selectedIds.has(item.id) ? "ring-2 ring-primary bg-primary/5" : ""
+          isSelectionMode && isSelected ? "ring-2 ring-primary bg-primary/5" : ""
         )}
         onClick={() => {
           if (isSelectionMode) {
@@ -316,7 +341,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
                   )}
                 </Popover>
               </div>
-              <p className={cn("font-medium truncate transition-colors", activeId === item.id && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
+              <p className={cn("font-medium truncate transition-colors", isActive && !isSelectionMode ? "text-primary" : "text-foreground", item.isCompleted && "line-through opacity-70")}>
                 {stripColorMarkdown(item.title) || t.untitledMemo}
               </p>
             </div>
@@ -351,14 +376,15 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
 // Typing in one memo re-renders only that card's body (specs/15). dnd-kit re-renders every
 // sortable on each list render, so the hook stays in this thin wrapper and passes stable values.
 const MemoizedNoteItemView = React.memo(SortableNoteItemView);
-const SortableNoteItem: React.FC<SortableNoteItemProps> = props => {
+// Memoized as well, so opening a memo or selecting one re-renders two cards instead of every card.
+const SortableNoteItem = React.memo(function SortableNoteItem(props: SortableNoteItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.item.id,
     disabled: !props.canDrag || props.item.isProtected,
   });
   return <MemoizedNoteItemView {...props} attributes={attributes} listeners={listeners} setNodeRef={setNodeRef}
     transform={CSS.Transform.toString(transform)} transition={transition} isDragging={isDragging} />;
-};
+});
 
 // emojis is imported from tiptap-editor.tsx
 
@@ -572,12 +598,27 @@ const HomeSection: React.FC<HomeSectionProps> = ({
     onIconChange: (id: string, icon: string) => cardProps.current.onIconChange?.(id, icon),
     onTogglePin: (id: string) => cardProps.current.onTogglePin(id),
   }), []);
-  const pinnedSection = { pinned: true, list: pinnedNotes(items) };
-  const regularSection = { pinned: false, list: regularNotes(items) };
-  // Pins sit on the side where the list opens: top for Add to Top, bottom for Add to Bottom (AGENTS.md, Pins).
-  const sections = isTrash ? [{ pinned: false, list: items }] : scrollDirection === 'bottom' ? [regularSection, pinnedSection] : [pinnedSection, regularSection];
+  // Drawing every card of a big tray at once froze a phone for about a second (0.8.5). The cards
+  // nearest where the list opens come first and the rest follow between frames; until then a
+  // space of their height keeps the scroll position and the scrollbar where they will be.
+  const [shownCards, setShownCards] = React.useState(() => items.length <= FIRST_CARDS ? Infinity : FIRST_CARDS);
+  const filling = viewMode === 'list' && shownCards < items.length;
+  React.useEffect(() => {
+    if (!filling || activeDragId) return;
+    const total = items.length;
+    const frame = requestAnimationFrame(() => React.startTransition(() => setShownCards(count => count + MORE_CARDS >= total ? Infinity : count + MORE_CARDS)));
+    return () => cancelAnimationFrame(frame);
+  }, [filling, shownCards, activeDragId, items.length]);
+  const drawnSections = React.useMemo(() => {
+    const pinnedSection = { pinned: true, list: pinnedNotes(items) };
+    const regularSection = { pinned: false, list: regularNotes(items) };
+    // Pins sit on the side where the list opens: top for Add to Top, bottom for Add to Bottom (AGENTS.md, Pins).
+    const sections = isTrash ? [{ pinned: false, list: items }] : scrollDirection === 'bottom' ? [regularSection, pinnedSection] : [pinnedSection, regularSection];
+    return filling ? nearestCards(sections, shownCards, scrollDirection === 'bottom', pinsCollapsed) : sections.map(section => ({ ...section, cards: section.list, rest: 0 }));
+  }, [items, isTrash, scrollDirection, filling, shownCards, pinsCollapsed]);
+
   // IDs match [A-Za-z0-9_-], so the joined key is unambiguous; dnd-kit sees the same arrays while order is unchanged.
-  const sectionKey = sections.map(section => section.list.map(item => item.id).join(' ')).join('|');
+  const sectionKey = drawnSections.map(section => section.cards.map(item => item.id).join(' ')).join('|');
   const sectionIds = React.useMemo(() => sectionKey.split('|').map(ids => ids ? ids.split(' ') : []), [sectionKey]);
 
   return (
@@ -710,18 +751,20 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   )}
 
                   <div ref={sortableAreaRef}>
-                    {sections.map((section, index) => <React.Fragment key={String(section.pinned)}>
+                    {drawnSections.map((section, index) => <React.Fragment key={String(section.pinned)}>
                       {section.pinned && section.list.length > 0 && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 mb-2", scrollDirection === 'bottom' && "mt-2")} aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
                       <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
+                        {scrollDirection === 'bottom' && section.rest > 0 && <div className="memo-list-rest" aria-hidden style={{ height: section.rest }} />}
                         <SortableContext items={sectionIds[index]} strategy={verticalListSortingStrategy}>
-                          {section.list.map(item => <SortableNoteItem key={item.id} item={item} activeId={activeId}
-                            isSelectionMode={isSelectionMode} selectedIds={selectedIds} isTrash={isTrash}
+                          {section.cards.map(item => <SortableNoteItem key={item.id} item={item} isActive={activeId === item.id}
+                            isSelectionMode={isSelectionMode} isSelected={selectedIds.has(item.id)} isTrash={isTrash}
                             canDrag={canDragNotes && !(section.pinned && pinsCollapsed)} onToggleSelect={cardActions.onToggleSelect}
                             onItemSelect={cardActions.onItemSelect} onToggleComplete={onToggleComplete && cardActions.onToggleComplete}
                             onDeleteItem={cardActions.onDeleteItem} onRestoreItem={onRestoreItem && cardActions.onRestoreItem}
                             onPermanentDeleteItem={onPermanentDeleteItem && cardActions.onPermanentDeleteItem} onIconChange={onIconChange && cardActions.onIconChange}
                             onTogglePin={cardActions.onTogglePin} trayName={trayNames?.get(item.group)} />)}
                         </SortableContext>
+                        {scrollDirection !== 'bottom' && section.rest > 0 && <div className="memo-list-rest" aria-hidden style={{ height: section.rest }} />}
                       </div>
                     </React.Fragment>)}
                   </div>
@@ -1258,10 +1301,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     });
   };
 
+  // Opening a memo changes nothing stored: recording the time it was opened re-rendered every memo,
+  // saved the workspace and rewrote the device copy on each open, and nothing reads it (0.8.5).
   const handleNoteSelect = React.useCallback((id: string) => {
-    setNotes(prevNotes => {
-      return prevNotes.map(n => n.id === id ? { ...n, lastAccessedAt: new Date().toISOString() } : n);
-    });
     const note = notes.find(n => n.id === id);
     if (note) {
       openTab(id, 'note'); // Ensure tab opens

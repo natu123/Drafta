@@ -4,7 +4,7 @@ import { DOMSerializer, DOMParser, Node as ProseMirrorNode } from '@tiptap/pm/mo
 import { TextSelection } from '@tiptap/pm/state';
 
 import * as React from 'react';
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useEditor, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search, Menu, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
@@ -55,6 +55,22 @@ const baseColors = [
 // Black for light mode, White for dark mode (both unset color when clicked)
 const lightModeDefaultColor = { name: 'Black', value: '#000000' };
 const darkModeDefaultColor = { name: 'White', value: '#FFFFFF' };
+
+/**
+ * Puts the editor's view into the page. TipTap's EditorContent draws the whole memo a second time
+ * on mount, for React node views, and a third time on unmount; this app has none (0.8.5).
+ */
+function EditorMount({ editor, ...props }: { editor: Editor | null } & React.HTMLAttributes<HTMLDivElement>) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const element = ref.current;
+    if (!editor || editor.isDestroyed || !element) return;
+    const host = editor.view.dom.parentNode;
+    if (host && host !== element) element.replaceChildren(...host.childNodes);
+    editor.setOptions({ element });
+  }, [editor]);
+  return <div ref={ref} {...props} />;
+}
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, onDuplicate, externalRevision = 0, historyAction }) => {
   // isProtected also blocks deletion; guide samples only block editing.
@@ -328,7 +344,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     injectCSS: false,
     extensions,
     content: getInitialContent(note.title, note.content),
-    immediatelyRender: false,
+    // The editor is only drawn in the browser (no page is prerendered with a memo open), so it is
+    // made with the first render instead of one render later (0.8.5).
+    immediatelyRender: true,
     editable: !readOnly,
     enableInputRules: ['richMarkdownInputRules'],
     enablePasteRules: false,
@@ -1021,7 +1039,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             </div>
             <Button className="editor-palette-toggle" variant="ghost" size="icon" aria-label={t.colorPalette} title={t.colorPalette} aria-expanded={paletteOpen} aria-controls={paletteId} onClick={() => setPaletteOpen(open => !open)}><Menu /></Button>
           <div id={paletteId} className="editor-palette" hidden={!paletteOpen}>
-            {colors.map(color => {
+            {/* Drawn when shown: every memo opens with the palette closed (0.8.5). */}
+            {paletteOpen && colors.map(color => {
               // Black/White are default colors - show as active when no color is set
               const isDefaultColor = color.value.toLowerCase() === '#000000' || color.value.toLowerCase() === '#ffffff';
               const isActive = isDefaultColor
@@ -1141,7 +1160,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               <TooltipContent>{t.delete}</TooltipContent>
             </Tooltip>
           )}
-          <EditorContent editor={editor} dir="auto" />
+          <EditorMount editor={editor} dir="auto" />
           </div>
         </div>
       </div>

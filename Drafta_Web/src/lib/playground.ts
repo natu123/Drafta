@@ -2,7 +2,7 @@ import type { WorkspaceState } from './workspace-state';
 
 /**
  * Tells whether memos or trays differ from the first state it saw, so leaving the Playground asks
- * first (AGENTS.md, Playground). Opening a memo only records lastAccessedAt and does not count;
+ * first (AGENTS.md, Playground). Opening a memo changes nothing, and lastAccessedAt does not count;
  * neither do language, theme or list style settings. Once changed, it stays changed.
  */
 export function playgroundChangeWatcher() {

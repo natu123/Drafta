@@ -82,7 +82,8 @@ export function readSummaryRecord(id: string, data: DocumentData): { summary: No
 export function readBodyRecord(id: string, data: DocumentData): { body: Body; bytes: number } {
   if (data.schemaVersion !== 2 || typeof data.documentJson !== 'string') throw new WorkspaceStorageError('Invalid server memo body');
   checkSize(data.documentJson);
-  return { body: parseStoredDocument(data.documentJson, `notes.${id}.document`), bytes: bytes(data.documentJson) };
+  const size = bytes(data.documentJson);
+  return { body: parseStoredDocument(data.documentJson, `notes.${id}.document`, size), bytes: size };
 }
 
 // Stored bodies are frozen and reused while unchanged, so each is serialized once.

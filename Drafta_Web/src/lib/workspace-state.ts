@@ -1,6 +1,6 @@
 import type { Group, Note } from './types';
 import { editorDocumentToHtml } from './document-codec';
-import { BackupValidationError, isTrustedBackup, parseTrustedWorkspaceBackup, type BackupNote, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
+import { BackupValidationError, isTrustedBackup, measureDocumentsLater, parseTrustedWorkspaceBackup, type BackupNote, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
 import { createNoteSource, isLazyNote, LAZY_CONTENT, sourceOf } from './note-source';
 import { previewText, titleText } from './note-text';
 import { noteMetadata, type NoteSummary, type WorkspaceEnvelope } from './note-summary';
@@ -40,6 +40,7 @@ export function workspaceToState(input: WorkspaceBackup, dom: Document, options:
     }
     return { ...JSON.parse(JSON.stringify(metadata)), title, ...editorHtml(value, dom) };
   });
+  if (options.lazyBodies) measureDocumentsLater(backup.notes);
   // The state is the app's to change; the stored backup stays as it was.
   return { groups: structuredClone(backup.groups), notes, settings: structuredClone(backup.settings) };
 }

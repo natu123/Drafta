@@ -18,7 +18,8 @@ export function requiresImmediateSave(previous: WorkspaceBackup | null, next: Wo
     const { document, updatedAt: _updatedAt, ...metadata } = note;
     const { document: oldDocument, updatedAt: _oldUpdatedAt, ...oldMetadata } = old;
     void _updatedAt; void _oldUpdatedAt;
-    return JSON.stringify(metadata) !== JSON.stringify(oldMetadata) ||
-      JSON.stringify(structure(document.document)) !== JSON.stringify(structure(oldDocument.document));
+    // A body kept as loaded is the same object; only edited bodies are compared (0.8.5).
+    return JSON.stringify(metadata) !== JSON.stringify(oldMetadata) || (document !== oldDocument &&
+      JSON.stringify(structure(document.document)) !== JSON.stringify(structure(oldDocument.document)));
   });
 }
