@@ -6,6 +6,14 @@ import type { Group, Note } from './types';
  */
 export const ALL_MEMOS = ':all';
 
+/**
+ * The tray memos added in the all memos view go to: the first live tray in the stored order, the
+ * one the app opens by default (Inbox in a new workspace). The view names it in its add field.
+ */
+export function trayForNewMemos(groups: Group[]): Group | undefined {
+  return groups.find(group => !group.isDeleted && group.type !== 'separator');
+}
+
 /** Every memo in a live tray, by last edit; the newest sits where the list opens (top, or bottom in the chat style). */
 export function allMemos(notes: Note[], groups: Group[], listStyle: 'top' | 'bottom'): Note[] {
   const trays = new Set(groups.filter(group => !group.isDeleted && group.type !== 'separator').map(group => group.id));
