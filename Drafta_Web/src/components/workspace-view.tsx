@@ -14,7 +14,7 @@ import { restoreHistoryCopy } from '@/lib/memo-history-restore';
 import { memoHistoryCopy } from '@/lib/memo-history-copy';
 import { MemoHistoryAction } from '@/components/memo-history-action';
 import { MemoActions } from '@/components/memo-actions';
-import { MobileNav, type MobilePane } from '@/components/mobile-nav';
+import { MobileCreateSheet, MobileNav, type MobilePane } from '@/components/mobile-nav';
 import { mobileCopy } from '@/lib/mobile-copy';
 import { toast } from '@/hooks/use-toast';
 
@@ -39,7 +39,7 @@ export type WorkspaceViewProps = {
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
 import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown, Layers, Settings } from 'lucide-react';
-import { InlineCreate, InlineNameEditor, TrayMenu, type InlineCreateHandle } from '@/components/inline-name-editor';
+import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import Header, { LanguageMenu } from '@/components/header';
@@ -162,8 +162,10 @@ interface HomeSectionProps {
   onQuickAdd?: (title: string) => void;
   /** Names the tray a memo goes to where it is not the one shown (the all memos view). */
   quickAddLabel?: string;
-  /** Opens the add field from elsewhere, like the phone's New button. */
-  quickAddRef?: React.Ref<InlineCreateHandle>;
+  /** False on phones: they add memos with the bottom navigation's New (AGENTS.md, Creation). */
+  showAddField?: boolean;
+  /** Adds a memo from elsewhere, like the phone's New, with the same move to the list's edge. */
+  addRef?: React.Ref<{ add: (title: string) => void }>;
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
@@ -514,7 +516,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true, paneShown = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
-  groups, onAddSeparator, onQuickAdd, quickAddLabel, quickAddRef, onRestoreGroup, onPermanentDeleteGroup,
+  groups, onAddSeparator, onQuickAdd, quickAddLabel, showAddField = true, addRef, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction, onRenameTray, trayNameValue, trayNames
 }) => {
   const { t, lang } = useLang();
@@ -566,6 +568,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   // user adds a memo. Memos synced from another device or deleted keep the reading position.
   const scrollAfterAdd = React.useRef(false);
   const createMemo = React.useCallback((title: string) => { scrollAfterAdd.current = true; onQuickAdd?.(title); }, [onQuickAdd]);
+  React.useImperativeHandle(addRef, () => ({ add: createMemo }), [createMemo]);
   const lastCount = React.useRef(items.length);
   // A phone shows one pane at a time and changes the list style from the tray list, so a move to
   // the edge asked for while the list is hidden waits until it is shown; showing it again otherwise
@@ -658,9 +661,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
   // The add field sits where new memos appear: above the list, or below it in the chat style (AGENTS.md, Creation).
   // Keep the draft local until the inline form is confirmed.
-  const addField = onQuickAdd && !isTrash ? (
-    <div className={cn("memo-add px-2 py-1.5 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")} style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-      <InlineCreate ref={quickAddRef} label={quickAddLabel ?? t.addMemo} placeholder={t.untitledMemo} onCreate={createMemo} />
+  const addField = showAddField && onQuickAdd && !isTrash ? (
+    <div className={cn("memo-add bg-background px-3 py-2 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")}>
+      <InlineCreate label={quickAddLabel ?? t.addMemo} placeholder={t.untitledMemo} onCreate={createMemo} />
     </div>
   ) : null;
 
@@ -737,7 +740,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         {/* The browser's own scrollbar keeps long lists easy to drag (AGENTS.md, Memo Scroll). */}
         <div className="memo-list-scroll flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden" ref={scrollAreaRef}
           onTouchStart={touched} onTouchMove={touched} onScroll={touched}>
-          <div className="w-full max-w-full overflow-hidden">
+          {/* In the chat style a short list sits at the bottom, like a chat (AGENTS.md, List Style). */}
+          <div className={cn("w-full max-w-full overflow-hidden", scrollDirection === 'bottom' && "flex min-h-full flex-col justify-end")}>
 
             {/* Combined List for Trash View (Groups + Notes) or Just Notes */}
             {viewMode === 'list' ? (
@@ -751,7 +755,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 onDragEnd={handleDragEnd}
                 onDragCancel={() => setActiveDragId(null)}
               >
-                <div className="flex flex-col gap-0 pb-10 p-2">
+                <div className={cn("flex flex-col gap-0 p-2", scrollDirection === 'bottom' ? "pb-1" : "pb-10")}>
                   {/* Render Deleted Groups as Items if isTrash */}
                   {isTrash && deletedGroups.map(group => (
                     <Card key={group.id} className={cn(
@@ -830,7 +834,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
               </DndContext>
             ) : (
               // Grid view
-              <div className={cn("grid gap-2 pb-10 p-2", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")}>
+              <div className={cn("grid gap-2 p-2", scrollDirection === 'bottom' ? "pb-1" : "pb-10", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")}>
                 {/* Render Deleted Groups as Items if isTrash */}
                 {isTrash && deletedGroups.map(group => (
                   <Card key={group.id} className={cn(
@@ -1373,17 +1377,20 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     if (layoutMode === 'tablet') setIsTrayDrawerOpen(false);
   }, [layoutMode]);
 
-  // The phone's New opens the memo list's add field; from the restore view it moves to the tray
-  // memos are added to first. The pane is shown before the field opens, so the keyboard comes up.
-  const quickAddRef = React.useRef<InlineCreateHandle>(null);
+  // The phone's New opens a field at the top of the screen, above the keyboard: a tray while the
+  // tray list shows, a memo otherwise. The new memo is not opened (AGENTS.md, Creation; 0.9.1).
+  const homeAdd = React.useRef<{ add: (title: string) => void }>(null);
+  const [mobileCreate, setMobileCreate] = React.useState<'memo' | 'tray' | null>(null);
   const mobileCreateTarget = activeGroupId === 'restore' ? defaultTray : addTarget;
-  const handleMobileCreate = () => {
-    if (!mobileCreateTarget) return;
-    flushSync(() => {
-      if (activeGroupId === 'restore') setActiveGroupId(mobileCreateTarget.id);
-      setMobilePane('notes');
-    });
-    quickAddRef.current?.open();
+  const handleMobileCreate = () => { setMobileCreate(mobilePane === 'trays' ? 'tray' : 'memo'); };
+  const createFromSheet = (value: string) => {
+    if (mobileCreate === 'tray') handleCreateGroup(value);
+    else if (mobileCreateTarget) {
+      // The restore view has nowhere to add to: the list moves to the tray the memo goes to.
+      flushSync(() => { if (activeGroupId === 'restore') setActiveGroupId(mobileCreateTarget.id); });
+      homeAdd.current?.add(value);
+    }
+    setMobileCreate(null);
   };
   // The bottom navigation's tabs list every open memo, whatever the desktop tab filter says.
   const mobileTabs = React.useMemo(() => isPhone ? openTabs.map(tab => notes.find(note => note.id === tab.id)).filter((note): note is Note => Boolean(note)) : [], [isPhone, openTabs, notes]);
@@ -1534,9 +1541,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   const allTrayNames = React.useMemo(() => activeGroupId === ALL_MEMOS ? new Map(groups.map(group => [group.id, group.name])) : undefined, [activeGroupId, groups]);
 
   // Create a tray while retaining the current selection and pane; the field sits where new trays
-  // appear, below the list in the chat style (AGENTS.md, Creation).
+  // appear, below the list in the chat style. Phones add trays with New instead (AGENTS.md, Creation).
   const trayAddField = (
-    <div className={cn("px-2 py-1.5 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")} style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
+    <div className={cn("bg-background px-3 py-2 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")}>
       <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
     </div>
   );
@@ -1630,7 +1637,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 </div>
               </div>
 
-              {scrollDirection !== 'bottom' && trayAddField}
+              {!isPhone && scrollDirection !== 'bottom' && trayAddField}
 
               <ScrollArea ref={trayScrollRef} className="tray-scroll flex-1 px-4">
                 <div className="w-full max-w-full overflow-hidden">
@@ -1695,7 +1702,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                   </DndContext>
                 </div>
               </ScrollArea>
-              {scrollDirection === 'bottom' && trayAddField}
+              {!isPhone && scrollDirection === 'bottom' && trayAddField}
               {/* Resizer Handle for Lists */}
               <div
                 className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
@@ -1751,7 +1758,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               onAddSeparator={activeGroupId === ALL_MEMOS ? undefined : handleAddSeparator}
               onQuickAdd={addTargetId ? handleQuickCreateNote : undefined}
               quickAddLabel={addLabel}
-              quickAddRef={quickAddRef}
+              showAddField={!isPhone}
+              addRef={homeAdd}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'restore' && activeGroupId !== ALL_MEMOS ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
@@ -1831,13 +1839,19 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           pane={mobilePane}
           onPane={setMobilePane}
           onSearch={() => setIsSearchOpen(true)}
-          onCreate={mobileCreateTarget ? handleMobileCreate : undefined}
+          onCreate={mobilePane === 'trays' || mobileCreateTarget ? handleMobileCreate : undefined}
           tabs={mobileTabs}
           activeTabId={activeTabId}
           onOpenTab={id => { openTab(id, 'note'); setMobilePane('editor'); }}
           onCloseTab={handleMobileCloseTab}
           progress={bodyProgress ? { ...bodyProgress, label: storageCopy[lang].hydrating(bodyProgress.loaded, bodyProgress.total) } : null}
           saveProblem={saveProblem}
+        />}
+        {isPhone && mobileCreate && <MobileCreateSheet
+          label={mobileCreate === 'tray' ? appT.addTray : mobileCreateTarget ? withName(mobileCopy[lang].addMemoTo, mobileCreateTarget.name) : appT.addMemo}
+          placeholder={mobileCreate === 'tray' ? appT.untitledTray : appT.untitledMemo}
+          onConfirm={createFromSheet}
+          onCancel={() => setMobileCreate(null)}
         />}
 
         <SettingsDialog
