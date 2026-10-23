@@ -2,6 +2,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 import { editorHtmlToDocument } from './document-codec';
+import { BackupValidationError } from './workspace-backup';
 import { planEvernoteImport } from './evernote-import';
 import { createNoteSource, LAZY_CONTENT } from './note-source';
 import { planNotionImport } from './notion-import';
@@ -119,6 +120,15 @@ describe('export files', () => {
     expect(trays.map(tray => tray.name)).toEqual(['Tray']);
     expect(trays[0].memos.map(item => item.title)).toEqual(['Colored title', 'Lazy']);
     expect(blocksToMarkdown(trays[0].memos[1].blocks)).toEqual(['stored body']);
+  });
+
+  it('checks a cached body before using it and stops on a bad one', () => {
+    const base = { stars: 0 as const, createdAt: created, updatedAt: updated };
+    const document = editorHtmlToDocument('<h1>Bad</h1><p>x</p>', window.document);
+    const paragraph = document.document.content![1];
+    paragraph.content = [{ type: 'text', text: 'x', marks: [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }] }];
+    const bad: Note = { ...base, id: 'n9', title: 'Bad', group: 'g1', content: LAZY_CONTENT, source: createNoteSource({ id: 'n9', group: 'g1', ...base, document }, 'Bad') };
+    expect(() => collectExport({ notes: [bad], groups: [{ id: 'g1', name: 'Tray', type: 'group' }] }, window.document)).toThrow(BackupValidationError);
   });
 });
 

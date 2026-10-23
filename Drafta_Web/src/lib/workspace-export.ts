@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { editorHtmlToDocument } from './document-codec';
 import { isLazyNote, sourceOf } from './note-source';
+import { trustDocument } from './workspace-backup';
 import { createZip, type ZipInput } from './zip';
 import type { Group, Note } from './types';
 
@@ -22,6 +23,8 @@ function bodyOf(note: Note, dom: Document): JSONContent[] {
   if (isLazyNote(note)) {
     const document = sourceOf(note)?.note.document;
     if (!document) throw new Error('Memo body is not loaded');
+    // A body from the device cache may not be checked yet (0.8.6); a bad one stops the export.
+    trustDocument(document, `notes.${note.id}.document`);
     return document.document.content?.slice(1) ?? [];
   }
   return editorHtmlToDocument(`<h1></h1>${note.content}`, dom).document.content?.slice(1) ?? [];
