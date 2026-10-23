@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
@@ -12,6 +12,9 @@ import type { MemoHistoryRepository, MemoHistoryVersion } from '@/lib/memo-histo
 import { restoreHistoryCopy } from '@/lib/memo-history-restore';
 import { memoHistoryCopy } from '@/lib/memo-history-copy';
 import { MemoHistoryAction } from '@/components/memo-history-action';
+import { MemoActions } from '@/components/memo-actions';
+import { MobileNav, type MobilePane } from '@/components/mobile-nav';
+import { mobileCopy } from '@/lib/mobile-copy';
 import { toast } from '@/hooks/use-toast';
 
 export type WorkspaceViewProps = {
@@ -32,11 +35,11 @@ export type WorkspaceViewProps = {
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
-import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown, Layers } from 'lucide-react';
-import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
+import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLeft, Menu, Pencil, Pin, ChevronDown, Layers, Settings } from 'lucide-react';
+import { InlineCreate, InlineNameEditor, TrayMenu, type InlineCreateHandle } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import Header from '@/components/header';
+import Header, { LanguageMenu } from '@/components/header';
 import VerticalTabs from '@/components/vertical-note-tabs';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
@@ -62,7 +65,7 @@ import type { Modifier } from '@dnd-kit/core';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from '@/lib/list-style';
 import { readViewState, restoreView, writeViewState } from '@/lib/view-state';
-import { ALL_MEMOS, allMemos } from '@/lib/all-memos';
+import { ALL_MEMOS, allMemos, trayForNewMemos } from '@/lib/all-memos';
 
 
 
@@ -137,6 +140,8 @@ interface HomeSectionProps {
   isTrash?: boolean;
   scrollDirection: 'top' | 'bottom';
   isVisible?: boolean;
+  /** False while a phone shows another pane (AGENTS.md, Mobile Layout). */
+  paneShown?: boolean;
 
   // Selection Mode Props
   isSelectionMode: boolean;
@@ -151,6 +156,10 @@ interface HomeSectionProps {
   groups: Group[]; // For Move Menu
   onAddSeparator?: () => void;
   onQuickAdd?: (title: string) => void;
+  /** Names the tray a memo goes to where it is not the one shown (the all memos view). */
+  quickAddLabel?: string;
+  /** Opens the add field from elsewhere, like the phone's New button. */
+  quickAddRef?: React.Ref<InlineCreateHandle>;
   onIconChange?: (id: string, icon: string) => void;
   leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
@@ -499,9 +508,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   title, icon: Icon, items, onItemSelect, activeId, onReorderNotes, itemType,
   viewMode, pinsCollapsed, onTogglePins, onTogglePin,
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
-  scrollDirection, isVisible = true,
+  scrollDirection, isVisible = true, paneShown = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
-  groups, onAddSeparator, onQuickAdd, onRestoreGroup, onPermanentDeleteGroup,
+  groups, onAddSeparator, onQuickAdd, quickAddLabel, quickAddRef, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction, onRenameTray, trayNameValue, trayNames
 }) => {
   const { t, lang } = useLang();
@@ -554,11 +563,22 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   const scrollAfterAdd = React.useRef(false);
   const createMemo = React.useCallback((title: string) => { scrollAfterAdd.current = true; onQuickAdd?.(title); }, [onQuickAdd]);
   const lastCount = React.useRef(items.length);
+  // A phone shows one pane at a time and changes the list style from the tray list, so a move to
+  // the edge asked for while the list is hidden waits until it is shown; showing it again otherwise
+  // keeps the reading position (returning from the editor).
+  const pendingEdge = React.useRef(false);
+  const wasShown = React.useRef(paneShown);
   React.useEffect(() => {
     const countChanged = items.length !== lastCount.current;
     lastCount.current = items.length;
-    if (countChanged && !scrollAfterAdd.current) return;
+    const justShown = paneShown && !wasShown.current;
+    const justHidden = !paneShown && wasShown.current;
+    wasShown.current = paneShown;
+    if (justHidden || (justShown && !pendingEdge.current)) return;
+    if (countChanged && !scrollAfterAdd.current && !justShown) return;
     scrollAfterAdd.current = false;
+    if (!paneShown) { pendingEdge.current = true; return; }
+    pendingEdge.current = false;
     if (!isVisible) return; // Only scroll when visible
     let frame = 0;
     const timer = setTimeout(() => {
@@ -576,7 +596,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
       toBottom();
     }, 50);
     return () => { clearTimeout(timer); cancelAnimationFrame(frame); };
-  }, [scrollDirection, items.length, isVisible]);
+  }, [scrollDirection, items.length, isVisible, paneShown]);
 
   const deletedGroups = React.useMemo(() => {
     if (!isTrash) return [];
@@ -620,6 +640,14 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   // IDs match [A-Za-z0-9_-], so the joined key is unambiguous; dnd-kit sees the same arrays while order is unchanged.
   const sectionKey = drawnSections.map(section => section.cards.map(item => item.id).join(' ')).join('|');
   const sectionIds = React.useMemo(() => sectionKey.split('|').map(ids => ids ? ids.split(' ') : []), [sectionKey]);
+
+  // The add field sits where new memos appear: above the list, or below it in the chat style (AGENTS.md, Creation).
+  // Keep the draft local until the inline form is confirmed.
+  const addField = onQuickAdd && !isTrash ? (
+    <div className={cn("memo-add px-2 py-1.5 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")} style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
+      <InlineCreate ref={quickAddRef} label={quickAddLabel ?? t.addMemo} placeholder={t.untitledMemo} onCreate={createMemo} />
+    </div>
+  ) : null;
 
   return (
     <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
@@ -688,15 +716,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         </div>
       </CardHeader>
 
-      <div className="flex flex-col border-b z-10 sticky top-[57px]">
-        {/* Keep the draft local until the inline form is confirmed. */}
-        {onQuickAdd && !isTrash && (
-          <div className="px-2 py-1.5 shrink-0 border-b" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-            <InlineCreate label={t.addMemo} placeholder={t.untitledMemo} onCreate={createMemo} />
-          </div>
-        )}
-
-      </div>
+      {scrollDirection !== 'bottom' && addField}
 
       <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full flex flex-col">
         {/* The browser's own scrollbar keeps long lists easy to drag (AGENTS.md, Memo Scroll). */}
@@ -751,8 +771,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                   )}
 
                   <div ref={sortableAreaRef}>
-                    {drawnSections.map((section, index) => <React.Fragment key={String(section.pinned)}>
-                      {section.pinned && section.list.length > 0 && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 mb-2", scrollDirection === 'bottom' && "mt-2")} aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
+                    {drawnSections.map((section, index) => {
+                      const cards = (
                       <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
                         {scrollDirection === 'bottom' && section.rest > 0 && <div className="memo-list-rest" aria-hidden style={{ height: section.rest }} />}
                         <SortableContext items={sectionIds[index]} strategy={verticalListSortingStrategy}>
@@ -766,7 +786,15 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                         </SortableContext>
                         {scrollDirection !== 'bottom' && section.rest > 0 && <div className="memo-list-rest" aria-hidden style={{ height: section.rest }} />}
                       </div>
-                    </React.Fragment>)}
+                      );
+                      // Pinned memos and their heading share one tinted box (AGENTS.md, Pins).
+                      return section.pinned && section.list.length > 0 ? (
+                        <div key="pinned" className="pinned-section">
+                          <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 px-2", !pinsCollapsed && "mb-1")} aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>
+                          {cards}
+                        </div>
+                      ) : <React.Fragment key={String(section.pinned)}>{cards}</React.Fragment>;
+                    })}
                   </div>
                 </div>
                 {/* Note: min-h-[44px]はSortableNoteItemの元カードと高さを揃えるため必要
@@ -860,6 +888,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
         </div>
 
       </CardContent >
+      {scrollDirection === 'bottom' && addField}
     </Card >
   )
 };
@@ -957,7 +986,11 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   const [notesWidth, setNotesWidth] = React.useState(400);
   const [editorWidth, setEditorWidth] = React.useState(400);
   const [layoutMode, setLayoutMode] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop');
-  const [mobilePane, setMobilePane] = React.useState<'trays' | 'notes' | 'editor'>(restoredView?.pane ?? 'notes');
+  const [mobilePane, setMobilePane] = React.useState<MobilePane>(restoredView?.pane ?? 'notes');
+  // Phones have no Writing Mode: its vertical tabs do not fit, and the bottom navigation's tabs
+  // take their place, so a phone always shows the panes (AGENTS.md, Mobile Layout).
+  const isPhone = layoutMode === 'mobile';
+  const view = isPhone ? 'home' : activeView;
   React.useEffect(() => {
     if (viewKey) writeViewState(viewKey, { groupId: activeGroupId, noteId: activeTabId, tabIds: openTabs.map(tab => tab.id), pane: mobilePane });
   }, [viewKey, activeGroupId, activeTabId, openTabs, mobilePane]);
@@ -965,7 +998,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   // The tray list opens at the side where lists open, like the memo list: the bottom in the chat
   // style. Only when it appears or the style changes; adding or pinning a tray keeps the position.
   const trayScrollRef = React.useRef<HTMLDivElement>(null);
-  const traysShown = activeView === 'home' && (layoutMode === 'desktop' || (layoutMode === 'tablet' ? isTrayDrawerOpen : mobilePane === 'trays'));
+  const traysShown = view === 'home' && (layoutMode === 'desktop' || (layoutMode === 'tablet' ? isTrayDrawerOpen : mobilePane === 'trays'));
   React.useEffect(() => {
     if (!traysShown) return;
     const timer = setTimeout(() => {
@@ -1273,15 +1306,20 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     });
   };
 
+  // The tray the app opens by default; the all memos view adds its memos there (AGENTS.md, All Memos).
+  const defaultTray = trayForNewMemos(groups);
+  const addTarget = activeGroupId === ALL_MEMOS ? defaultTray : groups.find(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator');
+  const addTargetId = addTarget?.id;
+  const addLabel = activeGroupId === ALL_MEMOS && addTarget ? withName(mobileCopy[lang].addMemoTo, addTarget.name) : appT.addMemo;
   const handleQuickCreateNote = (title: string) => {
-    if (!groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator')) return;
+    if (!addTargetId) return;
     const newNote: Note = {
       id: `note-${crypto.randomUUID()}`,
       title,
       icon: '📝',
       content: '',
       plainTextContent: '',
-      group: activeGroupId,
+      group: addTargetId,
       stars: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -1290,8 +1328,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     // Add to top or bottom based on scrollDirection
     setNotes(prev => {
       if (scrollDirection === 'top') {
-        // Find first note in current group and insert before it
-        const firstGroupIndex = prev.findIndex(n => n.group === activeGroupId);
+        // Find first note in the target tray and insert before it
+        const firstGroupIndex = prev.findIndex(n => n.group === addTargetId);
         if (firstGroupIndex === -1) return [...prev, newNote];
         const result = [...prev];
         result.splice(firstGroupIndex, 0, newNote);
@@ -1317,6 +1355,25 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     if (layoutMode === 'mobile') setMobilePane('notes');
     if (layoutMode === 'tablet') setIsTrayDrawerOpen(false);
   }, [layoutMode]);
+
+  // The phone's New opens the memo list's add field; from the restore view it moves to the tray
+  // memos are added to first. The pane is shown before the field opens, so the keyboard comes up.
+  const quickAddRef = React.useRef<InlineCreateHandle>(null);
+  const mobileCreateTarget = activeGroupId === 'restore' ? defaultTray : addTarget;
+  const handleMobileCreate = () => {
+    if (!mobileCreateTarget) return;
+    flushSync(() => {
+      if (activeGroupId === 'restore') setActiveGroupId(mobileCreateTarget.id);
+      setMobilePane('notes');
+    });
+    quickAddRef.current?.open();
+  };
+  // The bottom navigation's tabs list every open memo, whatever the desktop tab filter says.
+  const mobileTabs = React.useMemo(() => isPhone ? openTabs.map(tab => notes.find(note => note.id === tab.id)).filter((note): note is Note => Boolean(note)) : [], [isPhone, openTabs, notes]);
+  const handleMobileCloseTab = (id: string) => {
+    if (openTabs.length === 1 && openTabs[0].id === id && mobilePane === 'editor') setMobilePane('notes');
+    closeTab(id);
+  };
 
   const handleToggleComplete = (id: string, isCompleted: boolean) => {
     setNotes(prev => prev.map(note => note.id === id ? { ...note, isCompleted } : note));
@@ -1419,6 +1476,11 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     setGroups(prev => prev.filter(g => g.id !== id));
   };
 
+  // The memo list's pins and the editor's pin are the same switch (AGENTS.md, Pins).
+  const handleTogglePin = React.useCallback((id: string) => {
+    setNotes(prev => prev.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note));
+  }, []);
+
   const handleIconChange = React.useCallback((id: string, icon: string) => {
     setNotes(prevNotes => prevNotes.map(note => note.id === id && !isEditLockedSample(note) ? { ...note, icon } : note));
   }, []);
@@ -1454,12 +1516,20 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   }, [notes, groups, activeGroupId, scrollDirection]);
   const allTrayNames = React.useMemo(() => activeGroupId === ALL_MEMOS ? new Map(groups.map(group => [group.id, group.name])) : undefined, [activeGroupId, groups]);
 
+  // Create a tray while retaining the current selection and pane; the field sits where new trays
+  // appear, below the list in the chat style (AGENTS.md, Creation).
+  const trayAddField = (
+    <div className={cn("px-2 py-1.5 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")} style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
+      <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
+    </div>
+  );
 
   return (
     <>
-      <div className="flex h-screen flex-col bg-background text-foreground overflow-hidden">
+      <div className={cn("app-shell flex flex-col bg-background text-foreground overflow-hidden", isPhone && "has-mobile-nav")}>
         {notice}
-        <Header
+        {/* Phones use the bottom navigation and the tray list header instead (AGENTS.md, Mobile Layout). */}
+        {!isPhone && <Header
           accountMenu={accountMenu}
           onToggleView={handleToggleView}
           activeView={activeView}
@@ -1470,11 +1540,11 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             return currentNote ? { ...item, title: currentNote.title } : item;
           })}
           onHistorySelect={handleNoteSelect}
-        />
+        />}
 
         <div role="main" className="flex flex-1 overflow-hidden relative min-h-0">
 
-          {layoutMode === 'tablet' && isTrayDrawerOpen && activeView === 'home' && (
+          {layoutMode === 'tablet' && isTrayDrawerOpen && view === 'home' && (
             <button
               type="button"
               aria-label={a11yCopy[lang].closeTrays}
@@ -1484,7 +1554,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           )}
 
           {/* PANE 0: VERTICAL TABS (Only in Writing Mode) */}
-          {activeView === 'editor' && layoutMode !== 'mobile' && openTabDetails.length > 0 && (
+          {view === 'editor' && openTabDetails.length > 0 && (
             <VerticalTabs
               items={openTabDetails}
               activeId={activeTabId}
@@ -1501,44 +1571,49 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           <div
             className={cn(
               "flex-col border-r bg-secondary min-h-0",
-              activeView !== 'home' && "hidden",
-              activeView === 'home' && layoutMode === 'desktop' && "flex relative shrink-0",
-              activeView === 'home' && layoutMode === 'tablet' && cn(
+              view !== 'home' && "hidden",
+              view === 'home' && layoutMode === 'desktop' && "flex relative shrink-0",
+              view === 'home' && layoutMode === 'tablet' && cn(
                 "flex absolute inset-y-0 left-0 z-40 w-[min(20rem,85vw)] shadow-xl transition-transform duration-200",
                 isTrayDrawerOpen ? "translate-x-0" : "-translate-x-full"
               ),
-              activeView === 'home' && layoutMode === 'mobile' && (mobilePane === 'trays' ? "flex relative w-full" : "hidden")
+              view === 'home' && isPhone && (mobilePane === 'trays' ? "flex relative w-full" : "hidden")
             )}
             style={layoutMode === 'desktop' ? { width: listsWidth } : undefined}
           >
               {/* Header for Lists */}
               <div className="flex items-center justify-between px-3 sm:px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
                 <div className="flex items-center gap-1 min-w-0">
-                  {layoutMode !== 'desktop' && (
+                  {layoutMode === 'tablet' && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 shrink-0"
                       title={a11yCopy[lang].backToMemos}
                       aria-label={a11yCopy[lang].backToMemos}
-                      onClick={() => layoutMode === 'mobile' ? setMobilePane('notes') : setIsTrayDrawerOpen(false)}
+                      onClick={() => setIsTrayDrawerOpen(false)}
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </Button>
                   )}
                   <h2 className="text-lg font-semibold truncate">{appT.trays}</h2>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex shrink-0 items-center gap-1">
+                  {/* The tray list is a phone's starting screen, so the app-wide controls live here. */}
+                  {isPhone && <>
+                    {accountMenu}
+                    <LanguageMenu />
+                    <Button variant="ghost" size="icon" aria-label={appT.settings} title={appT.settings} onClick={() => setIsSettingsOpen(true)}>
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </>}
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title={appT.addSeparator} aria-label={appT.addSeparator}>
                     <Minus className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
 
-              {/* Create a tray while retaining the current selection and pane. */}
-              <div className="px-2 py-1.5 border-b shrink-0" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
-                <InlineCreate label={appT.addTray} placeholder={appT.untitledTray} onCreate={handleCreateGroup} />
-              </div>
+              {scrollDirection !== 'bottom' && trayAddField}
 
               <ScrollArea ref={trayScrollRef} className="tray-scroll flex-1 px-4">
                 <div className="w-full max-w-full overflow-hidden">
@@ -1603,6 +1678,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                   </DndContext>
                 </div>
               </ScrollArea>
+              {scrollDirection === 'bottom' && trayAddField}
               {/* Resizer Handle for Lists */}
               <div
                 className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
@@ -1614,19 +1690,19 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           <div
             className={cn(
               "flex-col border-r relative min-h-0",
-              activeView !== 'home' && "hidden",
-              activeView === 'home' && layoutMode === 'desktop' && "flex shrink-0",
-              activeView === 'home' && layoutMode === 'tablet' && "flex shrink-0 w-[clamp(18rem,38vw,24rem)]",
-              activeView === 'home' && layoutMode === 'mobile' && (mobilePane === 'notes' ? "flex w-full" : "hidden")
+              view !== 'home' && "hidden",
+              view === 'home' && layoutMode === 'desktop' && "flex shrink-0",
+              view === 'home' && layoutMode === 'tablet' && "flex shrink-0 w-[clamp(18rem,38vw,24rem)]",
+              view === 'home' && isPhone && (mobilePane === 'notes' ? "flex w-full" : "hidden")
             )}
-            style={layoutMode === 'desktop' ? { width: activeView === 'home' ? notesWidth : '100%' } : undefined}
+            style={layoutMode === 'desktop' ? { width: view === 'home' ? notesWidth : '100%' } : undefined}
           >
 
             <HomeSection
               key={activeGroupId}
               pinsCollapsed={Boolean(collapsedPins[activeGroupId])}
               onTogglePins={() => setCollapsedPins(prev => ({ ...prev, [activeGroupId]: !prev[activeGroupId] }))}
-              onTogglePin={id => setNotes(prev => prev.map(note => note.id === id ? { ...note, isPinned: !note.isPinned } : note))}
+              onTogglePin={handleTogglePin}
               title={activeGroupId === 'restore' ? appT.restore : activeGroupId === ALL_MEMOS ? appT.allMemos : groups.find(g => g.id === activeGroupId)?.name || appT.inbox}
               icon={activeGroupId === 'restore' ? RotateCcw : activeGroupId === ALL_MEMOS ? Layers : Inbox}
               trayNames={allTrayNames}
@@ -1642,7 +1718,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               onPermanentDeleteItem={(id) => confirmPermanentDelete(id, 'note')}
               isTrash={activeGroupId === 'restore'}
               scrollDirection={scrollDirection}
-              isVisible={activeView === 'home'}
+              isVisible={view === 'home'}
+              paneShown={!isPhone || mobilePane === 'notes'}
 
               isSelectionMode={isSelectionMode}
               onToggleSelectionMode={handleToggleSelectionMode}
@@ -1655,20 +1732,22 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
               groups={groups}
               onAddSeparator={activeGroupId === ALL_MEMOS ? undefined : handleAddSeparator}
-              onQuickAdd={activeGroupId === ALL_MEMOS ? undefined : handleQuickCreateNote}
+              onQuickAdd={addTargetId ? handleQuickCreateNote : undefined}
+              quickAddLabel={addLabel}
+              quickAddRef={quickAddRef}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'restore' && activeGroupId !== ALL_MEMOS ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
               } : undefined}
               onIconChange={handleIconChange}
-              leadingAction={layoutMode !== 'desktop' ? (
+              leadingAction={layoutMode === 'tablet' ? (
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10 shrink-0"
                   title={a11yCopy[lang].openTrays}
                   aria-label={a11yCopy[lang].openTrays}
-                  onClick={() => layoutMode === 'mobile' ? setMobilePane('trays') : setIsTrayDrawerOpen(true)}
+                  onClick={() => setIsTrayDrawerOpen(true)}
                 >
                   <Menu className="w-5 h-5" />
                 </Button>
@@ -1680,13 +1759,13 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           <div
             className={cn(
               "bg-background relative overflow-hidden min-w-0 min-h-0",
-              activeView === 'editor' && "flex flex-1",
-              activeView === 'home' && layoutMode === 'desktop' && "flex shrink-0",
-              activeView === 'home' && layoutMode === 'tablet' && "flex flex-1",
-              activeView === 'home' && layoutMode === 'mobile' && (mobilePane === 'editor' ? "flex w-full" : "hidden")
+              view === 'editor' && "flex flex-1",
+              view === 'home' && layoutMode === 'desktop' && "flex shrink-0",
+              view === 'home' && layoutMode === 'tablet' && "flex flex-1",
+              view === 'home' && isPhone && (mobilePane === 'editor' ? "flex w-full" : "hidden")
             )}
             style={layoutMode === 'desktop'
-              ? (activeView === 'editor' ? { minWidth: editorWidth } : { width: editorWidth })
+              ? (view === 'editor' ? { minWidth: editorWidth } : { width: editorWidth })
               : undefined
             }
           >
@@ -1697,28 +1776,20 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 externalRevision={editorSyncRevision}
                 continuityKey={editorContinuity?.noteId === activeNote.id ? editorContinuity.key : undefined}
                 note={editorNote}
-                historyAction={memoHistory && activeNote.type !== 'separator' ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
-                onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
-                  handleDeleteNote(activeNote.id);
-                  setActiveView('home');
-                  setMobilePane('notes');
-                } : undefined}
+                memoActions={activeNote.type !== 'separator' && <MemoActions
+                  isPinned={Boolean(activeNote.isPinned)}
+                  onTogglePin={!activeNote.isDeleted ? () => handleTogglePin(activeNote.id) : undefined}
+                  historyAction={memoHistory ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
+                  onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
+                    handleDeleteNote(activeNote.id);
+                    setActiveView('home');
+                    setMobilePane('notes');
+                  } : undefined}
+                />}
                 onNoteUpdate={handleNoteUpdate}
                 onDuplicate={() => handleDuplicateSample(activeNote.id)}
-                 onIconChange={(id, icon) => handleIconChange(id, icon)}
-                 scrollDirection={scrollDirection}
-                 navigationAction={layoutMode === 'mobile' && activeView === 'home' ? (
-                   <Button
-                     variant="ghost"
-                     size="icon"
-                     className="h-10 w-10 shrink-0"
-                     title={a11yCopy[lang].backToMemos}
-                     aria-label={a11yCopy[lang].backToMemos}
-                     onClick={() => setMobilePane('notes')}
-                   >
-                     <ChevronLeft className="w-5 h-5" />
-                   </Button>
-                 ) : undefined}
+                onIconChange={(id, icon) => handleIconChange(id, icon)}
+                scrollDirection={scrollDirection}
               />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center relative">
@@ -1728,8 +1799,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 </div>
                 <h3 className="text-xl font-medium text-foreground mb-2">{appT.noActiveMemo}</h3>
                 <p className="max-w-xs">{appT.noActiveMemoDesc}</p>
-                {/* New memos need a tray; the all memos and restore views have none to add to. */}
-                {groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator') && <div className="mt-6 w-full max-w-sm"><InlineCreate label={appT.addMemo} placeholder={appT.untitledMemo} onCreate={title => {
+                {/* New memos need a tray: the one shown, or the first tray in the all memos view; the restore view has none. */}
+                {addTargetId && <div className="mt-6 w-full max-w-sm"><InlineCreate label={addLabel} placeholder={appT.untitledMemo} onCreate={title => {
                   handleQuickCreateNote(title);
                   setActiveView('home');
                   setMobilePane('notes');
@@ -1738,6 +1809,18 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             )}
           </div>
         </div >
+
+        {isPhone && <MobileNav
+          pane={mobilePane}
+          onPane={setMobilePane}
+          onSearch={() => setIsSearchOpen(true)}
+          onCreate={mobileCreateTarget ? handleMobileCreate : undefined}
+          tabs={mobileTabs}
+          activeTabId={activeTabId}
+          onOpenTab={id => { openTab(id, 'note'); setMobilePane('editor'); }}
+          onCloseTab={handleMobileCloseTab}
+          progress={bodyProgress ? { ...bodyProgress, label: storageCopy[lang].hydrating(bodyProgress.loaded, bodyProgress.total) } : null}
+        />}
 
         <SettingsDialog
           open={isSettingsOpen}
