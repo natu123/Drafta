@@ -33,7 +33,7 @@ describe('Markdown export', () => {
     expect(markdown('<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>done</p></li><li data-type="taskItem" data-checked="false"><p>open</p></li></ul>'))
       .toBe('- [x] done\n- [ ] open');
     expect(markdown('<blockquote><p>quoted</p><p>more</p></blockquote>')).toBe('> quoted\n>\n> more');
-    expect(markdown('<pre><code class="language-js">const s = "```";</code></pre><hr>')).toBe('````js\nconst s = "```";\n````\n\n---');
+    expect(markdown('<pre><code class="language-js">const s = "```";</code></pre><hr>')).toBe('````js\nconst s = "```";\n````\n\n***');
     expect(markdown('<p>line<br>next</p>')).toBe('line\nnext');
   });
 
@@ -76,11 +76,35 @@ describe('ENEX export', () => {
 });
 
 describe('export files', () => {
+  it('writes rules so that a memo starting with one is not read as frontmatter, and escapes lines that would underline a heading', async () => {
+    const trays: ExportTray[] = [{ name: 'Rules', memos: [memo('Ruled', '<hr><p>foo</p><hr>')] }];
+    const vault = await unzip((await exportWorkspace('obsidian', trays, labels)).blob);
+    expect(vault['Drafta/Rules/Ruled.md']).toBe('***\n\nfoo\n\n***\n');
+    const back = await planObsidianImport([zipImport((await exportWorkspace('obsidian', trays, labels)).blob, 'v.zip')], { dom: document, newId: () => crypto.randomUUID(), listStyle: 'top', labels: { image: 'I', file: 'F', vault: 'V' } });
+    expect(back.notes[0].content).toContain('foo');
+    expect(markdown('<p>text<br>---</p><p>title<br>=</p><p>more<br>--</p><p>- - -</p>')).toBe('text\n\\---\n\ntitle\n\\=\n\nmore\n\\--\n\n\\- - -');
+  });
+
+  it('avoids Windows device names with extensions, hidden names and long paths', async () => {
+    expect(safeFileName('nul.txt', 'x')).toBe('nul_.txt');
+    expect(safeFileName('CONIN$', 'x')).toBe('CONIN$_');
+    expect(safeFileName('COM¹', 'x')).toBe('COM¹_');
+    expect(safeFileName('Lpt3.backup.md', 'x')).toBe('Lpt3_.backup.md');
+    expect(safeFileName('console', 'x')).toBe('console');
+    expect(safeFileName('.hidden', 'x')).toBe('hidden');
+    expect(safeFileName(' . ', 'Untitled')).toBe('Untitled');
+    expect(safeFileName('😀'.repeat(50), 'x')).toBe('😀'.repeat(40));
+    const long = 'あ'.repeat(300);
+    const paths = Object.keys(await unzip((await exportWorkspace('notion', [{ name: long, memos: [memo(long, '<p>x</p>'), memo(long, '<p>y</p>')] }], labels)).blob));
+    expect(paths).toEqual([`Drafta/${'あ'.repeat(40)}/${'あ'.repeat(80)}.md`, `Drafta/${'あ'.repeat(40)}/${'あ'.repeat(80)} 2.md`]);
+    expect(Math.max(...paths.map(path => path.length))).toBeLessThanOrEqual(140);
+  });
+
   it('makes file names safe and unique', () => {
     expect(safeFileName('a/b:c*?"<>|#^[]', 'x')).toBe('a_b_c__________');
     expect(safeFileName('  CON ', 'x')).toBe('CON_');
     expect(safeFileName('...', 'Untitled')).toBe('Untitled');
-    expect(safeFileName('x'.repeat(300), 'x')).toHaveLength(100);
+    expect(safeFileName('x'.repeat(300), 'x')).toHaveLength(80);
   });
 
   it('builds a vault, a Notion import and ENEX files, leaving out empty trays', async () => {

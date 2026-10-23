@@ -48,8 +48,10 @@ export function escapeMarkdown(text: string): string {
   return text.replace(MARKDOWN_SPECIAL, '\\$&').replace(/==/g, '\\=\\=').replace(/%%/g, '\\%\\%').replace(/&(?=#?[a-zA-Z0-9]+;)/g, '\\&');
 }
 
+const longestRun = (text: string, run: RegExp) => (text.match(run) ?? []).reduce((longest, item) => Math.max(longest, item.length), 0);
+
 function codeSpan(text: string): string {
-  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map(run => run.length));
+  const longest = longestRun(text, /`+/g);
   const fence = '`'.repeat(longest + 1);
   const pad = text.startsWith('`') || text.endsWith('`') ? ' ' : '';
   return `${fence}${pad}${text}${pad}${fence}`;
@@ -101,9 +103,11 @@ export function inlineMarkdown(nodes: JSONContent[] | undefined): string {
   return out;
 }
 
-// A paragraph line must not start a list, quote, heading or code block by accident.
+// A paragraph line must not start a list, quote, heading or code block by accident, and a line of
+// only "-" or "=" must not turn the line before it into a heading (or be read as a rule or frontmatter).
 function guardLine(line: string): string {
-  return line.replace(/^[ \t]+/, spaces => '\u00a0'.repeat(spaces.length)).replace(/^([-+])(?=\s|$)/, '\\$1').replace(/^(\d+)([.)])(?=\s|$)/, '$1\\$2');
+  return line.replace(/^[ \t]+/, spaces => '\u00a0'.repeat(spaces.length)).replace(/^([-+])(?=\s|$)/, '\\$1').replace(/^(\d+)([.)])(?=\s|$)/, '$1\\$2')
+    .replace(/^([-=])(?=[-= \t]*$)/, '\\$1');
 }
 
 function textOf(node: JSONContent): string {
@@ -166,12 +170,13 @@ function blockToMarkdown(block: JSONContent): string[] {
     }
     case 'codeBlock': {
       const text = textOf(block);
-      const longest = Math.max(0, ...(text.match(/`{3,}/g) ?? []).map(run => run.length));
+      const longest = longestRun(text, /`{3,}/g);
       const fence = '`'.repeat(Math.max(3, longest + 1));
       const language = typeof block.attrs?.language === 'string' && /^[\w+-]+$/.test(block.attrs.language) && block.attrs.language !== 'plaintext' ? block.attrs.language : '';
       return [`${fence}${language}`, ...text.split('\n'), fence];
     }
-    case 'horizontalRule': return ['---'];
+    // Not "---": at the top of a file that starts YAML frontmatter, which Obsidian (and Drafta) would hide.
+    case 'horizontalRule': return ['***'];
     case 'table': return tableToMarkdown(block);
     default: {
       const text = escapeMarkdown(textOf(block)).trim();
@@ -256,12 +261,31 @@ export function trayToEnex(memos: ExportMemo[], labels: ExportLabels, exportedAt
 
 // ---------- Files ----------
 
-const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+// Windows device names, reserved with any extension too (nul.txt), including the superscript digits.
+const RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³]|conin\$|conout\$)$/i;
+// Short enough that "Drafta/tray/memo 2.md" stays far below Windows' 260-character path limit
+// after extraction into a folder such as Downloads.
+export const NAME_LIMITS = { folder: 40, file: 80 } as const;
+
+/** At most `max` UTF-16 units (Windows counts paths in them), without splitting a character. */
+function truncate(text: string, max: number): string {
+  let result = '';
+  for (const char of text) {
+    if (result.length + char.length > max) break;
+    result += char;
+  }
+  return result;
+}
+
 /** A file or folder name that works on Windows, macOS, Linux, Obsidian links and Notion. */
-export function safeFileName(name: string, fallback: string): string {
-  let value = Array.from(name.replace(/[\\/:*?"<>|#^[\]\u0000-\u001f\u007f]/g, '_').replace(/\s+/g, ' ').trim()).slice(0, 100).join('').replace(/[. ]+$/, '');
-  if (!value) value = fallback;
-  return RESERVED.test(value) ? `${value}_` : value;
+export function safeFileName(name: string, fallback: string, max: number = NAME_LIMITS.file): string {
+  const clean = (text: string) => truncate(text.replace(/[\\/:*?"<>|#^[\]\u0000-\u001f\u007f]/g, '_').replace(/\s+/g, ' ').trim()
+    // A leading dot hides the file (Obsidian and the importers skip hidden files).
+    .replace(/^[. ]+/, ''), max).replace(/[. ]+$/, '');
+  const value = clean(name) || clean(fallback) || '_';
+  const dot = value.indexOf('.');
+  const base = (dot < 0 ? value : value.slice(0, dot)).trimEnd();
+  return RESERVED.test(base) ? `${base}_${value.slice(base.length)}` : value;
 }
 
 /** Names unique within one folder, ignoring case: "Name", "Name 2", "Name 3". */
@@ -285,10 +309,11 @@ export async function exportWorkspace(format: ExportFormat, trays: ExportTray[],
   for (const tray of trays.filter(item => item.memos.length)) {
     memos += tray.memos.length;
     if (format === 'evernote') {
-      files.push({ path: folders(safeFileName(tray.name, labels.untitledTray), '.enex'), data: trayToEnex(tray.memos, labels, now.toISOString()), lastModified: Math.max(...tray.memos.map(memoTime)) });
+      files.push({ path: folders(safeFileName(tray.name, labels.untitledTray), '.enex'), data: trayToEnex(tray.memos, labels, now.toISOString()),
+        lastModified: tray.memos.reduce((latest, memo) => Math.max(latest, memoTime(memo)), 0) });
       continue;
     }
-    const folder = folders(safeFileName(tray.name, labels.untitledTray));
+    const folder = folders(safeFileName(tray.name, labels.untitledTray, NAME_LIMITS.folder));
     const names = uniqueNames();
     for (const memo of tray.memos) {
       const body = blocksToMarkdown(memo.blocks);
