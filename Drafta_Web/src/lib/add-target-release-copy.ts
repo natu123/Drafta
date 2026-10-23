@@ -1,0 +1,15 @@
+import type { Lang } from '@/app/languages';
+
+export const addTargetReleaseCopy: Record<Lang, string> = {
+  en: 'In All memos, the add field now has a chip with the tray name: tap it to choose which tray the new memo goes to. The tray chosen last time on this device is chosen first. On phones, New moved to the middle of the bottom bar as a round button, and Search moved one place to the right.',
+  ja: '「すべてのメモ」の追加欄に, トレイ名のチップを付けました. 押すと, 新しいメモを入れるトレイを選べます. はじめは, この端末で前回選んだトレイになります. スマホの下部メニューでは, 「新規」を中央の丸いボタンにし, 「検索」を右へ1つ移しました.',
+  'zh-CN': '"全部备忘录" 的添加栏现在带有托盘名称的标签: 点击即可选择新备忘录放入哪个托盘. 默认是本设备上次选择的托盘. 在手机底部菜单中, "新建" 移到中间并改为圆形按钮, "搜索" 向右移了一格.',
+  ko: '"모든 메모" 의 추가란에 트레이 이름 칩을 달았습니다. 누르면 새 메모를 넣을 트레이를 고를 수 있습니다. 처음에는 이 기기에서 지난번에 고른 트레이가 선택됩니다. 스마트폰 하단 메뉴에서는 "새로 만들기" 를 가운데의 둥근 버튼으로 바꾸고, "검색" 을 오른쪽으로 한 칸 옮겼습니다.',
+  es: 'En Todas las notas, el campo para añadir tiene ahora una etiqueta con el nombre de la bandeja: tócala para elegir a qué bandeja va la nota nueva. Se elige primero la bandeja usada la última vez en este dispositivo. En el móvil, Nueva pasó al centro de la barra inferior como botón redondo, y Buscar se movió un lugar a la derecha.',
+  fr: 'Dans Toutes les notes, le champ d’ajout a maintenant une étiquette avec le nom du bac : touchez-la pour choisir le bac de la nouvelle note. Le bac choisi la dernière fois sur cet appareil est proposé d’abord. Sur téléphone, Nouvelle passe au centre de la barre du bas sous forme de bouton rond, et Rechercher se décale d’une place vers la droite.',
+  'pt-BR': 'Em Todas as notas, o campo de adicionar agora tem uma etiqueta com o nome da bandeja: toque nela para escolher em qual bandeja a nota nova entra. A bandeja escolhida da última vez neste dispositivo vem selecionada. No celular, Nova passou para o centro da barra inferior como um botão redondo, e Pesquisar foi uma posição para a direita.',
+  hi: 'सभी नोट में जोड़ने वाले फ़ील्ड पर अब ट्रे के नाम वाली चिप है: उसे टैप करके चुनें कि नया नोट किस ट्रे में जाए. इस डिवाइस पर पिछली बार चुनी गई ट्रे पहले से चुनी रहती है. फ़ोन पर "नया" नीचे की पट्टी के बीच में गोल बटन बन गया है, और "खोजें" एक जगह दाईं ओर चला गया है.',
+  ar: 'في كل الملاحظات، أصبح لحقل الإضافة شارة باسم الدرج: اضغطها لتختار الدرج الذي تذهب إليه الملاحظة الجديدة. ويُختار أولًا الدرج الذي اخترته آخر مرة على هذا الجهاز. وعلى الهاتف انتقل زر جديد إلى منتصف الشريط السفلي كزر دائري، وانتقل البحث خانة واحدة إلى اليمين.',
+  ru: 'В «Все заметки» у поля добавления теперь есть метка с названием лотка: нажмите её, чтобы выбрать, в какой лоток попадёт новая заметка. Сначала выбран лоток, выбранный в прошлый раз на этом устройстве. На телефоне «Новая» переехала в центр нижней панели круглой кнопкой, а «Поиск» сдвинулся на одно место вправо.',
+  id: 'Di Semua catatan, kolom tambah kini punya cip berisi nama nampan: ketuk untuk memilih nampan tujuan catatan baru. Nampan yang dipilih terakhir kali di perangkat ini terpilih lebih dulu. Di ponsel, Baru pindah ke tengah bilah bawah sebagai tombol bulat, dan Cari bergeser satu tempat ke kanan.',
+};
