@@ -374,7 +374,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           const tempDiv = document.createElement('div');
           tempDiv.appendChild(domFragment);
           const normalizedHtml = normalizeOrderedListHtml(tempDiv.innerHTML);
-          return normalizeOrderedListTags(richToPlainMarkdown(normalizedHtml));
+          const markdown = normalizeOrderedListTags(richToPlainMarkdown(normalizedHtml));
+          // The title is the memo's name, not a heading: copied, it is plain text without "# " (0.8.6).
+          return slice.content.firstChild?.type.name === 'title' ? markdown.replace(/^# /, '') : markdown;
         } catch (e) {
           console.error('Failed to serialize clibpoard text to markdown', e);
           return slice.content.textBetween(0, slice.content.size, '\n', '\n');

@@ -1,8 +1,8 @@
 import type { Group, Note } from './types';
 import { editorDocumentToHtml } from './document-codec';
-import { BackupValidationError, isTrustedBackup, measureDocumentsLater, parseTrustedWorkspaceBackup, type BackupNote, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
+import { BackupValidationError, isTrustedBackup, parseTrustedWorkspaceBackup, settleDocumentsLater, trustDocument, type BackupNote, type BackupSettings, type WorkspaceBackup } from './workspace-backup';
 import { createNoteSource, isLazyNote, LAZY_CONTENT, sourceOf } from './note-source';
-import { previewText, titleText } from './note-text';
+import { PREVIEW_CHARACTERS, previewTextStart, titleText } from './note-text';
 import { noteMetadata, type NoteSummary, type WorkspaceEnvelope } from './note-summary';
 
 export type WorkspaceState = { groups: Group[]; notes: Note[]; settings: BackupSettings };
@@ -27,20 +27,23 @@ function editorHtml(value: BackupNote['document'], dom: Document) {
 /**
  * Validates before creating any HTML. Never changes app state or fetches URLs.
  * With `lazyBodies`, memos keep their stored document and get editor HTML only when opened
- * (noteWithContent); start-up then reads titles and preview text only (specs/17).
+ * (noteWithContent); start-up then reads only titles and as much preview text as a card shows
+ * (specs/17; search reads the rest, global-search.ts, 0.8.6). Bodies of the device
+ * copy not checked yet are checked soon after; `onInvalidBody` hears of one that fails (specs/16).
  */
-export function workspaceToState(input: WorkspaceBackup, dom: Document, options: { lazyBodies?: boolean } = {}): WorkspaceState {
+export function workspaceToState(input: WorkspaceBackup, dom: Document, options: { lazyBodies?: boolean; onInvalidBody?: (error: unknown) => void } = {}): WorkspaceState {
   const backup = isTrustedBackup(input) ? input : parseTrustedWorkspaceBackup(stringifyBackup(input));
   if (backup.settings.noteSort !== 'manual') throw new BackupValidationError('settings.noteSort', 'Only manual order is supported');
   const notes = backup.notes.map((stored): Note => {
     const { document: value, ...metadata } = stored;
     const title = titleText(value.document.content![0]);
     if (options.lazyBodies && !metadata.sampleKey) {
-      return { ...JSON.parse(JSON.stringify(metadata)), title, content: LAZY_CONTENT, plainTextContent: previewText(value), source: createNoteSource(stored, title) };
+      return { ...JSON.parse(JSON.stringify(metadata)), title, content: LAZY_CONTENT, plainTextContent: previewTextStart(value, PREVIEW_CHARACTERS), source: createNoteSource(stored, title) };
     }
+    trustDocument(value, `notes.${stored.id}.document`);
     return { ...JSON.parse(JSON.stringify(metadata)), title, ...editorHtml(value, dom) };
   });
-  if (options.lazyBodies) measureDocumentsLater(backup.notes);
+  if (options.lazyBodies) settleDocumentsLater(backup.notes, options.onInvalidBody);
   // The state is the app's to change; the stored backup stays as it was.
   return { groups: structuredClone(backup.groups), notes, settings: structuredClone(backup.settings) };
 }
@@ -65,6 +68,7 @@ export function noteWithContent(note: Note, dom: Document): Note {
   if (!isLazyNote(note)) return note;
   const document = sourceOf(note)?.note.document;
   if (!document) throw new BackupValidationError(`notes.${note.id}`, 'Memo body is not loaded');
+  trustDocument(document, `notes.${note.id}.document`);
   let content = openedBodies.get(note.source!);
   if (content === undefined) { content = editorHtml(document, dom).content; openedBodies.set(note.source!, content); }
   return { ...note, content };

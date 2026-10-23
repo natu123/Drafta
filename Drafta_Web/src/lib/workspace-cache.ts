@@ -1,4 +1,4 @@
-import { isTrustedBackup, parseTrustedWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
+import { isTrustedBackup, parseCachedWorkspaceBackup, serializeWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
 import type { LoadedWorkspace } from './cloud-workspace';
 
 /** Where cached workspaces live; IndexedDB in the browser, a map in tests (specs/16). */
@@ -38,7 +38,10 @@ export function indexedDbStore(name = 'drafta-cache'): CacheStore | null {
 
 const defaultStore = () => indexedDbStore();
 
-/** The confirmed workspace this device last saw for the account, or null. A bad record is dropped. */
+/**
+ * The confirmed workspace this device last saw for the account, or null. A bad record is dropped.
+ * Memo bodies are checked after the list shows (parseCachedWorkspaceBackup, specs/16).
+ */
 export async function readCachedWorkspace(uid: string, store: CacheStore | null = defaultStore()): Promise<LoadedWorkspace | null> {
   if (!store) return null;
   try {
@@ -46,7 +49,7 @@ export async function readCachedWorkspace(uid: string, store: CacheStore | null 
     if (!record) return null;
     if (record.format !== 'drafta-cache' || record.version !== 1 || record.uid !== uid || !Number.isSafeInteger(record.revision) || Number(record.revision) < 1 ||
         !record.since || !Number.isSafeInteger(record.since.seconds) || !Number.isSafeInteger(record.since.nanoseconds) || typeof record.backupJson !== 'string') throw new Error('Invalid cache');
-    const backup = parseTrustedWorkspaceBackup(record.backupJson);
+    const backup = parseCachedWorkspaceBackup(record.backupJson);
     return { saved: { uid, revision: Number(record.revision), backup }, since: { seconds: record.since.seconds, nanoseconds: record.since.nanoseconds } };
   } catch {
     await store.delete(keyFor(uid)).catch(() => {});
@@ -58,7 +61,7 @@ export async function readCachedWorkspace(uid: string, store: CacheStore | null 
 export async function writeCachedWorkspace(loaded: LoadedWorkspace, store: CacheStore | null = defaultStore()): Promise<void> {
   if (!store || !loaded.since) return;
   const { uid, revision, backup } = loaded.saved;
-  // A workspace the app already validated is written as it is; it is checked again when read.
+  // A workspace the app already validated is written as it is; it is checked again when read and used.
   const backupJson = isTrustedBackup(backup) ? JSON.stringify(backup) : serializeWorkspaceBackup(backup);
   const record: CacheRecord = { format: 'drafta-cache', version: 1, uid, revision, since: loaded.since, backupJson };
   await store.put(keyFor(uid), record);
