@@ -34,8 +34,10 @@ import { mobileLayoutReleaseCopy } from './mobile-layout-release-copy';
 import { addFieldReleaseCopy } from './add-field-release-copy';
 import { transferReleaseCopy } from './transfer-release-copy';
 import { addTargetReleaseCopy } from './add-target-release-copy';
+import { separatorReleaseCopy } from './separator-release-copy';
 
 export interface ReleaseCopy {
+  release0102: string;
   release0101: string;
   release0100: string;
   release091: string;
@@ -97,7 +99,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -424,6 +426,7 @@ export const releaseCopy = Object.fromEntries(
     release091: addFieldReleaseCopy[language as Lang],
     release0100: transferReleaseCopy[language as Lang],
     release0101: addTargetReleaseCopy[language as Lang],
+    release0102: separatorReleaseCopy[language as Lang],
     // Sign-in is for saving; the Playground lets anyone try without it (AGENTS.md, Playground).
     warning: playgroundCopy[language as Lang].warning,
   }]),
