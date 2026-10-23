@@ -39,6 +39,58 @@
 }
 .dark .pinned-section { border-color: rgb(196 149 71 / 0.35); background: rgb(196 149 71 / 0.14); }
 .pinned-section .pinned-summary:hover { background: rgb(196 149 71 / 0.12); }
+/* At the end of the list (chat style) nothing follows the box, so it needs no space below. */
+.pinned-section:last-child { margin-bottom: 0; }
+
+/* Add tray / Add memo (InlineCreate): a rounded field with a round + at its start, like the box new
+   messages are written in. The open field keeps the same shape (0.9.1). */
+.inline-create {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px 0 6px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9999px;
+  background: hsl(var(--background));
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  text-align: start;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  transition: border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.inline-create:hover { border-color: hsl(var(--primary) / 0.45); color: hsl(var(--foreground)); }
+.inline-create:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.inline-create-plus {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.inline-create-plus svg { width: 18px; height: 18px; }
+.inline-create-input { height: 44px; border-radius: 9999px; padding-inline: 16px; }
+
+/* The phone's New: a field at the top of the screen, above the keyboard (specs/19_mobile_design.md). */
+.mobile-create-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / 0.3); }
+.mobile-create {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 61;
+  padding: calc(env(safe-area-inset-top) + 10px) 12px 12px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+.mobile-create-label { margin: 0 4px 8px; color: hsl(var(--muted-foreground)); font-size: 0.75rem; font-weight: 600; }
 
 /* The app fills the visible height (100vh reaches under Safari's toolbar) and keeps clear of the
    notch and home indicator; on phones the bottom navigation takes the bottom inset (specs/19). */

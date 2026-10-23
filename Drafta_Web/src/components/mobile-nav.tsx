@@ -8,6 +8,7 @@ import { mobileCopy } from '@/lib/mobile-copy';
 import type { Note } from '@/lib/types';
 import { cn, stripColorMarkdown } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { InlineNameEditor } from './inline-name-editor';
 
 export type MobilePane = 'trays' | 'notes' | 'editor';
 
@@ -42,6 +43,25 @@ function useKeyboardOpen() {
     };
   }, []);
   return open;
+}
+
+/**
+ * New's field, at the top of the screen so the keyboard never covers it (AGENTS.md, Creation).
+ * Confirming adds the memo or tray and closes; nothing is opened. Tapping outside cancels.
+ */
+export function MobileCreateSheet({ label, placeholder, onConfirm, onCancel }: {
+  label: string; placeholder: string; onConfirm: (value: string) => void; onCancel: () => void;
+}) {
+  const { t } = useLang();
+  return (
+    <>
+      <button type="button" className="mobile-create-backdrop" aria-label={t.cancel} tabIndex={-1} onClick={onCancel} />
+      <div className="mobile-create" role="dialog" aria-label={label}>
+        <p className="mobile-create-label">{label}</p>
+        <InlineNameEditor compose label={label} placeholder={placeholder} confirmLabel={t.create} onConfirm={onConfirm} onCancel={onCancel} />
+      </div>
+    </>
+  );
 }
 
 type NavItem = { key: string; label: string; icon: React.ElementType; current?: boolean; disabled?: boolean; onSelect: () => void };

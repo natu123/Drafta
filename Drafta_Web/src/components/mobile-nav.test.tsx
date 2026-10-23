@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { appTranslations } from '@/app/translations';
 import type { Note } from '@/lib/types';
-import { MobileNav, type MobilePane } from './mobile-nav';
+import { MobileCreateSheet, MobileNav, type MobilePane } from './mobile-nav';
 
 vi.mock('@/contexts/lang-context', () => ({ useLang: () => ({ t: appTranslations.ja, lang: 'ja' }) }));
 
@@ -53,6 +53,19 @@ describe('phone bottom navigation', () => {
     mount('trays', { onCreate: undefined, progress: { loaded: 120, total: 562, label: '本文を読み込み中 (120 / 562)' } });
     expect(buttons()[3].disabled).toBe(true);
     expect(container.querySelector('[role="status"]')?.textContent).toBe('本文を読み込み中 (120 / 562)');
+  });
+
+  it("New's field adds on Enter and is cancelled by tapping outside", () => {
+    const confirm = vi.fn();
+    const cancel = vi.fn();
+    act(() => root.render(<MobileCreateSheet label="Inboxにメモを追加" placeholder="無題のメモ" onConfirm={confirm} onCancel={cancel} />));
+    const input = container.querySelector('input')!;
+    expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Inboxにメモを追加');
+    expect(document.activeElement).toBe(input);
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    expect(confirm).toHaveBeenCalledWith('');
+    act(() => container.querySelector<HTMLButtonElement>('.mobile-create-backdrop')!.click());
+    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it('shows a failed save on every pane and leads to the account on the tray list', () => {

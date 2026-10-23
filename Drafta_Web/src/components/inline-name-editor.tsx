@@ -7,9 +7,11 @@ import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem } from './ui/dropdown-menu';
 import { useLang } from '@/contexts/lang-context';
 
-export function InlineNameEditor({ initialValue = '', label, placeholder, confirmLabel, onConfirm, onCancel, inputRef }: {
+export function InlineNameEditor({ initialValue = '', label, placeholder, confirmLabel, onConfirm, onCancel, inputRef, compose = false }: {
   initialValue?: string; label: string; placeholder: string; confirmLabel: string;
   onConfirm: (value: string) => void; onCancel: () => void; inputRef?: React.Ref<HTMLInputElement>;
+  /** The rounded look of an add field (InlineCreate) rather than a rename in place. */
+  compose?: boolean;
 }) {
   const { t } = useLang();
   const [value, setValue] = React.useState(initialValue);
@@ -33,11 +35,11 @@ export function InlineNameEditor({ initialValue = '', label, placeholder, confir
         onConfirm(value.trim());
       }}>
       <Input ref={inputRef} autoFocus aria-label={label} placeholder={placeholder} value={value}
-        className="min-w-0 flex-1" onChange={event => setValue(event.target.value)}
+        className={compose ? 'inline-create-input min-w-0 flex-1' : 'min-w-0 flex-1'} onChange={event => setValue(event.target.value)}
         onFocus={event => event.target.select()}
         onCompositionStart={() => { composing.current = true; }}
         onCompositionEnd={() => { composing.current = false; }} />
-      <Button type="submit" size="icon" variant="ghost" className="size-9 shrink-0" aria-label={confirmLabel}><Check /></Button>
+      <Button type="submit" size="icon" variant={compose ? 'default' : 'ghost'} className={compose ? 'size-9 shrink-0 rounded-full' : 'size-9 shrink-0'} aria-label={confirmLabel}><Check /></Button>
       <Button type="button" size="icon" variant="ghost" className="size-9 shrink-0" aria-label={t.cancel} onClick={onCancel}><X /></Button>
     </form>
   );
@@ -54,9 +56,13 @@ export function InlineCreate({ label, placeholder, onCreate, ref }: { label: str
   // An open field keeps its draft and only takes the focus back.
   React.useImperativeHandle(ref, () => ({ open: () => { if (input.current) input.current.focus(); else setEditing(true); } }), []);
   const close = () => { setEditing(false); requestAnimationFrame(() => trigger.current?.focus()); };
-  return editing ? <InlineNameEditor inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create}
+  // A rounded field with a round + at its start, like the box new messages are written in (0.9.1).
+  return editing ? <InlineNameEditor compose inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create}
     onConfirm={value => { onCreate(value); close(); }} onCancel={close} /> : (
-    <Button ref={trigger} variant="outline" className="w-full justify-start h-10" onClick={() => setEditing(true)}><Plus />{label}</Button>
+    <button ref={trigger} type="button" className="inline-create" onClick={() => setEditing(true)}>
+      <span aria-hidden="true" className="inline-create-plus"><Plus /></span>
+      <span className="min-w-0 truncate">{label}</span>
+    </button>
   );
 }
 
