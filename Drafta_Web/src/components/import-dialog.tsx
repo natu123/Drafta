@@ -22,7 +22,7 @@ const SOURCE_NAMES: Record<Source, string> = { obsidian: 'Obsidian', notion: 'No
 const ACCEPT: Record<Source, string> = { obsidian: '.md,text/markdown,.zip,application/zip', notion: '.zip,application/zip', evernote: '.enex,.zip,application/zip' };
 
 type Stage =
-  | { kind: 'select' }
+  | { kind: 'select'; readFailed?: boolean }
   | { kind: 'reading' }
   | { kind: 'preview'; plan: ImportPlan; limit: ImportLimitError | null }
   | { kind: 'saving'; plan: ImportPlan; done: number; total: number }
@@ -48,7 +48,10 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
   const [stage, setStage] = React.useState<Stage>({ kind: 'select' });
   const folderInput = React.useRef<HTMLInputElement>(null);
   const fileInput = React.useRef<HTMLInputElement>(null);
-  const busy = stage.kind === 'reading' || stage.kind === 'saving';
+  // Reading can always be cancelled (closing too); only saving keeps the dialog open.
+  const reading = React.useRef<AbortController | null>(null);
+  const busy = stage.kind === 'saving';
+  React.useEffect(() => () => reading.current?.abort(), []);
 
   // React has no typed prop for directory selection, and the dialog mounts its content lazily.
   const folderRef = React.useCallback((node: HTMLInputElement | null) => {
@@ -56,23 +59,40 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
     node?.setAttribute('webkitdirectory', '');
   }, []);
 
+  const cancelReading = () => {
+    reading.current?.abort();
+    reading.current = null;
+  };
+
   const close = (next: boolean) => {
     if (busy) return;
+    if (!next) cancelReading();
     onOpenChange(next);
     if (!next) setStage({ kind: 'select' });
   };
 
   const read = async (list: FileList | null) => {
     if (!list?.length) return;
+    cancelReading();
+    const controller = new AbortController();
+    reading.current = controller;
     setStage({ kind: 'reading' });
-    const files: ImportFile[] = Array.from(list).map(file => ({ path: file.webkitRelativePath || file.name, size: file.size, lastModified: file.lastModified,
-      read: () => file.text(), blob: file, stream: () => blobStream(file) }));
-    const options = { dom: document, newId: () => crypto.randomUUID(), listStyle: existing.settings.listStyle };
-    const embedLabels = { image: labels.image, file: labels.file, encrypted: transfer.encrypted, vault: SOURCE_NAMES[source] };
-    const plan = source === 'notion' ? await planNotionImport(files, { ...options, labels: { ...embedLabels, notion: SOURCE_NAMES.notion } })
-      : source === 'evernote' ? await planEvernoteImport(files, { ...options, labels: { ...embedLabels, evernote: SOURCE_NAMES.evernote } })
-        : await planObsidianImport(files, { ...options, labels: embedLabels });
-    setStage({ kind: 'preview', plan, limit: plan.notes.length ? checkImportLimits(existing, plan, document) : null });
+    try {
+      const files: ImportFile[] = Array.from(list).map(file => ({ path: file.webkitRelativePath || file.name, size: file.size, lastModified: file.lastModified,
+        read: () => file.text(), blob: file, stream: () => blobStream(file) }));
+      const options = { dom: document, newId: () => crypto.randomUUID(), listStyle: existing.settings.listStyle, signal: controller.signal };
+      const embedLabels = { image: labels.image, file: labels.file, encrypted: transfer.encrypted, vault: SOURCE_NAMES[source] };
+      const plan = source === 'notion' ? await planNotionImport(files, { ...options, labels: { ...embedLabels, notion: SOURCE_NAMES.notion } })
+        : source === 'evernote' ? await planEvernoteImport(files, { ...options, labels: { ...embedLabels, evernote: SOURCE_NAMES.evernote } })
+          : await planObsidianImport(files, { ...options, labels: embedLabels });
+      const limit = plan.notes.length ? checkImportLimits(existing, plan, document) : null;
+      if (!controller.signal.aborted) setStage({ kind: 'preview', plan, limit });
+    } catch {
+      // A cancelled read has already gone back to the start; anything else is reported there.
+      if (!controller.signal.aborted) setStage({ kind: 'select', readFailed: true });
+    } finally {
+      if (reading.current === controller) reading.current = null;
+    }
   };
 
   const save = async (plan: ImportPlan, batches: Note[][], start: number, saved: number, retrying: boolean) => {
@@ -137,6 +157,7 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
             </div>
           </div>
         )}
+        {stage.kind === 'select' && stage.readFailed && <p role="alert" className="text-sm text-destructive">{transfer.readFailed}</p>}
         {stage.kind === 'reading' && <p role="status" aria-live="polite">{labels.reading}</p>}
 
         {plan && stage.kind !== 'done' && (
@@ -187,6 +208,7 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
             </>
           )}
           {stage.kind === 'select' && <Button variant="outline" onClick={() => close(false)}>{labels.close}</Button>}
+          {stage.kind === 'reading' && <Button variant="outline" onClick={() => { cancelReading(); setStage({ kind: 'select' }); }}>{labels.cancel}</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

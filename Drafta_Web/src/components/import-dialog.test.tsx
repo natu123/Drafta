@@ -105,3 +105,52 @@ describe('import sources', () => {
     expect(notes[0].content).toContain('data-checked="true"');
   });
 });
+
+describe('reading files', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    container = document.createElement('div'); document.body.append(container);
+    root = createRoot(container);
+  });
+  afterEach(() => { act(() => root.unmount()); container.remove(); });
+
+  const render = (onOpenChange = vi.fn()) => {
+    act(() => root.render(<ImportDialog open onOpenChange={onOpenChange} onBatch={vi.fn(async () => true)} onRetry={vi.fn(async () => true)} onShowTray={vi.fn()}
+      existing={{ notes: [], groups: [], settings: { language: 'ja', theme: 'system', listStyle: 'top', noteSort: 'manual' } }} />));
+    return onOpenChange;
+  };
+  const choose = async (files: File[]) => {
+    const input = document.querySelector<HTMLInputElement>('input[webkitdirectory]')!;
+    Object.defineProperty(input, 'files', { value: files, configurable: true });
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+  };
+
+  it('leaves the reading state and reports a read that fails', async () => {
+    render();
+    const broken = new File(['x'], 'a.md');
+    Object.defineProperty(broken, 'webkitRelativePath', { get() { throw new Error('unreadable'); } });
+    await choose([broken]);
+    await vi.waitFor(() => expect(document.querySelector('[role="alert"]')?.textContent).toBe(transferCopy.ja.readFailed));
+    expect(document.body.textContent).not.toContain(labels.reading);
+    expect(document.body.textContent).toContain(labels.chooseFolder);
+  });
+
+  it('cancels a read that does not finish and can close meanwhile', async () => {
+    const onOpenChange = render();
+    const stuck = new File(['x'], 'a.md');
+    Object.defineProperty(stuck, 'webkitRelativePath', { value: 'Vault/a.md' });
+    Object.defineProperty(stuck, 'text', { value: () => new Promise<string>(() => {}) });
+    await choose([stuck]);
+    await vi.waitFor(() => expect(document.body.textContent).toContain(labels.reading));
+    const cancel = [...document.querySelectorAll('button')].find(button => button.textContent === labels.cancel)!;
+    act(() => cancel.click());
+    expect(document.body.textContent).not.toContain(labels.reading);
+    expect(document.body.textContent).toContain(labels.chooseFolder);
+    await choose([stuck]);
+    await vi.waitFor(() => expect(document.body.textContent).toContain(labels.reading));
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
