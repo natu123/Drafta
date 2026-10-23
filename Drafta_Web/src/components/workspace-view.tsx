@@ -33,6 +33,8 @@ export type WorkspaceViewProps = {
   bodyProgress?: { loaded: number; total: number } | null;
   /** Asks for the body of the memo being opened before the others. */
   onNeedBody?: (noteId: string) => void;
+  /** Why the workspace is not saved, when it is not: phones show it above the bottom navigation. */
+  saveProblem?: string | null;
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
@@ -908,7 +910,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 
 /** The app screen: signed in through CloudSession at /app/, or unsaved at /playground/ (AGENTS.md, Playground). */
-export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey, notice, bodyProgress, onNeedBody }: WorkspaceViewProps) {
+export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey, notice, bodyProgress, onNeedBody, saveProblem }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
   // What was open last time on this device, where it still exists (AGENTS.md, View Restore).
@@ -1833,6 +1835,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           onOpenTab={id => { openTab(id, 'note'); setMobilePane('editor'); }}
           onCloseTab={handleMobileCloseTab}
           progress={bodyProgress ? { ...bodyProgress, label: storageCopy[lang].hydrating(bodyProgress.loaded, bodyProgress.total) } : null}
+          saveProblem={saveProblem}
         />}
 
         <SettingsDialog

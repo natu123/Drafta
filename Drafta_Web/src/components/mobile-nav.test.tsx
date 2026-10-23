@@ -54,4 +54,14 @@ describe('phone bottom navigation', () => {
     expect(buttons()[3].disabled).toBe(true);
     expect(container.querySelector('[role="status"]')?.textContent).toBe('本文を読み込み中 (120 / 562)');
   });
+
+  it('shows a failed save on every pane and leads to the account on the tray list', () => {
+    mount('editor', { saveProblem: '保存できませんでした' });
+    const alert = container.querySelector<HTMLButtonElement>('[role="alert"]')!;
+    expect(alert.textContent).toBe('保存できませんでした');
+    act(() => alert.click());
+    expect(onPane).toHaveBeenCalledWith('trays');
+    mount('editor', { saveProblem: null });
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
 });

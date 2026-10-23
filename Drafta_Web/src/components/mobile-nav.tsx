@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Inbox, List, Search, SquarePen, X } from 'lucide-react';
+import { CloudOff, Inbox, List, Search, SquarePen, X } from 'lucide-react';
 import { useLang } from '@/contexts/lang-context';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { mobileCopy } from '@/lib/mobile-copy';
@@ -50,7 +50,7 @@ type NavItem = { key: string; label: string; icon: React.ElementType; current?: 
  * The phone's bottom navigation (AGENTS.md, Mobile Layout): trays, memos, search, new, and the
  * open tabs at the bottom right. Above it, how many memo bodies have arrived on a new device.
  */
-export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId, onOpenTab, onCloseTab, progress }: {
+export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId, onOpenTab, onCloseTab, progress, saveProblem }: {
   pane: MobilePane;
   onPane: (pane: MobilePane) => void;
   onSearch: () => void;
@@ -61,6 +61,8 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
   onOpenTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   progress?: { loaded: number; total: number; label: string } | null;
+  /** Why the workspace is not saved, when it is not; the save status icon is on the tray list only. */
+  saveProblem?: string | null;
 }) {
   const { t, lang } = useLang();
   const copy = mobileCopy[lang];
@@ -76,6 +78,12 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
 
   return (
     <div className="mobile-nav shrink-0 border-t bg-background" hidden={keyboardOpen}>
+      {saveProblem && (
+        <button type="button" role="alert" className="flex w-full items-center gap-2 border-b bg-destructive/10 px-4 py-1.5 text-start text-xs text-destructive" onClick={() => onPane('trays')}>
+          <CloudOff aria-hidden="true" className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">{saveProblem}</span>
+        </button>
+      )}
       {progress && (
         <div role="status" className="flex items-center gap-2 border-b px-4 py-1 text-xs text-muted-foreground">
           <span className="min-w-0 flex-1 truncate">{progress.label}</span>
