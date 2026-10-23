@@ -3,9 +3,9 @@ import * as React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { InlineNameEditor } from './inline-name-editor';
+import { InlineCreate, InlineNameEditor, type InlineCreateHandle } from './inline-name-editor';
 
-vi.mock('@/contexts/lang-context', () => ({ useLang: () => ({ t: { cancel: 'Cancel' } }) }));
+vi.mock('@/contexts/lang-context', () => ({ useLang: () => ({ t: { cancel: 'Cancel', create: 'Create' } }) }));
 
 describe('inline name draft', () => {
   let container: HTMLDivElement;
@@ -48,5 +48,20 @@ describe('inline name draft', () => {
     expect(confirm).not.toHaveBeenCalled(); expect(cancel).not.toHaveBeenCalled();
     act(() => input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true })));
     submit(); expect(confirm).toHaveBeenCalledWith('日本語');
+  });
+
+
+  it('opens the add field from another control and keeps a draft when asked again', () => {
+    const handle = React.createRef<InlineCreateHandle>();
+    act(() => root.render(<InlineCreate ref={handle} label="Add memo" placeholder="Untitled" onCreate={confirm} />));
+    expect(container.querySelector('input')).toBeNull();
+    act(() => handle.current!.open());
+    const input = container.querySelector('input')!;
+    expect(document.activeElement).toBe(input);
+    act(() => { input.blur(); });
+    act(() => handle.current!.open());
+    expect(container.querySelector('input')).toBe(input);
+    expect(document.activeElement).toBe(input);
+    expect(confirm).not.toHaveBeenCalled();
   });
 });

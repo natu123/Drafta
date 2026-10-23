@@ -7,9 +7,9 @@ import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem } from './ui/dropdown-menu';
 import { useLang } from '@/contexts/lang-context';
 
-export function InlineNameEditor({ initialValue = '', label, placeholder, confirmLabel, onConfirm, onCancel }: {
+export function InlineNameEditor({ initialValue = '', label, placeholder, confirmLabel, onConfirm, onCancel, inputRef }: {
   initialValue?: string; label: string; placeholder: string; confirmLabel: string;
-  onConfirm: (value: string) => void; onCancel: () => void;
+  onConfirm: (value: string) => void; onCancel: () => void; inputRef?: React.Ref<HTMLInputElement>;
 }) {
   const { t } = useLang();
   const [value, setValue] = React.useState(initialValue);
@@ -32,7 +32,7 @@ export function InlineNameEditor({ initialValue = '', label, placeholder, confir
         submitted.current = true;
         onConfirm(value.trim());
       }}>
-      <Input autoFocus aria-label={label} placeholder={placeholder} value={value}
+      <Input ref={inputRef} autoFocus aria-label={label} placeholder={placeholder} value={value}
         className="min-w-0 flex-1" onChange={event => setValue(event.target.value)}
         onFocus={event => event.target.select()}
         onCompositionStart={() => { composing.current = true; }}
@@ -43,12 +43,18 @@ export function InlineNameEditor({ initialValue = '', label, placeholder, confir
   );
 }
 
-export function InlineCreate({ label, placeholder, onCreate }: { label: string; placeholder: string; onCreate: (value: string) => void }) {
+/** Lets another control open the field, like the phone's New button (specs/19_mobile_design.md). */
+export type InlineCreateHandle = { open: () => void };
+
+export function InlineCreate({ label, placeholder, onCreate, ref }: { label: string; placeholder: string; onCreate: (value: string) => void; ref?: React.Ref<InlineCreateHandle> }) {
   const { t } = useLang();
   const [editing, setEditing] = React.useState(false);
   const trigger = React.useRef<HTMLButtonElement>(null);
+  const input = React.useRef<HTMLInputElement>(null);
+  // An open field keeps its draft and only takes the focus back.
+  React.useImperativeHandle(ref, () => ({ open: () => { if (input.current) input.current.focus(); else setEditing(true); } }), []);
   const close = () => { setEditing(false); requestAnimationFrame(() => trigger.current?.focus()); };
-  return editing ? <InlineNameEditor label={label} placeholder={placeholder} confirmLabel={t.create}
+  return editing ? <InlineNameEditor inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create}
     onConfirm={value => { onCreate(value); close(); }} onCancel={close} /> : (
     <Button ref={trigger} variant="outline" className="w-full justify-start h-10" onClick={() => setEditing(true)}><Plus />{label}</Button>
   );

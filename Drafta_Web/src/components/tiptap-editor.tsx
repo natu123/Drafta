@@ -6,7 +6,7 @@ import { TextSelection } from '@tiptap/pm/state';
 import * as React from 'react';
 import { useEditor, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Trash2, Search, Menu, Copy } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Search, Menu, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
 import { TitlePlaceholder } from './tiptap-extensions/title-placeholder';
 import { NoteFind } from './note-find';
@@ -39,9 +39,8 @@ interface TiptapEditorProps {
   onDuplicate?: () => void;
   onIconChange: (icon: string) => void;
   scrollDirection?: 'top' | 'bottom';
-  navigationAction?: React.ReactNode;
-  onDelete?: () => void;
-  historyAction?: React.ReactNode;
+  /** Pin, history and delete for this memo, at the right end of the toolbar (AGENTS.md, Editor Layout). */
+  memoActions?: React.ReactNode;
 }
 
 const baseColors = [
@@ -72,7 +71,7 @@ function EditorMount({ editor, ...props }: { editor: Editor | null } & React.HTM
   return <div ref={ref} {...props} />;
 }
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', navigationAction, onDelete, onDuplicate, externalRevision = 0, historyAction }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', onDuplicate, externalRevision = 0, memoActions }) => {
   // isProtected also blocks deletion; guide samples only block editing.
   const readOnly = Boolean(note.isProtected) || isEditLockedSample(note);
   const { resolvedTheme } = useTheme();
@@ -893,7 +892,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       }}>
         <div className="editor-toolbar border-b bg-background px-2 py-1">
           <div className="editor-tools">
-            {navigationAction && <div className="editor-toolbar-navigation">{navigationAction}</div>}
             <div className="editor-tools-content">
           <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label={t.findInMemo} onClick={() => setFindOpen(open => !open)}><Search /></Button></TooltipTrigger><TooltipContent>{t.findInMemo}</TooltipContent></Tooltip>
           <Tooltip>
@@ -1040,6 +1038,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
             </div>
             <Button className="editor-palette-toggle" variant="ghost" size="icon" aria-label={t.colorPalette} title={t.colorPalette} aria-expanded={paletteOpen} aria-controls={paletteId} onClick={() => setPaletteOpen(open => !open)}><Menu /></Button>
+            {memoActions}
           <div id={paletteId} className="editor-palette" hidden={!paletteOpen}>
             {/* Drawn when shown: every memo opens with the palette closed (0.8.5). */}
             {paletteOpen && colors.map(color => {
@@ -1126,7 +1125,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               <Button variant="outline" size="sm" onClick={onDuplicate}><Copy />{sampleLockCopy[lang].duplicate}</Button>
             </div>
           )}
-          <div className={cn('editor-document relative', historyAction && 'has-history', onDelete && !note.isProtected && !note.isDeleted && 'has-delete')}>
+          <div className="editor-document relative">
           <div className="editor-title-icon">
           <Popover>
             <PopoverTrigger asChild>
@@ -1153,15 +1152,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             )}
           </Popover>
           </div>
-          {historyAction && <div className="editor-history-action">{historyAction}</div>}
-          {onDelete && !note.isProtected && !note.isDeleted && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="editor-delete-button size-10 shrink-0" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
-              </TooltipTrigger>
-              <TooltipContent>{t.delete}</TooltipContent>
-            </Tooltip>
-          )}
           <EditorMount editor={editor} dir="auto" />
           </div>
         </div>

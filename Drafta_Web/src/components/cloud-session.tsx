@@ -40,7 +40,7 @@ import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
 type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean>; viewKey?: string;
-  bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void };
+  bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void; saveProblem?: string | null };
 // Each memo's JSON is reused while its field values are unchanged, so one keystroke serializes one memo.
 const noteFingerprints = new WeakMap<Note, { fields: Note; text: string }>();
 const noteFingerprint = (note: Note) => {
@@ -474,5 +474,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} bodyProgress={bodyProgress} onNeedBody={needBody} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
+  return <>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} bodyProgress={bodyProgress} onNeedBody={needBody} saveProblem={status === 'error' || status === 'conflict' ? labels.status[status] : null} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></>;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_MEMOS, allMemos } from './all-memos';
+import { ALL_MEMOS, allMemos, trayForNewMemos } from './all-memos';
 import type { Group, Note } from './types';
 
 const memo = (id: string, group: string, updatedAt: string, extra: Partial<Note> = {}): Note =>
@@ -15,6 +15,12 @@ const notes = [
 ];
 
 describe('all memos view', () => {
+  it('adds new memos to the first live tray in the stored order', () => {
+    expect(trayForNewMemos(groups)?.id).toBe('a');
+    expect(trayForNewMemos([{ id: 'sep', name: '', type: 'separator' }, { id: 'gone', name: 'Gone', isDeleted: true }, { id: 'b', name: 'B', isPinned: true }])?.id).toBe('b');
+    expect(trayForNewMemos([{ id: 'gone', name: 'Gone', isDeleted: true }])).toBeUndefined();
+  });
+
   it('lists every memo in a live tray, newest first for the top style', () => {
     expect(allMemos(notes, groups, 'top').map(note => note.id)).toEqual(['new-b', 'mid-a', 'old-a']);
   });
