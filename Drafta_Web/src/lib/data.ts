@@ -1,11 +1,13 @@
 
 import type { Note, Group } from './types';
 
+// Ordered for the chat style, the default: Personal, Work, AI Generated, then the pinned ToDo and
+// Inbox at the bottom, where the list opens, so Inbox is the default tray (2026-10-23, Gles's request, 0.10.3).
 export const groups: Group[] = [
+  { id: 'todo', name: 'ToDo', isPinned: true },
   { id: 'inbox', name: 'Inbox', isPinned: true },
-  { id: 'todo', name: 'ToDo' },
-  { id: 'work', name: 'Work' },
   { id: 'personal', name: 'Personal' },
+  { id: 'work', name: 'Work' },
   { id: 'ai', name: 'AI Generated' },
 ];
 

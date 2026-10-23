@@ -32,6 +32,7 @@ describe('import completion screen', () => {
     const onBatch = vi.fn(async () => true);
     act(() => root.render(<ImportDialog open onOpenChange={vi.fn()} onBatch={onBatch} onRetry={vi.fn(async () => true)} onShowTray={vi.fn()}
       existing={{ notes: [], groups: [], settings: { language: 'ja', theme: 'system', listStyle, noteSort: 'manual' } }} />));
+    act(() => document.querySelector<HTMLButtonElement>('#import-source-obsidian')!.click());
     const input = document.querySelector<HTMLInputElement>('input[webkitdirectory]')!;
     Object.defineProperty(input, 'files', { value: files, configurable: true });
     await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
@@ -84,8 +85,8 @@ describe('import sources', () => {
       existing={{ notes: [], groups: [], settings: { language: 'ja', theme: 'system', listStyle: 'top', noteSort: 'manual' } }} />));
     const group = document.querySelector('[role="radiogroup"]')!;
     expect(group.getAttribute('aria-label')).toBe(transferCopy.ja.source);
-    expect([...group.querySelectorAll('label')].map(label => label.textContent)).toEqual(['Obsidian', 'Notion', 'Evernote']);
-    act(() => document.querySelector<HTMLButtonElement>('#import-source-notion')!.click());
+    expect([...group.querySelectorAll('label')].map(label => label.textContent)).toEqual(['Notion', 'Evernote', 'Obsidian']);
+    expect(document.querySelector('#import-source-notion')!.getAttribute('aria-checked')).toBe('true');
     expect(document.body.textContent).toContain(transferCopy.ja.descriptions.notion);
     expect(document.body.textContent).toContain(transferCopy.ja.chooseZip);
     act(() => document.querySelector<HTMLButtonElement>('#import-source-evernote')!.click());

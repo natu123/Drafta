@@ -68,9 +68,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { Modifier } from '@dnd-kit/core';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
-import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from '@/lib/list-style';
+import { DEFAULT_LIST_STYLE, initialSampleOrder, forListStyle } from '@/lib/list-style';
 import { readViewState, restoreView, writeViewState } from '@/lib/view-state';
-import { ALL_MEMOS, allMemos, trayForNewMemos } from '@/lib/all-memos';
+import { ALL_MEMOS, allMemos, defaultTray, trayForNewMemos } from '@/lib/all-memos';
 import { TrayPicker } from '@/components/tray-picker';
 
 
@@ -1002,7 +1002,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   const [noteViewMode] = React.useState<ViewMode>('list');
   const [collapsedPins, setCollapsedPins] = React.useState<Record<string, boolean>>({});
   const [trayPinsCollapsed, setTrayPinsCollapsed] = React.useState(false);
-  const [activeGroupId, setActiveGroupId] = React.useState<string>(() => restoredView?.groupId ?? (initialState ? initialState.groups.find(group => !group.isDeleted && group.type !== 'separator')?.id ?? 'restore' : 'inbox'));
+  const [activeGroupId, setActiveGroupId] = React.useState<string>(() => restoredView?.groupId ?? (initialState ? defaultTray(initialState.groups, initialState.settings.listStyle ?? DEFAULT_LIST_STYLE)?.id ?? 'restore' : 'inbox'));
   const [scrollDirection, setScrollDirection] = React.useState<'top' | 'bottom'>(() => initialState?.settings.listStyle ?? DEFAULT_LIST_STYLE);
   const appliedRemote = React.useRef<WorkspaceUpdate | undefined>(undefined);
   const [selectedNoteIds, setSelectedNoteIds] = React.useState<Set<string>>(new Set());
@@ -1047,8 +1047,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   const workspaceSettings = { language: languagePreference, theme: theme === 'light' || theme === 'dark' ? theme : 'system', listStyle: scrollDirection, noteSort: 'manual' } as const;
 
   const handleListStyleChange = (direction: 'top' | 'bottom') => {
-    // Only a local switch mirrors the memos; a synced setting arrives with its synced order.
-    setNotes(previous => notesForListStyle(previous, scrollDirection, direction));
+    // Only a local switch mirrors the memos and the tray list; a synced setting arrives with its synced order.
+    setNotes(previous => forListStyle(previous, scrollDirection, direction));
+    setGroups(previous => forListStyle(previous, scrollDirection, direction));
     setScrollDirection(direction);
   };
 
@@ -1396,8 +1397,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   };
 
   // The tray the app opens by default; the all memos view adds its memos there (AGENTS.md, All Memos).
-  const defaultTray = trayForNewMemos(groups, allMemosTrayId);
-  const addTarget = activeGroupId === ALL_MEMOS ? defaultTray : groups.find(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator');
+  const allMemosTarget = trayForNewMemos(groups, scrollDirection, allMemosTrayId);
+  const addTarget = activeGroupId === ALL_MEMOS ? allMemosTarget : groups.find(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator');
   const addTargetId = addTarget?.id;
   const addLabel = activeGroupId === ALL_MEMOS && addTarget ? withName(mobileCopy[lang].addMemoTo, addTarget.name) : appT.addMemo;
   // In the all memos view the tray is chosen with a chip in the add field (AGENTS.md, All Memos).
@@ -1455,7 +1456,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   // tray list shows, a memo otherwise. The new memo is not opened (AGENTS.md, Creation; 0.9.1).
   const homeAdd = React.useRef<{ add: (title: string) => void }>(null);
   const [mobileCreate, setMobileCreate] = React.useState<'memo' | 'tray' | null>(null);
-  const mobileCreateTarget = activeGroupId === 'restore' ? defaultTray : addTarget;
+  const mobileCreateTarget = activeGroupId === 'restore' ? allMemosTarget : addTarget;
   const handleMobileCreate = () => { setMobileCreate(mobilePane === 'trays' ? 'tray' : 'memo'); };
   const createFromSheet = (value: string) => {
     if (mobileCreate === 'tray') handleCreateGroup(value);
@@ -1549,7 +1550,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
   const handleDeleteGroup = (id: string) => {
     setGroups(prev => prev.map(g => g.id === id ? { ...g, isDeleted: true } : g));
-    if (activeGroupId === id) setActiveGroupId(groups.find(group => group.id !== id && !group.isDeleted && group.type !== 'separator')?.id ?? 'restore');
+    if (activeGroupId === id) setActiveGroupId(defaultTray(groups.filter(group => group.id !== id), scrollDirection)?.id ?? 'restore');
   };
   const handleRestoreGroup = (id: string) => setGroups(prev => prev.map(g => g.id === id ? { ...g, isDeleted: false } : g));
   const handlePermanentDeleteGroup = (id: string) => {

@@ -8,14 +8,15 @@ export const DEFAULT_LIST_STYLE: ListStyle = 'bottom';
 /** The initial samples were ordered for Add to Top (newest first); turn them to the default style. */
 export function initialSampleOrder(notes: Note[]): Note[] {
   const newestFirst = [...notes].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  return notesForListStyle(newestFirst, 'top', DEFAULT_LIST_STYLE);
+  return forListStyle(newestFirst, 'top', DEFAULT_LIST_STYLE);
 }
 
 /**
  * Switching the list style mirrors every tray, so the newest memos move to the side where new
  * memos are added while a manual order is kept, only reversed (AGENTS.md, List Style).
  * Trays and pinned memos are filtered from this one array, so reversing it reverses each of them.
+ * The tray list is mirrored the same way, so the tray at the end where it opens stays (0.10.3).
  */
-export function notesForListStyle(notes: Note[], from: ListStyle, to: ListStyle): Note[] {
-  return from === to ? notes : [...notes].reverse();
+export function forListStyle<T>(items: T[], from: ListStyle, to: ListStyle): T[] {
+  return from === to ? items : [...items].reverse();
 }

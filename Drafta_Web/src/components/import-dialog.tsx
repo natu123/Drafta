@@ -16,7 +16,8 @@ import type { BackupSettings } from '@/lib/workspace-backup';
 import type { Group, Note } from '@/lib/types';
 
 type Source = 'obsidian' | 'notion' | 'evernote';
-const SOURCES: Source[] = ['obsidian', 'notion', 'evernote'];
+// Notion first: the likely order of how many people come from each (2026-10-23, Gles's request).
+const SOURCES: Source[] = ['notion', 'evernote', 'obsidian'];
 const SOURCE_NAMES: Record<Source, string> = { obsidian: 'Obsidian', notion: 'Notion', evernote: 'Evernote' };
 // File choosers per source (specs/20): a ZIP stands for a folder where a phone cannot choose one.
 const ACCEPT: Record<Source, string> = { obsidian: '.md,text/markdown,.zip,application/zip', notion: '.zip,application/zip', evernote: '.enex,.zip,application/zip' };
@@ -44,7 +45,7 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
   const { lang } = useLang();
   const labels = importCopy[lang];
   const transfer = transferCopy[lang];
-  const [source, setSource] = React.useState<Source>('obsidian');
+  const [source, setSource] = React.useState<Source>('notion');
   const [stage, setStage] = React.useState<Stage>({ kind: 'select' });
   const folderInput = React.useRef<HTMLInputElement>(null);
   const fileInput = React.useRef<HTMLInputElement>(null);

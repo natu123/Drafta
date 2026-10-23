@@ -11,7 +11,8 @@ import { transferCopy } from '@/lib/transfer-copy';
 import { collectExport, exportWorkspace, type ExportFormat } from '@/lib/workspace-export';
 import type { Group, Note } from '@/lib/types';
 
-const FORMATS: ExportFormat[] = ['obsidian', 'notion', 'evernote'];
+// Notion first, as in the import dialog (2026-10-23, Gles's request).
+const FORMATS: ExportFormat[] = ['notion', 'evernote', 'obsidian'];
 const FORMAT_NAMES: Record<ExportFormat, string> = { obsidian: 'Obsidian', notion: 'Notion', evernote: 'Evernote' };
 
 type Status = { kind: 'idle' } | { kind: 'working' } | { kind: 'done'; memos: number; file: string } | { kind: 'failed' } | { kind: 'empty' };
@@ -28,7 +29,7 @@ export interface ExportDialogProps {
 export function ExportDialog({ open, onOpenChange, notes, groups }: ExportDialogProps) {
   const { lang, t } = useLang();
   const copy = transferCopy[lang].export;
-  const [format, setFormat] = React.useState<ExportFormat>('obsidian');
+  const [format, setFormat] = React.useState<ExportFormat>('notion');
   const [status, setStatus] = React.useState<Status>({ kind: 'idle' });
   const working = status.kind === 'working';
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Monitor, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, ChevronDown } from 'lucide-react';
+import { ArrowRight, Monitor, MonitorSmartphone, Smartphone, Apple, Terminal, CheckSquare, FileText, Sparkles, Globe, ChevronDown } from 'lucide-react';
 import { BrandIcon } from '@/components/brand-icon';
 import { LandingRoadmap, ReleaseUpdates } from '@/components/release-updates';
 import { releaseCopy } from '@/lib/release-copy';
@@ -186,12 +186,14 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-6 md:gap-12">
-          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Web" status="beta" betaLabel={release.preview} comingLabel={release.planned} />
-          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
-          <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
-          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
-          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
-          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" status="coming" betaLabel={release.preview} comingLabel={release.planned} />
+          {/* The web and the PWA work now; native apps are planned (2026-10-23, Gles's request, 0.10.3). */}
+          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Web" available statusLabel={t.platformAvailable} />
+          <PlatformBadge icon={<MonitorSmartphone className="w-6 h-6" />} label="PWA" available statusLabel={t.platformAvailable} note={t.platformPwaNote} />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="iOS" statusLabel={release.planned} />
+          <PlatformBadge icon={<Smartphone className="w-6 h-6" />} label="Android" statusLabel={release.planned} />
+          <PlatformBadge icon={<Monitor className="w-6 h-6" />} label="Windows" statusLabel={release.planned} />
+          <PlatformBadge icon={<Apple className="w-6 h-6" />} label="macOS" statusLabel={release.planned} />
+          <PlatformBadge icon={<Terminal className="w-6 h-6" />} label="Linux" statusLabel={release.planned} />
         </div>
       </div>
 
@@ -218,17 +220,17 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
-function PlatformBadge({ icon, label, status, betaLabel, comingLabel }: {
+function PlatformBadge({ icon, label, available = false, statusLabel, note }: {
   icon: React.ReactNode;
   label: string;
-  status: 'beta' | 'coming';
-  betaLabel: string;
-  comingLabel: string;
+  available?: boolean;
+  statusLabel: string;
+  note?: string;
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${
-        status === 'beta'
+        available
           ? 'bg-primary/15 text-primary border-2 border-primary/30'
           : 'bg-muted text-muted-foreground border border-border/50'
       }`}>
@@ -236,12 +238,13 @@ function PlatformBadge({ icon, label, status, betaLabel, comingLabel }: {
       </div>
       <span className="text-sm font-medium">{label}</span>
       <span className={`text-xs px-2 py-0.5 rounded-full ${
-        status === 'beta'
+        available
           ? 'bg-primary/15 text-primary'
           : 'bg-muted text-muted-foreground'
       }`}>
-        {status === 'beta' ? betaLabel : comingLabel}
+        {statusLabel}
       </span>
+      {note && <span className="max-w-24 text-center text-xs text-muted-foreground">{note}</span>}
     </div>
   );
 }

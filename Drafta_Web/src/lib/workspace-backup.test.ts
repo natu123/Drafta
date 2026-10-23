@@ -82,7 +82,7 @@ describe('workspace backup', () => {
     expect(plan.summary).toEqual({ notes: 9, groups: 5, deletedNotes: 0 });
     expect(JSON.stringify(existing)).toBe(before);
     plan.backup.groups[0].name = 'Changed candidate';
-    expect(groups[0].name).toBe('Inbox');expect(backup.groups[0].name).toBe('Inbox');
+    expect(groups[0].name).toBe('ToDo');expect(backup.groups[0].name).toBe('ToDo');
   });
 
   it('rejects unsupported versions, malformed data and extra authority fields', () => {
