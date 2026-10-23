@@ -183,7 +183,16 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       if (id !== generation.current) return;
       let stored: SavedWorkspace | null = null;
       let partial: PartialWorkspace | null = null;
+      let cachedSeed: WorkspaceState | undefined;
       if (cached) {
+        // The copy's bodies are checked after the list shows; a bad one drops the copy and the
+        // workspace is read from the server again (specs/16).
+        const dropCopy = () => {
+          if (id !== generation.current) return;
+          void deleteCachedWorkspace(user.uid).catch(() => {}).then(() => reloadAccount.current?.(user));
+        };
+        try { cachedSeed = workspaceToState(cached.saved.backup, document, { lazyBodies: true, onInvalidBody: dropCopy }); }
+        catch { dropCopy(); return; }
         stored = cached.saved;
         cachedRevision.current = cached.saved.revision;
       } else if (held) {
@@ -249,7 +258,7 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
         }
         setStatus(queue.current.status);
       } else {
-      const seed = held ? held.invalid ?? workspaceToState(held.backup, document, { lazyBodies: true }) : stored ? workspaceToState(stored.backup, document, { lazyBodies: true }) : undefined;
+      const seed = held ? held.invalid ?? workspaceToState(held.backup, document, { lazyBodies: true }) : cachedSeed ?? (stored ? workspaceToState(stored.backup, document, { lazyBodies: true }) : undefined);
       if (seed) { restoreLanguage(seed.settings.language); themeSetter.current(seed.settings.theme); }
       lastState.current = seed ? stateFingerprint(seed) : '';
       lastBackup.current = held?.backup ?? stored?.backup ?? null;

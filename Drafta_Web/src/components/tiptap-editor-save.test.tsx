@@ -64,6 +64,19 @@ describe('editor text reaches app state without being lost', () => {
     expect(lastContent()).toContain('First unsaved');
   });
 
+  it('copies the title as plain text, without a heading mark', async () => {
+    const editor = await mount(memo('c', '<h2>Part</h2><p>Body</p>'));
+    const copy = (from: number, to: number) => editor.view.someProp('clipboardTextSerializer', serialize => serialize(editor.state.doc.slice(from, to), editor.view)) ?? '';
+    const title = editor.state.doc.firstChild!;
+    // The whole title line, as a triple click or a drag past its end selects it.
+    expect(copy(0, title.nodeSize)).toBe('Memo c');
+    const whole = copy(0, editor.state.doc.content.size);
+    expect(whole.startsWith('Memo c')).toBe(true);
+    // A heading in the body keeps its mark.
+    expect(whole).toContain('## Part');
+    expect(copy(title.nodeSize + 1, editor.state.doc.content.size - 1).startsWith('## Part')).toBe(true);
+  });
+
   it('writes pending text when the editor closes or loses focus', async () => {
     let editor = await mount(memo('a', '<p>Closing</p>'));
     type(editor, ' tab');

@@ -153,9 +153,10 @@ function documentValue(value: unknown, path: string, workspace: { nodes: number 
 
 /**
  * `documents` lists frozen documents this module already validated, with their node counts.
- * Only createWorkspaceBackup passes it; parsed or external input is always walked in full.
+ * Only createWorkspaceBackup passes it; parsed or external input is always walked in full, except
+ * the bodies of the device copy with `laterBodies` (parseCachedWorkspaceBackup).
  */
-function validate(value: unknown, documents?: WeakMap<object, number>, walked?: Map<object, number>): asserts value is WorkspaceBackup {
+function validate(value: unknown, documents?: WeakMap<object, number>, walked?: Map<object, number>, laterBodies = false): asserts value is WorkspaceBackup {
   const data = record(value, 'backup', ['format', 'version', 'exportedAt', 'groups', 'notes', 'settings']);
   requireValue(data.format === 'drafta-workspace' && data.version === 1, 'backup', 'Unsupported backup version');
   date(data.exportedAt, 'exportedAt');
@@ -194,7 +195,8 @@ function validate(value: unknown, documents?: WeakMap<object, number>, walked?: 
     if (note.parentId !== undefined) id(note.parentId, `${path}.parentId`);
     if (note.sampleKey !== undefined) requireValue(Object.hasOwn(samples, note.id) && samples[note.id] === note.sampleKey && note.type !== 'separator', path, 'Invalid sample identity');
     const known = typeof note.document === 'object' && note.document !== null ? documents?.get(note.document) : undefined;
-    if (known === undefined) {
+    if (laterBodies) record(note.document, `${path}.document`, ['format', 'schemaVersion', 'document']);
+    else if (known === undefined) {
       const before = budget.nodes;
       documentValue(note.document, `${path}.document`, budget);
       walked?.set(note.document as object, budget.nodes - before);
@@ -251,6 +253,30 @@ export function parseTrustedWorkspaceBackup(text: string): WorkspaceBackup {
 }
 
 /**
+ * The device copy (specs/16): checked like parseTrustedWorkspaceBackup except the memo bodies, which
+ * settleDocumentsLater walks after the list shows and trustDocument walks before a body is opened or
+ * saved. Walking every body first kept a phone from scrolling for about half a second (0.8.6).
+ */
+export function parseCachedWorkspaceBackup(text: string): WorkspaceBackup {
+  requireValue(typeof text === 'string' && text.length <= BACKUP_LIMITS.bytes, 'backup', 'Backup size limit exceeded');
+  requireValue(withinBytes(text), 'backup', 'Backup size limit exceeded');
+  let value: unknown;
+  try { value = JSON.parse(text); } catch { throw new BackupValidationError('backup', 'Invalid JSON'); }
+  validate(value, undefined, undefined, true);
+  value.notes.forEach(note => Object.freeze(note));
+  trustedBackups.add(value);
+  return value;
+}
+
+/** Walks and freezes a body not known to be valid yet; throws BackupValidationError for a bad one. */
+export function trustDocument(document: SerializedEditorDocument, path: string): void {
+  if (validatedDocuments.has(document)) return;
+  const nodes = documentValue(document, path, { nodes: 0 });
+  deepFreeze(document);
+  validatedDocuments.set(document, nodes);
+}
+
+/**
  * One stored memo body, validated and frozen like the bodies of parseTrustedWorkspaceBackup, so a
  * workspace assembled from it does not walk it again (specs/17).
  */
@@ -266,19 +292,27 @@ export function parseStoredDocument(text: string, path: string, bytes?: number):
 }
 
 /**
- * Learns the stored size of each body a little at a time, after loading, so that the first save
- * does not serialize every body at once (it froze typing for about 0.3 s on a phone, 0.8.5).
+ * After loading, a little at a time: walks the bodies not checked yet (trustDocument) and learns each
+ * body's stored size, so that neither start-up nor the first save does it for every body at once (it
+ * froze typing for about 0.3 s on a phone, 0.8.5). `onInvalid` hears of a body that fails the check.
  */
-export function measureDocumentsLater(notes: readonly BackupNote[]): void {
-  const pending = notes.map(note => note.document).filter(document => Object.isFrozen(document) && !documentBytes.has(document));
+export function settleDocumentsLater(notes: readonly BackupNote[], onInvalid?: (error: unknown) => void): void {
+  const pending = notes.filter(note => !validatedDocuments.has(note.document) || !documentBytes.has(note.document));
   if (!pending.length) return;
   let index = 0;
+  let nodes = 0;
   const step = () => {
     const until = Date.now() + 8;
-    while (index < pending.length && Date.now() < until) {
-      const document = pending[index++];
-      if (!documentBytes.has(document)) documentBytes.set(document, encoder.encode(JSON.stringify(document)).byteLength);
-    }
+    try {
+      while (index < pending.length && Date.now() < until) {
+        const { id, document } = pending[index++];
+        trustDocument(document, `notes.${id}.document`);
+        // The whole workspace stays within the same budget as a checked backup.
+        nodes += validatedDocuments.get(document) ?? 0;
+        requireValue(nodes <= BACKUP_LIMITS.workspaceNodes, `notes.${id}.document`, 'Document complexity limit exceeded');
+        if (!documentBytes.has(document)) documentBytes.set(document, encoder.encode(JSON.stringify(document)).byteLength);
+      }
+    } catch (error) { onInvalid?.(error); return; }
     if (index < pending.length) setTimeout(step, 16);
   };
   setTimeout(step, 1000);
@@ -330,7 +364,7 @@ type ConvertedNote = { fields: Note; note: BackupNote; bytes: number; inputBytes
 const convertedNotes = new WeakMap<Note, ConvertedNote>();
 const validatedDocuments = new WeakMap<object, number>();
 const storedNotes = new WeakMap<BackupNote, { json: string; bytes: number }>();
-// UTF-8 size of each stored body, learned when it was read or later (measureDocumentsLater).
+// UTF-8 size of each stored body, learned when it was read or later (settleDocumentsLater).
 const documentBytes = new WeakMap<object, number>();
 const validatedBackups = new WeakSet<WorkspaceBackup>();
 const encoder = new TextEncoder();
@@ -372,8 +406,7 @@ function reuseStoredBody(note: Note): ConvertedNote {
   requireValue(title === source.title, `notes.${note.id}.title`, 'Memo title changed without its body');
   requireValue(children === undefined, `notes.${note.id}.children`, 'Flatten children into parentId references before export');
   const document = source.note.document;
-  const known = validatedDocuments.get(document);
-  validatedDocuments.set(document, known ?? documentValue(document, `notes.${note.id}.document`, { nodes: 0 }));
+  trustDocument(document, `notes.${note.id}.document`);
   const metadataJson = JSON.stringify(metadata);
   const { document: _body, ...loaded } = source.note;
   void _body;
@@ -382,7 +415,7 @@ function reuseStoredBody(note: Note): ConvertedNote {
     ? source.note as BackupNote
     : deepFreeze({ ...JSON.parse(metadataJson), document } as BackupNote);
   // Serializing every kept body here made the first save after loading freeze; their sizes are
-  // learned when read or soon after (measureDocumentsLater), and the memo's own fields are counted now.
+  // learned when read or soon after (settleDocumentsLater), and the memo's own fields are counted now.
   const bytes = encoder.encode(metadataJson).byteLength + (documentBytes.get(document) ?? 0) + 12;
   const entry = { fields: { ...note }, note: stored, bytes, inputBytes: bytes };
   convertedNotes.set(note, entry);
