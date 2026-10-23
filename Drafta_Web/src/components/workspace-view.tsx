@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
 import { noteWithContent, sameNoteBody, type WorkspaceState, type WorkspaceUpdate } from '@/lib/workspace-state';
 import { hasBody } from '@/lib/note-source';
+import { PREVIEW_CHARACTERS } from '@/lib/note-text';
 import { storageCopy } from '@/lib/storage-copy';
 import type { MemoHistoryRepository, MemoHistoryVersion } from '@/lib/memo-history';
 import { restoreHistoryCopy } from '@/lib/memo-history-restore';
@@ -180,12 +181,12 @@ interface SortableNoteItemProps {
   trayName?: string;
 }
 
-// Characters of preview text a memo card renders (one line, cut off by CSS).
-const PREVIEW_CHARACTERS = 300;
 
 // Cards drawn when a tray opens, and per step after that (HomeSection, 0.8.5).
 const FIRST_CARDS = 24;
 const MORE_CARDS = 40;
+// Quiet time after a touch or scroll of the list before the next cards are drawn.
+const FILL_QUIET_MS = 300;
 // Height of a card with its margin (globals.css, .memo-item), kept for cards not drawn yet.
 const cardHeight = (note: Note) => note.type === 'separator' ? 40 : note.plainTextContent?.trim() ? 74 : 70;
 
@@ -603,11 +604,22 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   // space of their height keeps the scroll position and the scrollbar where they will be.
   const [shownCards, setShownCards] = React.useState(() => items.length <= FIRST_CARDS ? Infinity : FIRST_CARDS);
   const filling = viewMode === 'list' && shownCards < items.length;
+  // The drag sensor makes the page wait for each touch move, so a phone could not scroll while a step
+  // ran: the next cards wait until the list has not been touched or scrolled for a moment (0.8.6).
+  const lastTouch = React.useRef(0);
+  const touched = React.useCallback(() => { if (filling) lastTouch.current = performance.now(); }, [filling]);
   React.useEffect(() => {
     if (!filling || activeDragId) return;
     const total = items.length;
-    const frame = requestAnimationFrame(() => React.startTransition(() => setShownCards(count => count + MORE_CARDS >= total ? Infinity : count + MORE_CARDS)));
-    return () => cancelAnimationFrame(frame);
+    let frame = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const next = () => {
+      const quiet = performance.now() - lastTouch.current;
+      if (quiet < FILL_QUIET_MS) { timer = setTimeout(next, FILL_QUIET_MS - quiet); return; }
+      frame = requestAnimationFrame(() => React.startTransition(() => setShownCards(count => count + MORE_CARDS >= total ? Infinity : count + MORE_CARDS)));
+    };
+    next();
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
   }, [filling, shownCards, activeDragId, items.length]);
   const drawnSections = React.useMemo(() => {
     const pinnedSection = { pinned: true, list: pinnedNotes(items) };
@@ -700,7 +712,8 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
       <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full flex flex-col">
         {/* The browser's own scrollbar keeps long lists easy to drag (AGENTS.md, Memo Scroll). */}
-        <div className="memo-list-scroll flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden" ref={scrollAreaRef}>
+        <div className="memo-list-scroll flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden" ref={scrollAreaRef}
+          onTouchStart={touched} onTouchMove={touched} onScroll={touched}>
           <div className="w-full max-w-full overflow-hidden">
 
             {/* Combined List for Trash View (Groups + Notes) or Just Notes */}
@@ -754,7 +767,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                     {drawnSections.map((section, index) => <React.Fragment key={String(section.pinned)}>
                       {section.pinned && section.list.length > 0 && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 mb-2", scrollDirection === 'bottom' && "mt-2")} aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>}
                       <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
-                        {scrollDirection === 'bottom' && section.rest > 0 && <div className="memo-list-rest" aria-hidden style={{ height: section.rest }} />}
+                        {scrollDirection === 'bottom' && section.rest > 0 && <div className="memo-list-rest memo-list-rest-above" aria-hidden style={{ height: section.rest }} />}
                         <SortableContext items={sectionIds[index]} strategy={verticalListSortingStrategy}>
                           {section.cards.map(item => <SortableNoteItem key={item.id} item={item} isActive={activeId === item.id}
                             isSelectionMode={isSelectionMode} isSelected={selectedIds.has(item.id)} isTrash={isTrash}

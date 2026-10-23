@@ -17,6 +17,9 @@ export function titleText(node: JSONContent): string {
   }).join('');
 }
 
+/** Characters of preview text a memo card shows (one line, cut off by CSS). */
+export const PREVIEW_CHARACTERS = 300;
+
 // The same preview text as the HTML path, read straight from the stored document: the blocks
 // that HTML follows with a space (p, div, li, h1-h3, pre) end with one here too.
 const SPACED_BLOCKS = new Set(['paragraph', 'heading', 'listItem', 'taskItem', 'codeBlock', 'tableCell', 'tableHeader']);

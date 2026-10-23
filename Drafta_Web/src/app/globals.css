@@ -143,6 +143,14 @@
 .memo-list-scroll .memo-item.memo-item-plain {
     contain-intrinsic-size: auto 62px;
 }
+/* Space kept for cards not drawn yet (HomeSection): faint empty cards (66px and an 8px gap) until they
+   arrive, lined up from the drawn side. */
+.memo-list-scroll .memo-list-rest {
+    background: repeating-linear-gradient(to bottom, hsl(var(--muted) / 0.5) 0 66px, transparent 66px 74px);
+}
+.memo-list-scroll .memo-list-rest-above {
+    background: repeating-linear-gradient(to top, transparent 0 8px, hsl(var(--muted) / 0.5) 8px 74px);
+}
 
 
 /* Tiptap styles - No min-height restriction to let content flow naturally */

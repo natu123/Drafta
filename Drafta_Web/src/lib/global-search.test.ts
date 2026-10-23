@@ -1,5 +1,10 @@
+/** @vitest-environment jsdom */
 import { describe, expect, it } from 'vitest';
 import { searchGroups, searchNotes } from './global-search';
+import { groups, notes } from './data';
+import { isLazyNote } from './note-source';
+import { createWorkspaceBackup } from './workspace-backup';
+import { workspaceToState } from './workspace-state';
 import type { Group, Note } from './types';
 
 const note = (id: string, title: string, body: string, updatedAt: string, extra: Partial<Note> = {}) =>
@@ -17,6 +22,15 @@ describe('global search', () => {
     // Past the old cap of 10, and in update order rather than title-first.
     expect(results.map(item => item.id).slice(-3)).toEqual(['b0', 'title', 'older-title']);
     expect(searchNotes(notes, ' ')).toEqual([]);
+  });
+
+  it('finds words past the preview of a memo that was never opened', () => {
+    const long = { ...notes[0], sampleKey: undefined, id: 'long', content: `<p>${'filler '.repeat(80)}</p><p>needle at the end</p>` };
+    const backup = createWorkspaceBackup({ notes: [long], groups, settings: { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' } }, document, '2026-10-23T00:00:00.000Z');
+    const [lazy] = workspaceToState(backup, document, { lazyBodies: true }).notes;
+    expect(isLazyNote(lazy)).toBe(true);
+    expect(lazy.plainTextContent).not.toContain('needle');
+    expect(searchNotes([lazy], 'NEEDLE').map(item => item.id)).toEqual(['long']);
   });
 
   it('lists every matching tray', () => {

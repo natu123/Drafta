@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LANGS } from '@/app/languages';
 import { notes, groups } from './data';
 import { localizeSampleNote } from './sample-notes';
-import { createWorkspaceBackup, snapshotWorkspace, type BackupSettings } from './workspace-backup';
+import { createWorkspaceBackup, parseCachedWorkspaceBackup, parseTrustedWorkspaceBackup, snapshotWorkspace, type BackupSettings } from './workspace-backup';
 import { noteWithContent, sameNoteBody, workspaceToState } from './workspace-state';
 import { isLazyNote, sourceOf } from './note-source';
 
@@ -51,13 +51,14 @@ describe('memos that stay unconverted until opened (specs/17)', () => {
   // Rich sample bodies (lists, tasks, tables, code) as ordinary memos, so they are not localized samples.
   const richNotes = (language: (typeof LANGS)[number]) => notes.map(note => ({ ...localizeSampleNote(note, language, 'Ctrl'), sampleKey: undefined }));
 
-  it.each(LANGS)('saves an untouched lazy workspace exactly as stored, with the same preview text, in %s', language => {
+  it.each(LANGS)('saves an untouched lazy workspace exactly as stored, with the start of the same preview text, in %s', language => {
     const backup = createWorkspaceBackup({ notes: richNotes(language), groups, settings }, document, date);
     const eager = workspaceToState(backup, document);
     const lazy = workspaceToState(backup, document, { lazyBodies: true });
     expect(lazy.notes.every(isLazyNote)).toBe(true);
     expect(createWorkspaceBackup(lazy, document, date)).toEqual(backup);
-    expect(lazy.notes.map(note => note.plainTextContent)).toEqual(eager.notes.map(note => note.plainTextContent));
+    // A card shows the first 300 characters; search reads the rest (global-search.ts).
+    expect(lazy.notes.map(note => note.plainTextContent)).toEqual(eager.notes.map(note => Array.from(note.plainTextContent ?? '').slice(0, 300).join('')));
     expect(lazy.notes.map(note => noteWithContent(note, document).content)).toEqual(eager.notes.map(note => note.content));
   });
 
@@ -95,5 +96,50 @@ describe('memos that stay unconverted until opened (specs/17)', () => {
     expect(sameNoteBody(again.notes[0], { ...opened, content: `${opened.content}<p>more</p>` }, document)).toBe(false);
     // The save check compares memo JSON; another stored body must not look like the same memo.
     expect(JSON.stringify(first.notes[0])).not.toBe(JSON.stringify(again.notes[0]));
+  });
+});
+
+describe('the device copy: bodies checked after the list shows (specs/16)', () => {
+  const stored = () => createWorkspaceBackup({ notes: notes.map(note => ({ ...localizeSampleNote(note, 'en', 'Ctrl'), sampleKey: undefined })), groups, settings }, document, date);
+  // A body the app would never write: an unknown node after the text.
+  const withBadBody = () => {
+    const value = JSON.parse(JSON.stringify(stored()));
+    value.notes[1].document.document.content.push({ type: 'script' });
+    return JSON.stringify(value);
+  };
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('shows the list before walking the bodies, and walks each one before it is opened or saved', () => {
+    expect(() => parseTrustedWorkspaceBackup(withBadBody())).toThrow('Unknown node type');
+    const cached = parseCachedWorkspaceBackup(withBadBody());
+    const state = workspaceToState(cached, document, { lazyBodies: true });
+    expect(state.notes.map(note => note.title)).toEqual(workspaceToState(stored(), document, { lazyBodies: true }).notes.map(note => note.title));
+    expect(() => noteWithContent(state.notes[1], document)).toThrow('Unknown node type');
+    expect(() => snapshotWorkspace(state, document, date)).toThrow('Unknown node type');
+    expect(noteWithContent(state.notes[0], document).content).toBe(noteWithContent(workspaceToState(stored(), document, { lazyBodies: true }).notes[0], document).content);
+  });
+
+  it('reports a bad body found after start-up, and saves an untouched copy exactly as stored', () => {
+    vi.useFakeTimers();
+    const invalid = vi.fn();
+    workspaceToState(parseCachedWorkspaceBackup(withBadBody()), document, { lazyBodies: true, onInvalidBody: invalid });
+    vi.advanceTimersByTime(1000);
+    expect(invalid).toHaveBeenCalledTimes(1);
+    expect(String(invalid.mock.calls[0][0])).toContain('Unknown node type');
+    const good = vi.fn();
+    const backup = stored();
+    const state = workspaceToState(parseCachedWorkspaceBackup(JSON.stringify(backup)), document, { lazyBodies: true, onInvalidBody: good });
+    vi.advanceTimersByTime(1000);
+    expect(good).not.toHaveBeenCalled();
+    expect(createWorkspaceBackup(state, document, date)).toEqual(backup);
+  });
+
+  it('still refuses a copy whose memos or trays are broken', () => {
+    const value = JSON.parse(JSON.stringify(stored()));
+    value.notes[0].document = 'not a document';
+    expect(() => parseCachedWorkspaceBackup(JSON.stringify(value))).toThrow();
+    const orphan = JSON.parse(JSON.stringify(stored()));
+    orphan.notes[0].group = 'missing';
+    expect(() => parseCachedWorkspaceBackup(JSON.stringify(orphan))).toThrow();
   });
 });
