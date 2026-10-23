@@ -117,7 +117,7 @@ describe('Notion import', () => {
     expect(titles('Notion / Project')).toEqual(['Project', 'Sub page']);
     expect(titles('Notion / Tasks')).toEqual(['Tasks', 'A']);
     const table = plan.notes.find(note => note.title === 'Tasks')!;
-    expect(table.content).toContain('<th><p>Name</p></th>');
+    expect(table.content).toContain('<p>Name</p></th>');
     expect(table.content).toContain('Done');
     expect(table.content).not.toContain('View only');
     const single = plan.notes.find(note => note.title === 'Single')!;
@@ -143,7 +143,7 @@ describe('Notion import', () => {
     expect(note.icon).toBe('🚀');
     expect(note.content).toContain('<p>Owner: Gles</p>');
     expect(note.content).toContain('<h2>Goals</h2>');
-    expect(note.content).toContain('<a href="https://drafta-memo.com">site</a>');
+    expect(note.content).toContain('href="https://drafta-memo.com">site</a>');
     expect(note.content).toContain('Child');
     expect(note.content).not.toMatch(/color:red|alert|Ignored|<a href="Child/);
   });

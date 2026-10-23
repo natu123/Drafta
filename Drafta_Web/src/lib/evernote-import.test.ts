@@ -78,11 +78,12 @@ describe('Evernote import', () => {
     expect(shopping.content).toMatch(/data-checked="false"[^]*Pay bill[^]*data-checked="true"[^]*Call shop[^]*after tasks/);
     expect(shopping.content).toContain('<p>#home #weekly_list</p>');
     const code = plan.notes.find(item => item.title === 'Code & media')!;
-    expect(code.content).toContain('<pre><code>const a = 1;\n&lt;b&gt;</code></pre>');
+    // Memos keep the HTML of the validated document (code blocks get the default language).
+    expect(code.content).toContain('<pre><code class="language-plaintext">const a = 1;\n&lt;b&gt;</code></pre>');
     expect(code.content).toContain('[Image]');
     expect(code.content).toContain('[File]');
     expect(code.content).toContain('[Encrypted]');
-    expect(code.content).toContain('<pre><code>x &lt; y</code></pre>');
+    expect(code.content).toContain('<pre><code class="language-plaintext">x &lt; y</code></pre>');
     expect(code.updatedAt).toBe('2024-01-03T00:00:00.000Z');
     expect(plan.embeds).toBe(3);
     // ToDo style: newest first.
@@ -98,7 +99,7 @@ describe('Evernote import', () => {
     expect(plan.skipped.map(item => item.reason)).toEqual(['invalid', 'invalid']);
     const [hostile] = plan.notes;
     expect(hostile.content).not.toMatch(/script|onclick|javascript:|<img|<iframe|tracker/);
-    expect(hostile.content).toContain('<a href="https://example.com">ok</a>');
+    expect(hostile.content).toContain('href="https://example.com">ok</a>');
     // A self-closing iframe must not swallow the following text.
     expect(hostile.content).toContain('<p>after</p>');
   });

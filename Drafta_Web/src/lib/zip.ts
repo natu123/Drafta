@@ -6,6 +6,15 @@
  */
 
 export const ZIP_LIMITS = { entries: 50000, directoryBytes: 16 * 1024 * 1024 } as const;
+// Compressed input goes to the inflater in pieces this small, so one piece cannot expand past
+// about 16 MB (deflate expands at most about 1032 times) before the output limit is checked.
+const INFLATE_INPUT_BYTES = 16 * 1024;
+
+/**
+ * Work left for one import, shared by every archive (nested ones too) and every file (specs/20):
+ * entries and directory bytes listed, and bytes coming out of decompression.
+ */
+export type ZipBudget = { entries: number; directoryBytes: number; inflated: number };
 
 export type ZipFailure = 'invalid' | 'tooLarge' | 'unsupported';
 export class ZipError extends Error {
@@ -69,8 +78,11 @@ function dosTime(time: number, date: number): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-/** Reads the central directory. Entries with unsafe paths are left out. */
-export async function listZip(blob: Blob): Promise<ZipEntry[]> {
+/**
+ * Reads the central directory. Entries with unsafe paths are left out. An archive whose entries
+ * share or overlap their data (the overlapping-file zip bomb) is rejected.
+ */
+export async function listZip(blob: Blob, budget?: ZipBudget): Promise<ZipEntry[]> {
   if (blob.size < 22) fail('invalid', 'Not a ZIP archive');
   const tailStart = Math.max(0, blob.size - 22 - 65535);
   const tail = await bytesOf(blob, tailStart, blob.size);
@@ -95,12 +107,14 @@ export async function listZip(blob: Blob): Promise<ZipEntry[]> {
     directorySize = Number(record.getBigUint64(40, true));
     directoryOffset = Number(record.getBigUint64(48, true));
   }
-  if (count > ZIP_LIMITS.entries) fail('tooLarge', 'Too many entries');
-  if (directorySize > ZIP_LIMITS.directoryBytes) fail('tooLarge', 'Central directory too large');
+  if (count > Math.min(ZIP_LIMITS.entries, budget?.entries ?? Infinity)) fail('tooLarge', 'Too many entries');
+  if (directorySize > Math.min(ZIP_LIMITS.directoryBytes, budget?.directoryBytes ?? Infinity)) fail('tooLarge', 'Central directory too large');
   if (directoryOffset + directorySize > blob.size) fail('invalid', 'Central directory out of range');
+  if (budget) { budget.entries -= count; budget.directoryBytes -= directorySize; }
   const directory = await bytesOf(blob, directoryOffset, directoryOffset + directorySize);
   const data = view(directory);
   const entries: ZipEntry[] = [];
+  const spans: [start: number, end: number][] = [];
   let at = 0;
   for (let index = 0; index < count; index++) {
     if (at + 46 > directory.length || data.getUint32(at, true) !== 0x02014b50) fail('invalid', 'Broken central directory');
@@ -139,10 +153,17 @@ export async function listZip(blob: Blob): Promise<ZipEntry[]> {
     const method = data.getUint16(at + 10, true);
     const crc = data.getUint32(at + 16, true);
     at = next;
+    // The local header holds at least the fixed part and the name; its extra field may add more.
+    spans.push([headerOffset, headerOffset + 30 + nameLength + compressedSize]);
     const path = normalizePath(name);
     if (!path) continue;
     entries.push({ path, directory: name.endsWith('/') || name.endsWith('\\'), size, compressedSize, method, encrypted: (flags & 1) !== 0, crc, lastModified, headerOffset });
   }
+  spans.sort((a, b) => a[0] - b[0]);
+  for (let index = 1; index < spans.length; index++) {
+    if (spans[index][0] < spans[index - 1][1]) fail('invalid', 'Entries share or overlap their data');
+  }
+  if (spans.length && spans[spans.length - 1][1] > directoryOffset) fail('invalid', 'Entry data overlaps the central directory');
   return entries;
 }
 
@@ -163,19 +184,33 @@ export const blobStream = (blob: Blob): ReadableStream<Uint8Array> => typeof blo
   ? blob.stream() as ReadableStream<Uint8Array>
   : new ReadableStream({ async start(controller) { controller.enqueue(new Uint8Array(await blob.arrayBuffer())); controller.close(); } });
 
+/** The blob in pieces of at most `size` bytes, one piece per read. */
+function sliceStream(blob: Blob, size: number): ReadableStream<Uint8Array> {
+  let offset = 0;
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (offset >= blob.size) { controller.close(); return; }
+      const end = Math.min(blob.size, offset + size);
+      controller.enqueue(new Uint8Array(await blob.slice(offset, end).arrayBuffer()));
+      offset = end;
+    },
+  }, { highWaterMark: 0 });
+}
+
 /**
  * The entry's bytes as a stream that errors once more than `maxBytes` (or more than the declared
- * size) would come out, and at the end when the size or CRC-32 does not match the directory.
+ * size, or more than the shared budget) would come out, and at the end when the size or CRC-32
+ * does not match the directory.
  */
-export function zipEntryStream(blob: Blob, entry: ZipEntry, maxBytes: number): ReadableStream<Uint8Array> {
+export function zipEntryStream(blob: Blob, entry: ZipEntry, maxBytes: number, budget?: Pick<ZipBudget, 'inflated'>): ReadableStream<Uint8Array> {
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   let total = 0;
   let crc = 0;
   return new ReadableStream<Uint8Array>({
     async start() {
-      if (entry.size > maxBytes) fail('tooLarge', 'Entry too large');
+      if (entry.size > maxBytes || entry.size > (budget?.inflated ?? Infinity)) fail('tooLarge', 'Entry too large');
       const { start, end } = await dataRange(blob, entry);
-      const raw = blobStream(blob.slice(start, end));
+      const raw = sliceStream(blob.slice(start, end), INFLATE_INPUT_BYTES);
       reader = (entry.method === 8 ? raw.pipeThrough(new DecompressionStream('deflate-raw') as unknown as ReadableWritablePair<Uint8Array, Uint8Array>) : raw).getReader();
     },
     async pull(controller) {
@@ -188,6 +223,10 @@ export function zipEntryStream(blob: Blob, entry: ZipEntry, maxBytes: number): R
         }
         total += value.byteLength;
         if (total > entry.size) fail('invalid', 'Entry larger than declared');
+        if (budget) {
+          budget.inflated -= value.byteLength;
+          if (budget.inflated < 0) fail('tooLarge', 'Import decompression budget used up');
+        }
         crc = crc32(value, crc);
         controller.enqueue(value);
       } catch (error) {
@@ -200,8 +239,8 @@ export function zipEntryStream(blob: Blob, entry: ZipEntry, maxBytes: number): R
 }
 
 /** Reads a whole entry into memory, at most `maxBytes`. */
-export async function readZipEntry(blob: Blob, entry: ZipEntry, maxBytes: number): Promise<Uint8Array> {
-  const reader = zipEntryStream(blob, entry, maxBytes).getReader();
+export async function readZipEntry(blob: Blob, entry: ZipEntry, maxBytes: number, budget?: Pick<ZipBudget, 'inflated'>): Promise<Uint8Array> {
+  const reader = zipEntryStream(blob, entry, maxBytes, budget).getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
   for (;;) {

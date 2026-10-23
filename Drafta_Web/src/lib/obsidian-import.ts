@@ -1,7 +1,8 @@
-import { editorHtmlToDocument } from './document-codec';
+import { editorDocumentToHtml, editorHtmlToDocument } from './document-codec';
 import { BACKUP_LIMITS, createWorkspaceBackup, parseWorkspaceBackup, type BackupSettings } from './workspace-backup';
 import { CLOUD_LIMITS } from './cloud-limits';
 import { expandArchives } from './import-archive';
+import { ZIP_LIMITS, type ZipBudget } from './zip';
 import type { Group, Note } from './types';
 
 /**
@@ -17,6 +18,10 @@ export const IMPORT_RAW_FILE_BYTES = 2 * 1024 * 1024;
 // Headroom below CLOUD_LIMITS so edits made during an import still fit in the same save.
 // A new memo is two documents (summary and body, specs/17), so 200 memos stay below 480 writes.
 export const IMPORT_BATCH_LIMITS = { notes: 200, bytes: 7000000 } as const;
+
+// Rows × cells of the tables in one memo, below the stored bound (100000, workspace-backup's
+// tableSlots). Larger tables keep their text as one paragraph per row.
+export const TABLE_SLOTS = 90000;
 
 export type EmbedLabels = { image: string; file: string };
 export type ConvertedMarkdown = { html: string; embeds: number; tags: string[] };
@@ -45,7 +50,40 @@ function emphasis(escaped: string): string {
     .replace(/~~(.+?)~~/g, '<s>$1</s>');
 }
 
-/** Converts one line of inline Markdown. Tokens render before emphasis so URLs stay intact. */
+/**
+ * Code spans, found by pairing backtick runs of the same length in one pass: a code span closes
+ * with a run of its opening length, so ``a`b`` holds a backtick. (A regular expression search
+ * for this was quadratic on long lines.)
+ */
+function holdCodeSpans(text: string, hold: (html: string) => string): string {
+  const runs = Array.from(text.matchAll(/`+/g), match => ({ start: match.index, length: match[0].length }));
+  const byLength = new Map<number, number[]>();
+  runs.forEach((run, index) => {
+    const same = byLength.get(run.length);
+    if (same) same.push(index); else byLength.set(run.length, [index]);
+  });
+  const nextOf = new Map<number, number>();
+  let out = '';
+  let cursor = 0;
+  for (let index = 0; index < runs.length;) {
+    const open = runs[index];
+    const same = byLength.get(open.length)!;
+    let next = nextOf.get(open.length) ?? 0;
+    while (next < same.length && same[next] <= index) next++;
+    nextOf.set(open.length, next);
+    if (next === same.length) { index++; continue; }
+    const close = runs[same[next]];
+    out += text.slice(cursor, open.start) + hold(`<code>${escapeHtml(text.slice(open.start + open.length, close.start).replace(/^ (.*) $/, '$1'))}</code>`);
+    cursor = close.start + close.length;
+    index = same[next] + 1;
+  }
+  return out + text.slice(cursor);
+}
+
+/**
+ * Converts one line of inline Markdown. Tokens render before emphasis so URLs stay intact.
+ * Lengths are bounded and brackets cannot repeat inside a label, so a long line stays linear.
+ */
 export function inlineToHtml(text: string, labels: EmbedLabels, counter: { embeds: number }): string {
   const tokens: string[] = [];
   const hold = (html: string) => `\u0000${tokens.push(html) - 1}\u0000`;
@@ -54,25 +92,23 @@ export function inlineToHtml(text: string, labels: EmbedLabels, counter: { embed
     const target = name.split('|')[0].trim();
     return hold(escapeHtml(`[${IMAGE_EXTENSIONS.test(source.split('|')[0].trim()) ? labels.image : labels.file}: ${target}]`));
   };
-  const source = text.replace(/\u0000/g, '')
-    // A code span closes with a backtick run of its opening length, so ``a`b`` holds a backtick.
-    .replace(/(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)/g, (_, _ticks: string, code: string) => hold(`<code>${escapeHtml(code.replace(/^ (.*) $/, '$1'))}</code>`))
+  const source = holdCodeSpans(text.replace(/\u0000/g, ''), hold)
     // Backslash escapes (CommonMark): the character stays as text, as Drafta's own exports expect (specs/20).
     .replace(/\\([!-/:-@[-`{-~])/g, (_, char: string) => hold(escapeHtml(char)))
-    .replace(/!\[\[([^\]]+)\]\]/g, (_, name: string) => embed(name))
-    .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (_, alt: string, url: string) => {
+    .replace(/!\[\[([^[\]]{1,1000})\]\]/g, (_, name: string) => embed(name))
+    .replace(/!\[([^[\]]{0,1000})\]\(([^()]{0,2048})\)/g, (_, alt: string, url: string) => {
       const name = decodeURIComponentSafe(url.trim().split('/').pop() || url);
       return embed(alt.trim() || name, name);
     })
-    .replace(/\[\[([^\]]+)\]\]/g, (_, target: string) => {
+    .replace(/\[\[([^[\]]{1,1000})\]\]/g, (_, target: string) => {
       const [page, alias] = target.split('|');
       return hold(escapeHtml((alias ?? page.replace(/#\^?.*$/, '')).trim() || page.trim()));
     })
-    .replace(/\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+"[^"]*")?\)/g, (_, label: string, url: string) => {
+    .replace(/\[([^[\]]{1,1000})\]\(((?:[^()\s]|\([^()\s]{0,256}\)){1,2048})(?:\s+"[^"\n]{0,500}")?\)/g, (_, label: string, url: string) => {
       const href = safeLinkUrl(url);
       return hold(href ? `<a href="${escapeHtml(href)}">${emphasis(escapeHtml(label))}</a>` : emphasis(escapeHtml(label)));
     })
-    .replace(/<((?:https?:\/\/|mailto:)[^>\s]+)>/g, (match, url: string) => {
+    .replace(/<((?:https?:\/\/|mailto:)[^<>\s]{1,2048})>/g, (match, url: string) => {
       const href = safeLinkUrl(url);
       return href ? hold(`<a href="${escapeHtml(href)}">${escapeHtml(url)}</a>`) : match;
     });
@@ -109,14 +145,22 @@ export function obsidianMarkdownToHtml(markdown: string, labels: EmbedLabels): C
   let code: { fence: string; language: string; lines: string[] } | null = null;
 
   const closeList = () => { if (list) result.push(list === 'ol' ? '</ol>' : '</ul>'); list = null; };
+  let tableSlots = 0;
   const closeTable = () => {
     if (!table) return;
-    const [header, ...rows] = table;
-    result.push(`<table><tbody>${[header, ...rows].map((cells, row) => `<tr>${cells.map(cell => {
-      const tag = row === 0 ? 'th' : 'td';
-      return `<${tag}><p>${inline(cell)}</p></${tag}>`;
-    }).join('')}</tr>`).join('')}</tbody></table>`);
+    const rows: string[][] = table;
     table = null;
+    const width = rows[0].length;
+    // Rows are padded only for a table within the stored bound; a larger one keeps its text.
+    if (tableSlots + rows.length * rows.length * width > TABLE_SLOTS) {
+      result.push(...rows.map(cells => `<p>${inline(cells.join(' | '))}</p>`));
+      return;
+    }
+    tableSlots += rows.length * rows.length * width;
+    result.push(`<table><tbody>${rows.map((cells, row) => `<tr>${Array.from({ length: width }, (_, column) => {
+      const tag = row === 0 ? 'th' : 'td';
+      return `<${tag}><p>${inline(cells[column] ?? '')}</p></${tag}>`;
+    }).join('')}</tr>`).join('')}</tbody></table>`);
   };
   const closeQuote = () => {
     if (!quote) return;
@@ -173,7 +217,7 @@ export function obsidianMarkdownToHtml(markdown: string, labels: EmbedLabels): C
           continue;
         }
       } else {
-        table.push(row.slice(0, table[0].length).concat(Array(Math.max(0, table[0].length - row.length)).fill('')));
+        table.push(row.slice(0, table[0].length));
         continue;
       }
     }
@@ -223,22 +267,33 @@ export function obsidianMarkdownToHtml(markdown: string, labels: EmbedLabels): C
 export type ImportFile = { path: string; size: number; lastModified: number; read: () => Promise<string>; archive?: string; blob?: Blob; stream?: () => ReadableStream<Uint8Array> };
 export type SkippedFile = { path: string; reason: 'tooLarge' | 'unsupported' | 'invalid' };
 export type ImportPlan = { vaultName: string; groups: Group[]; notes: Note[]; noteBytes: Map<string, number>; embeds: number; skipped: SkippedFile[] };
-export type PlanOptions = { dom: Document; labels: EmbedLabels & { vault: string }; newId: () => string; listStyle: BackupSettings['listStyle'] };
+export type PlanOptions = { dom: Document; labels: EmbedLabels & { vault: string }; newId: () => string; listStyle: BackupSettings['listStyle']; signal?: AbortSignal };
 
 export const segmentsOf = (path: string) => path.replace(/\\/g, '/').split('/').filter(Boolean);
 export const naturalOrder = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 const PLAN_SETTINGS: BackupSettings = { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' };
 // Text read in one import (specs/20): bounds the work of a large export without limiting memo count.
 export const IMPORT_TOTAL_RAW_BYTES = 256 * 1024 * 1024;
-export type ReadBudget = { bytes: number };
-export const createReadBudget = (): ReadBudget => ({ bytes: IMPORT_TOTAL_RAW_BYTES });
+/**
+ * What one import may use, shared by all its files and formats (specs/20): `text` read for
+ * conversion, ZIP entries and directory bytes across nested archives, bytes inflated from any
+ * archive (ENEX inside a ZIP too), and compressed nested archives held in memory.
+ */
+export type ImportBudget = ZipBudget & { text: number; nested: number };
+export const IMPORT_BUDGET: Readonly<ImportBudget> = {
+  text: IMPORT_TOTAL_RAW_BYTES, entries: ZIP_LIMITS.entries, directoryBytes: ZIP_LIMITS.directoryBytes,
+  inflated: 2 * 1024 * 1024 * 1024, nested: 256 * 1024 * 1024,
+};
+export const createImportBudget = (): ImportBudget => ({ ...IMPORT_BUDGET });
+/** Past these the import cannot be saved, so planning stops and the preview shows the limit. */
+export const planIsFull = (notes: number, bytes: number) => notes > BACKUP_LIMITS.notes || bytes > BACKUP_LIMITS.bytes;
 export const displayPath = (file: Pick<ImportFile, 'path' | 'archive'>) => file.archive ? `${file.archive}/${file.path}` : file.path;
 export const isoTime = (time: number) => new Date(Number.isFinite(time) && time > 0 && time < 253402300800000 ? time : Date.now()).toISOString();
 
 /** Reads one file within the per-file and per-import limits; null when it is too large. */
-export async function readImportText(file: ImportFile, budget: ReadBudget): Promise<string | null> {
-  if (file.size > IMPORT_RAW_FILE_BYTES || file.size > budget.bytes) return null;
-  budget.bytes -= file.size;
+export async function readImportText(file: ImportFile, budget: ImportBudget): Promise<string | null> {
+  if (file.size > IMPORT_RAW_FILE_BYTES || file.size > budget.text) return null;
+  budget.text -= file.size;
   const text = await file.read();
   return text.length > IMPORT_RAW_FILE_BYTES ? null : text;
 }
@@ -257,10 +312,15 @@ export function buildImportedNote(input: ImportedNote, options: Pick<PlanOptions
   parseWorkspaceBackup(JSON.stringify({ format: 'drafta-workspace', version: 1, exportedAt: input.updatedAt, groups: [input.group], notes: [stored], settings: PLAN_SETTINGS }));
   const bytes = new TextEncoder().encode(JSON.stringify(stored)).byteLength;
   if (bytes > CLOUD_LIMITS.documentBytes) return null;
+  // The memo keeps the HTML of the validated document, not the converter's output, so nothing
+  // unchecked reaches the editor or innerHTML (as workspace-state does for stored memos).
+  // Serialized in the template's inert document: nothing is created in the page's document.
   const template = options.dom.createElement('template');
-  template.innerHTML = input.html;
+  template.innerHTML = editorDocumentToHtml(document, template.content.ownerDocument);
+  template.content.firstElementChild?.remove();
+  const content = template.innerHTML;
   template.content.querySelectorAll('p,div,li,h1,h2,h3,pre').forEach(element => element.after(' '));
-  return { note: { id, title: input.title, icon, content: input.html, plainTextContent: (template.content.textContent ?? '').replace(/\s+/g, ' ').trim(),
+  return { note: { id, title: input.title, icon, content, plainTextContent: (template.content.textContent ?? '').replace(/\s+/g, ' ').trim(),
     group: input.group.id, stars: 0, createdAt: input.createdAt, updatedAt: input.updatedAt }, bytes };
 }
 
@@ -282,17 +342,18 @@ export function orderPlanNotes(groups: Group[], notes: Note[], listStyle: Backup
  */
 export async function planObsidianImport(files: ImportFile[], options: PlanOptions): Promise<ImportPlan> {
   const skipped: SkippedFile[] = [];
-  const entries = vaultPaths(await expandArchives(files, skipped)).map(file => ({ file, segments: segmentsOf(file.path) }))
+  const budget = createImportBudget();
+  const entries = vaultPaths(await expandArchives(files, skipped, budget, options.signal)).map(file => ({ file, segments: segmentsOf(file.path) }))
     // Obsidian settings, trash and other hidden folders are not user notes.
     .filter(entry => entry.segments.length && !entry.segments.some(segment => segment.startsWith('.')))
     .sort((a, b) => naturalOrder(a.segments.join('/'), b.segments.join('/')));
   const fromFolder = entries.some(entry => entry.segments.length > 1);
   const vaultName = fromFolder ? entries.find(entry => entry.segments.length > 1)!.segments[0] : options.labels.vault;
-  const budget = createReadBudget();
   const groups = new Map<string, Group>();
   const notes: Note[] = [];
   const noteBytes = new Map<string, number>();
   let embeds = 0;
+  let total = 0;
   const trayFor = (segments: string[]) => {
     const inner = fromFolder ? segments.slice(1) : segments;
     const name = inner.length > 1 ? `${vaultName} / ${inner[0]}` : vaultName;
@@ -304,6 +365,8 @@ export async function planObsidianImport(files: ImportFile[], options: PlanOptio
   for (const { file, segments } of entries) {
     const path = segments.join('/');
     const name = segments[segments.length - 1];
+    options.signal?.throwIfAborted();
+    if (planIsFull(notes.length, total)) break;
     if (!/\.md$/i.test(name)) { skipped.push({ path, reason: 'unsupported' }); continue; }
     try {
       const text = await readImportText(file, budget);
@@ -314,8 +377,12 @@ export async function planObsidianImport(files: ImportFile[], options: PlanOptio
       if (!built) { skipped.push({ path, reason: 'tooLarge' }); continue; }
       notes.push(built.note);
       noteBytes.set(built.note.id, built.bytes);
+      total += built.bytes;
       embeds += converted.embeds;
-    } catch { skipped.push({ path, reason: 'invalid' }); }
+    } catch (error) {
+      if (options.signal?.aborted) throw error;
+      skipped.push({ path, reason: 'invalid' });
+    }
   }
   // Equal times keep the natural file order from above.
   return { vaultName, ...orderPlanNotes([...groups.values()], notes, options.listStyle), noteBytes, embeds, skipped };

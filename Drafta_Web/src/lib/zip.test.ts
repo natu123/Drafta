@@ -98,7 +98,6 @@ describe('zip', () => {
     const bytes = await bytesOf(await createZip([{ path: 'a.md', data: 'x', lastModified: time }]));
     const { view, directory } = layout(bytes);
     view.setUint32(directory + 42, bytes.length + 10, true);
-    const blob = new Blob([bytes]);
-    expect(await failure(readZipEntry(blob, (await listZip(blob))[0], 100))).toBe('invalid');
+    expect(await failure(listZip(new Blob([bytes])))).toBe('invalid');
   });
 });

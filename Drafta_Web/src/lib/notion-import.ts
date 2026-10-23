@@ -1,10 +1,10 @@
 import { expandArchives } from './import-archive';
 import { importedHtmlToDrafta, parseInertHtml, type HtmlImportLabels } from './imported-html';
-import {
-  buildImportedNote, createReadBudget, displayPath, isoTime, naturalOrder, obsidianMarkdownToHtml, orderPlanNotes, readImportText, segmentsOf,
-  type ImportFile, type ImportPlan, type PlanOptions, type SkippedFile,
-} from './obsidian-import';
 import { BACKUP_LIMITS } from './workspace-backup';
+import {
+  buildImportedNote, createImportBudget, displayPath, isoTime, naturalOrder, obsidianMarkdownToHtml, orderPlanNotes, planIsFull, readImportText, segmentsOf,
+  TABLE_SLOTS, type ImportFile, type ImportPlan, type PlanOptions, type SkippedFile,
+} from './obsidian-import';
 import type { Group, Note } from './types';
 
 /**
@@ -31,7 +31,8 @@ export function notionMarkdown(text: string): { title: string | null; body: stri
   const lines = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
   let first = 0;
   while (first < lines.length && !lines[first].trim()) first++;
-  const heading = /^#\s+(.+?)\s*#*\s*$/.exec(lines[first] ?? '');
+  // Anchored and without a lazy group before trailing spaces: a long line stays linear.
+  const heading = /^#[ \t]+(.*)$/.exec(lines[first] ?? '');
   if (heading) lines.splice(0, first + 1);
   const out: string[] = [];
   let aside = false;
@@ -65,7 +66,7 @@ export function notionMarkdown(text: string): { title: string | null; body: stri
     }
     out.push(value);
   }
-  return { title: heading ? heading[1].trim() : null, body: out.join('\n') };
+  return { title: heading?.[1].trim() || null, body: out.join('\n') };
 }
 
 /** RFC 4180 CSV (quoted fields, doubled quotes, line breaks inside quotes). */
@@ -112,9 +113,15 @@ function convertHtmlPage(text: string, options: NotionPlanOptions, counter: { em
   return { title, html: importedHtmlToDrafta(container, { labels: options.labels, counter }), icon: EMOJI.test(iconText) ? iconText : undefined };
 }
 
-function convertCsv(text: string, options: NotionPlanOptions, counter: { embeds: number }): Converted {
+/** A CSV as a table memo; null when it cannot fit in one memo (more rows than a memo has nodes for). */
+function convertCsv(text: string, options: NotionPlanOptions, counter: { embeds: number }): Converted | null {
   const rows = parseCsv(text);
-  const width = Math.max(0, ...rows.map(row => row.length));
+  if (rows.length > BACKUP_LIMITS.nodes / 2) return null;
+  const width = rows.reduce((widest, row) => Math.max(widest, row.length), 0);
+  // Measured before any padding: a wide or long CSV keeps its text as one paragraph per row.
+  if (rows.length * rows.length * width > TABLE_SLOTS) {
+    return { title: null, html: rows.map(row => `<p>${escapeHtml(row.join(' | '))}</p>`).join('') };
+  }
   const table = rows.length ? `<table>${rows.map((row, index) => `<tr>${Array.from({ length: width }, (_, column) => {
     const tag = index === 0 ? 'th' : 'td';
     return `<${tag}>${escapeHtml(row[column] ?? '')}</${tag}>`;
@@ -152,7 +159,8 @@ function compareEntries(a: Entry, b: Entry) {
 
 export async function planNotionImport(files: ImportFile[], options: NotionPlanOptions): Promise<ImportPlan> {
   const skipped: SkippedFile[] = [];
-  const entries = exportPaths(await expandArchives(files, skipped)).filter(entry => !entry.raw.some(segment => segment.startsWith('.')));
+  const budget = createImportBudget();
+  const entries = exportPaths(await expandArchives(files, skipped, budget, options.signal)).filter(entry => !entry.raw.some(segment => segment.startsWith('.')));
   const pathOf = (entry: Entry) => displayPath(entry.file);
   // "Database_all.csv" lists every row; the plain CSV beside it holds only the current view.
   const allCsv = new Set(entries.filter(entry => /_all\.csv$/i.test(entry.raw[entry.raw.length - 1])).map(entry => entry.raw.join('/').replace(/_all\.csv$/i, '.csv').toLowerCase()));
@@ -173,18 +181,19 @@ export async function planNotionImport(files: ImportFile[], options: NotionPlanO
     return groups.get(key)!;
   };
 
-  const budget = createReadBudget();
   const notes: Note[] = [];
   const noteBytes = new Map<string, number>();
   const counter = { embeds: 0 };
+  let total = 0;
   for (const entry of pages) {
-    // Past the memo limit the import cannot be saved; the preview reports the limit.
-    if (notes.length > BACKUP_LIMITS.notes) break;
+    options.signal?.throwIfAborted();
+    // Past the memo or size limit the import cannot be saved; the preview reports the limit.
+    if (planIsFull(notes.length, total)) break;
     const name = entry.raw[entry.raw.length - 1];
     try {
       const text = await readImportText(entry.file, budget);
       if (text === null) { skipped.push({ path: pathOf(entry), reason: 'tooLarge' }); continue; }
-      let converted: Converted;
+      let converted: Converted | null;
       if (CSV.test(name)) converted = convertCsv(text, options, counter);
       else if (/\.md$/i.test(name)) {
         const markdown = notionMarkdown(text);
@@ -192,12 +201,17 @@ export async function planNotionImport(files: ImportFile[], options: NotionPlanO
         counter.embeds += result.embeds;
         converted = { title: markdown.title, html: result.html };
       } else converted = convertHtmlPage(text, options, counter);
+      if (!converted) { skipped.push({ path: pathOf(entry), reason: 'tooLarge' }); continue; }
       const time = isoTime(entry.file.lastModified);
       const built = buildImportedNote({ title: converted.title ?? stripNotionId(baseName(name)), html: converted.html, group: trayFor(entry), createdAt: time, updatedAt: time, icon: converted.icon }, options);
       if (!built) { skipped.push({ path: pathOf(entry), reason: 'tooLarge' }); continue; }
       notes.push(built.note);
       noteBytes.set(built.note.id, built.bytes);
-    } catch { skipped.push({ path: pathOf(entry), reason: 'invalid' }); }
+      total += built.bytes;
+    } catch (error) {
+      if (options.signal?.aborted) throw error;
+      skipped.push({ path: pathOf(entry), reason: 'invalid' });
+    }
   }
   // The shared tray first, then one tray per page tree in name order, like the vault root and folders (specs/14).
   const trays = [...groups.entries()].sort(([a], [b]) => Number(Boolean(a)) - Number(Boolean(b))).map(([, group]) => group);

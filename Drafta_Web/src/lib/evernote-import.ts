@@ -1,10 +1,9 @@
 import { ENEX_FILE_BYTES, expandArchives } from './import-archive';
 import { importedHtmlToDrafta, parseInertHtml, type HtmlImportLabels, type ImportedTask } from './imported-html';
 import {
-  buildImportedNote, displayPath, IMPORT_RAW_FILE_BYTES, isoTime, orderPlanNotes, segmentsOf,
+  buildImportedNote, createImportBudget, displayPath, IMPORT_RAW_FILE_BYTES, isoTime, orderPlanNotes, planIsFull, segmentsOf,
   type ImportFile, type ImportPlan, type PlanOptions, type SkippedFile,
 } from './obsidian-import';
-import { BACKUP_LIMITS } from './workspace-backup';
 import { blobStream } from './zip';
 import type { Group, Note } from './types';
 
@@ -29,42 +28,47 @@ export async function* enexNotes(stream: ReadableStream<Uint8Array>): AsyncGener
   let note: string | null = null;
   let resource = false;
   let oversized = false;
-  for (let done = false; !done;) {
-    const chunk = await reader.read();
-    done = chunk.done;
-    buffer += done ? decoder.decode() : decoder.decode(chunk.value, { stream: true });
-    for (;;) {
-      if (note === null) {
-        const start = buffer.search(/<note[\s>]/);
-        if (start < 0) { buffer = buffer.slice(-8); break; }
-        buffer = buffer.slice(start);
-        note = '';
-        oversized = false;
-        continue;
+  // A consumer that stops early (limits reached, import cancelled) also stops the reading.
+  try {
+    for (let done = false; !done;) {
+      const chunk = await reader.read();
+      done = chunk.done;
+      buffer += done ? decoder.decode() : decoder.decode(chunk.value, { stream: true });
+      for (;;) {
+        if (note === null) {
+          const start = buffer.search(/<note[\s>]/);
+          if (start < 0) { buffer = buffer.slice(-8); break; }
+          buffer = buffer.slice(start);
+          note = '';
+          oversized = false;
+          continue;
+        }
+        if (resource) {
+          const end = buffer.indexOf('</resource>');
+          if (end < 0) { buffer = buffer.slice(-12); break; }
+          buffer = buffer.slice(end + 11);
+          resource = false;
+          continue;
+        }
+        const close = buffer.indexOf('</note>');
+        const attachment = buffer.search(/<resource[\s>]/);
+        if (close >= 0 && (attachment < 0 || close < attachment)) {
+          const xml = note + buffer.slice(0, close + 7);
+          buffer = buffer.slice(close + 7);
+          note = null;
+          yield oversized || xml.length > ENEX_NOTE_CHARS ? null : xml;
+          continue;
+        }
+        const take = attachment >= 0 ? attachment : Math.max(0, buffer.length - 12);
+        if (!oversized) note += buffer.slice(0, take);
+        buffer = buffer.slice(take);
+        if (note.length > ENEX_NOTE_CHARS) { oversized = true; note = ''; }
+        if (attachment >= 0) { resource = true; continue; }
+        break;
       }
-      if (resource) {
-        const end = buffer.indexOf('</resource>');
-        if (end < 0) { buffer = buffer.slice(-12); break; }
-        buffer = buffer.slice(end + 11);
-        resource = false;
-        continue;
-      }
-      const close = buffer.indexOf('</note>');
-      const attachment = buffer.search(/<resource[\s>]/);
-      if (close >= 0 && (attachment < 0 || close < attachment)) {
-        const xml = note + buffer.slice(0, close + 7);
-        buffer = buffer.slice(close + 7);
-        note = null;
-        yield oversized || xml.length > ENEX_NOTE_CHARS ? null : xml;
-        continue;
-      }
-      const take = attachment >= 0 ? attachment : Math.max(0, buffer.length - 12);
-      if (!oversized) note += buffer.slice(0, take);
-      buffer = buffer.slice(take);
-      if (note.length > ENEX_NOTE_CHARS) { oversized = true; note = ''; }
-      if (attachment >= 0) { resource = true; continue; }
-      break;
     }
+  } finally {
+    void reader.cancel().catch(() => undefined);
   }
 }
 
@@ -100,8 +104,9 @@ export function parseEnexNote(xml: string, dom: Document): EnexNote {
 
 /** ENML as an inert HTML fragment. XML self-closing tags are not void in HTML (<div/> would swallow what follows). */
 export function enmlFragment(enml: string, dom: Document): Node {
-  const source = enml.replace(/<\?xml[^>]*\?>/gi, '').replace(/<!DOCTYPE[^>]*>/gi, '')
-    .replace(/<([a-zA-Z][\w:-]*)((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?){0,64})\s*\/>/g,
+  // No class here can run past the next "<", so repeated unclosed tags stay linear.
+  const source = enml.replace(/<\?xml[^<>]*\?>/gi, '').replace(/<!DOCTYPE[^<>]*>/gi, '')
+    .replace(/<([a-zA-Z][\w:-]*)((?:\s+[^\s"'<>/=]+(?:\s*=\s*(?:"[^"<]*"|'[^'<]*'|[^\s"'<>]+))?){0,64})\s*\/>/g,
       (match, tag: string, attributes: string) => VOID.has(tag.toLowerCase()) ? match : `<${tag}${attributes}></${tag}>`);
   const fragment = parseInertHtml(source, dom);
   return fragment.querySelector('en-note') ?? fragment;
@@ -115,7 +120,10 @@ export async function planEvernoteImport(files: ImportFile[], options: EvernoteP
   const notes: Note[] = [];
   const noteBytes = new Map<string, number>();
   const counter = { embeds: 0 };
-  for (const file of await expandArchives(files, skipped)) {
+  const budget = createImportBudget();
+  let total = 0;
+  for (const file of await expandArchives(files, skipped, budget, options.signal)) {
+    if (planIsFull(notes.length, total)) break;
     const path = displayPath(file);
     const name = segmentsOf(file.path).pop() ?? '';
     if (name.startsWith('.') || segmentsOf(file.path).includes('__MACOSX')) continue;
@@ -129,7 +137,9 @@ export async function planEvernoteImport(files: ImportFile[], options: EvernoteP
       if (!stream) throw new Error('No stream');
       for await (const xml of enexNotes(stream)) {
         index++;
-        if (notes.length > BACKUP_LIMITS.notes) continue;
+        options.signal?.throwIfAborted();
+        // Past the memo or size limit the import cannot be saved: stop reading (the preview shows the limit).
+        if (planIsFull(notes.length, total)) break;
         let label = `${path} #${index}`;
         if (xml === null) { skipped.push({ path: label, reason: 'tooLarge' }); continue; }
         try {
@@ -138,7 +148,8 @@ export async function planEvernoteImport(files: ImportFile[], options: EvernoteP
           if (note.content.length > IMPORT_RAW_FILE_BYTES) { skipped.push({ path: label, reason: 'tooLarge' }); continue; }
           const taskGroups = new Map<string, ImportedTask[]>();
           for (const task of [...note.tasks].sort((a, b) => a.sort < b.sort ? -1 : a.sort > b.sort ? 1 : 0)) {
-            taskGroups.set(task.group, [...(taskGroups.get(task.group) ?? []), { title: task.title, done: task.done }]);
+            const group = taskGroups.get(task.group);
+            if (group) group.push({ title: task.title, done: task.done }); else taskGroups.set(task.group, [{ title: task.title, done: task.done }]);
           }
           const body = importedHtmlToDrafta(enmlFragment(note.content, options.dom), { labels: options.labels, counter, taskGroups });
           const tags = note.tags.length ? `<p>${escapeHtml(note.tags.map(tag => `#${tag}`).join(' '))}</p>` : '';
@@ -148,10 +159,15 @@ export async function planEvernoteImport(files: ImportFile[], options: EvernoteP
           if (!built) { skipped.push({ path: label, reason: 'tooLarge' }); continue; }
           notes.push(built.note);
           noteBytes.set(built.note.id, built.bytes);
-        } catch { skipped.push({ path: label, reason: 'invalid' }); }
+          total += built.bytes;
+        } catch (error) {
+          if (options.signal?.aborted) throw error;
+          skipped.push({ path: label, reason: 'invalid' });
+        }
       }
       if (!index) skipped.push({ path, reason: 'invalid' });
     } catch (error) {
+      if (options.signal?.aborted) throw error;
       skipped.push({ path, reason: (error as { reason?: SkippedFile['reason'] }).reason ?? 'invalid' });
     }
     if (notes.length > before) groups.push(group);

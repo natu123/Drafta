@@ -1,4 +1,4 @@
-import { safeLinkUrl, type EmbedLabels } from './obsidian-import';
+import { safeLinkUrl, TABLE_SLOTS, type EmbedLabels } from './obsidian-import';
 
 /**
  * Rewrites untrusted HTML (Notion's HTML export, Evernote's ENML) into the small set of elements
@@ -20,8 +20,6 @@ export type HtmlImportContext = {
 // Deeper input is kept as text only, well inside the stored document depth (BACKUP_LIMITS.depth).
 const MAX_DEPTH = 48;
 const MAX_LIST_DEPTH = 6;
-// Rows × cells per memo (workspace-backup's tableSlots bound is 100000), with headroom.
-const TABLE_SLOTS = 90000;
 const CHECKED = '\u0001x\u0001';
 const UNCHECKED = '\u0001o\u0001';
 
@@ -328,7 +326,7 @@ class Converter {
       else if (tag === 'thead' || tag === 'tbody' || tag === 'tfoot') rows.push(...Array.from(child.children).filter(row => tagOf(row) === 'tr'));
     }
     const cells = rows.map(row => Array.from(row.children).filter(cell => tagOf(cell) === 'td' || tagOf(cell) === 'th'));
-    const width = Math.max(0, ...cells.map(row => row.length));
+    const width = cells.reduce((widest, row) => Math.max(widest, row.length), 0);
     if (!rows.length || !width) return '';
     const slots = rows.length * rows.length * width;
     // Too large to store as a table (or inside a cell): one paragraph per row keeps the text.
