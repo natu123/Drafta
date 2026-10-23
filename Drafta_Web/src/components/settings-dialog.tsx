@@ -15,6 +15,7 @@ import { useLang } from '@/contexts/lang-context';
 import { useClientReady } from '@/hooks/use-client-ready';
 import { Button } from '@/components/ui/button';
 import { importCopy } from '@/lib/import-copy';
+import { transferCopy } from '@/lib/transfer-copy';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -22,9 +23,10 @@ interface SettingsDialogProps {
   scrollDirection: 'top' | 'bottom';
   onScrollDirectionChange: (direction: 'top' | 'bottom') => void;
   onImport?: () => void;
+  onExport?: () => void;
 }
 
-const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scrollDirection, onScrollDirectionChange, onImport }) => {
+const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scrollDirection, onScrollDirectionChange, onImport, onExport }) => {
   const { theme, setTheme } = useTheme();
   const { t, lang } = useLang();
   const data = importCopy[lang];
@@ -33,7 +35,8 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      {/* The data section makes it taller than short screens; it scrolls instead of running off the top. */}
+      <DialogContent className="max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t.settingsTitle}</DialogTitle>
           <DialogDescription>{t.settingsDesc}</DialogDescription>
@@ -83,16 +86,20 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChange, scr
               <p className="text-sm text-muted-foreground">{t.newItemPosDesc}</p>
             </div>
 
-            {onImport && (
+            {(onImport || onExport) && (
               <>
                 <div className="pt-2">
                   <hr className="border-border mb-2" />
                   <h3 className="text-lg font-medium">{data.section}</h3>
                 </div>
-                <div className="space-y-2">
+                {onImport && <div className="space-y-2">
                   <Button variant="outline" onClick={onImport}>{data.open}</Button>
                   <p className="text-sm text-muted-foreground">{data.openDescription}</p>
-                </div>
+                </div>}
+                {onExport && <div className="space-y-2">
+                  <Button variant="outline" onClick={onExport}>{transferCopy[lang].export.open}</Button>
+                  <p className="text-sm text-muted-foreground">{transferCopy[lang].export.openDescription}</p>
+                </div>}
               </>
             )}
           </div>

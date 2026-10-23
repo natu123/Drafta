@@ -54,6 +54,7 @@ import { pinnedNotes, regularNotes, reorderPinSection } from '@/lib/pin-order';
 import { cn, htmlToSimpleText, stripColorMarkdown } from '@/lib/utils';
 import SettingsDialog from '@/components/settings-dialog';
 import { ImportDialog } from '@/components/import-dialog';
+import { ExportDialog } from '@/components/export-dialog';
 import SearchDialog from '@/components/search-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -941,6 +942,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const [isExportOpen, setIsExportOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
   const [noteViewMode] = React.useState<ViewMode>('list');
@@ -1859,7 +1861,10 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           onScrollDirectionChange={handleListStyleChange}
           // Imports save as they go, so they wait for the bodies of a new device (specs/17).
           onImport={bodyProgress ? undefined : () => { setIsSettingsOpen(false); setIsImportOpen(true); }}
+          onExport={bodyProgress ? undefined : () => { setIsSettingsOpen(false); setIsExportOpen(true); }}
         />
+
+        <ExportDialog open={isExportOpen} onOpenChange={setIsExportOpen} notes={notes} groups={sourceGroups} />
 
         <ImportDialog
           open={isImportOpen}

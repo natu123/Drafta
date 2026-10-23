@@ -8,7 +8,7 @@
 - ObsidianのVault (Markdownファイルの集まり) を, DraftaのTray･Memoとして取り込みます.
 - 初回は文章だけを対象とします. 画像･添付ファイル･Memo間リンクは取り込まず, 取り込めなかった要素を結果画面で知らせます.
 - 取り込みは新しいTrayへの追加だけです. 既存のTray･Memoを上書き･統合しません.
-- Notion･Evernoteは後続です. 今回作る共通部分 (読込･検証･プレビュー･一括保存･結果通知) を再利用します.
+- Notion･Evernoteは後続です. 今回作る共通部分 (読込･検証･プレビュー･一括保存･結果通知) を再利用します (2026-10-23に`20_import_export.md`で設計).
 
 ## 決定事項
 
@@ -110,4 +110,4 @@ AGENTS.mdの「UI変更は案を示して合意後に実装」に従い, 3案を
 
 - 画像･添付ファイルの保存 (Firebase Storageの導入と費用の承認が別途必要です).
 - Memo間リンク, 同じVaultの再取り込み時の重複判定と差分更新.
-- Notion･Evernoteの取り込み.
+- Notion･Evernoteの取り込み (`20_import_export.md`へ). zipでのVaultの選択も20で追加します.

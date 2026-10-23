@@ -4,6 +4,7 @@ import { checkImportLimits, importBatches, obsidianMarkdownToHtml, planObsidianI
 import { createWorkspaceBackup } from './workspace-backup';
 import { CLOUD_LIMITS, WorkspaceStorageError, type SavedWorkspace } from './cloud-workspace';
 import { WorkspaceSaveQueue } from './workspace-save-queue';
+import { createZip } from './zip';
 import type { WorkspaceBackup } from './workspace-backup';
 
 const labels = { image: 'Image', file: 'File', vault: 'Obsidian' };
@@ -62,6 +63,11 @@ describe('Obsidian Markdown conversion', () => {
     expect(html).toContain('<hr>');
     expect(html).toContain('<tr><th><p>A</p></th><th><p>B</p></th></tr><tr><td><p>1</p></td><td><p>&lt;b&gt;2&lt;/b&gt;</p></td></tr>');
   });
+
+  it('reads backslash escapes as text and code spans with longer backtick runs (specs/20)', () => {
+    const { html } = convert('\\*not em\\* \\[x\\](https://e.com) \\#tag \\<b\\> ``a`b`` `` `x` `` C:\\path');
+    expect(html).toBe('<p>*not em* [x](https://e.com) #tag &lt;b&gt; <code>a`b</code> <code>`x`</code> C:\\path</p>');
+  });
 });
 
 describe('Obsidian import plan', () => {
@@ -96,6 +102,18 @@ describe('Obsidian import plan', () => {
     expect(top.notes.map(note => note.title)).toEqual(['Root newest', 'Root note 2', 'Root note 10', 'New', 'Old']);
     const bottom = await planObsidianImport(files(), { ...options, listStyle: 'bottom' });
     expect(bottom.notes.map(note => note.title)).toEqual(['Root note 2', 'Root note 10', 'Root newest', 'Old', 'New']);
+  });
+
+  it('reads a vault from a ZIP of the vault folder or of loose files (specs/20)', async () => {
+    const zip = async (name: string, paths: string[]) => {
+      const blob = await createZip(paths.map(path => ({ path, data: `# ${path}`, lastModified: Date.UTC(2026, 9, 1) })));
+      return { path: name, size: blob.size, lastModified: 0, read: () => blob.text(), blob } satisfies ImportFile;
+    };
+    const wrapped = await planObsidianImport([await zip('Vault.zip', ['MyVault/a.md', 'MyVault/Work/b.md', 'MyVault/.obsidian/app.json', '__MACOSX/MyVault/._a.md'])], options);
+    expect(wrapped.groups.map(group => group.name)).toEqual(['MyVault', 'MyVault / Work']);
+    expect(wrapped.skipped).toEqual([]);
+    const loose = await planObsidianImport([await zip('Notes.zip', ['a.md', 'Work/b.md'])], options);
+    expect(loose.groups.map(group => group.name)).toEqual(['Notes', 'Notes / Work']);
   });
 
   it('puts loose files into one tray and skips files above the memo size limit', async () => {
