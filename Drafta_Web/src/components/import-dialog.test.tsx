@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ImportDialog } from './import-dialog';
 import { importCopy } from '@/lib/import-copy';
+import { transferCopy } from '@/lib/transfer-copy';
 
 vi.mock('@/contexts/lang-context', () => ({ useLang: () => ({ lang: 'ja' }) }));
 
@@ -64,5 +65,43 @@ describe('import completion screen', () => {
     act(() => root.unmount()); root = createRoot(container);
     await importFiles(files(), 'bottom');
     expect(importedTitles).toEqual(['old', 'new']);
+  });
+});
+
+describe('import sources', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    container = document.createElement('div'); document.body.append(container);
+    root = createRoot(container);
+  });
+  afterEach(() => { act(() => root.unmount()); container.remove(); });
+
+  it('switches the guidance and file chooser by source and imports an Evernote notebook', async () => {
+    const onBatch = vi.fn(async () => true);
+    act(() => root.render(<ImportDialog open onOpenChange={vi.fn()} onBatch={onBatch} onRetry={vi.fn(async () => true)} onShowTray={vi.fn()}
+      existing={{ notes: [], groups: [], settings: { language: 'ja', theme: 'system', listStyle: 'top', noteSort: 'manual' } }} />));
+    const group = document.querySelector('[role="radiogroup"]')!;
+    expect(group.getAttribute('aria-label')).toBe(transferCopy.ja.source);
+    expect([...group.querySelectorAll('label')].map(label => label.textContent)).toEqual(['Obsidian', 'Notion', 'Evernote']);
+    act(() => document.querySelector<HTMLButtonElement>('#import-source-notion')!.click());
+    expect(document.body.textContent).toContain(transferCopy.ja.descriptions.notion);
+    expect(document.body.textContent).toContain(transferCopy.ja.chooseZip);
+    act(() => document.querySelector<HTMLButtonElement>('#import-source-evernote')!.click());
+    expect(document.body.textContent).toContain(transferCopy.ja.chooseEnex);
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]:not([webkitdirectory])')!;
+    expect(input.accept).toContain('.enex');
+    const enex = '<?xml version="1.0"?><en-export><note><title>買い物</title><content><![CDATA[<en-note><div><en-todo checked="true"/>牛乳</div></en-note>]]></content><created>20260101T000000Z</created></note></en-export>';
+    Object.defineProperty(input, 'files', { value: [new File([enex], '家.enex', { lastModified: Date.UTC(2026, 9, 9) })], configurable: true });
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    await vi.waitFor(() => expect(document.body.textContent).toContain(labels.confirm));
+    const confirm = [...document.querySelectorAll('button')].find(button => button.textContent === labels.confirm)!;
+    await act(async () => { confirm.click(); });
+    await vi.waitFor(() => expect(document.body.textContent).toContain('トレイ「家」に, メモ 1件を保存しました.'));
+    const [groups, notes] = onBatch.mock.calls[0] as unknown as [{ name: string }[], { title: string; content: string }[]];
+    expect(groups.map(item => item.name)).toEqual(['家']);
+    expect(notes[0].title).toBe('買い物');
+    expect(notes[0].content).toContain('data-checked="true"');
   });
 });

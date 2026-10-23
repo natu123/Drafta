@@ -1,6 +1,7 @@
 import { editorHtmlToDocument } from './document-codec';
 import { BACKUP_LIMITS, createWorkspaceBackup, parseWorkspaceBackup, type BackupSettings } from './workspace-backup';
 import { CLOUD_LIMITS } from './cloud-limits';
+import { expandArchives } from './import-archive';
 import type { Group, Note } from './types';
 
 /**
@@ -54,7 +55,10 @@ export function inlineToHtml(text: string, labels: EmbedLabels, counter: { embed
     return hold(escapeHtml(`[${IMAGE_EXTENSIONS.test(source.split('|')[0].trim()) ? labels.image : labels.file}: ${target}]`));
   };
   const source = text.replace(/\u0000/g, '')
-    .replace(/`([^`]+)`/g, (_, code: string) => hold(`<code>${escapeHtml(code)}</code>`))
+    // A code span closes with a backtick run of its opening length, so ``a`b`` holds a backtick.
+    .replace(/(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)/g, (_, _ticks: string, code: string) => hold(`<code>${escapeHtml(code.replace(/^ (.*) $/, '$1'))}</code>`))
+    // Backslash escapes (CommonMark): the character stays as text, as Drafta's own exports expect (specs/20).
+    .replace(/\\([!-/:-@[-`{-~])/g, (_, char: string) => hold(escapeHtml(char)))
     .replace(/!\[\[([^\]]+)\]\]/g, (_, name: string) => embed(name))
     .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (_, alt: string, url: string) => {
       const name = decodeURIComponentSafe(url.trim().split('/').pop() || url);
@@ -212,27 +216,79 @@ export function obsidianMarkdownToHtml(markdown: string, labels: EmbedLabels): C
   return { html: result.join(''), embeds: counter.embeds, tags };
 }
 
-export type ImportFile = { path: string; size: number; lastModified: number; read: () => Promise<string> };
+/**
+ * A file to import. `archive` names the ZIP an entry came from (its path is then inside the ZIP);
+ * `blob` is the selected file itself, for ZIP reading; `stream` reads large files (ENEX) in pieces.
+ */
+export type ImportFile = { path: string; size: number; lastModified: number; read: () => Promise<string>; archive?: string; blob?: Blob; stream?: () => ReadableStream<Uint8Array> };
 export type SkippedFile = { path: string; reason: 'tooLarge' | 'unsupported' | 'invalid' };
 export type ImportPlan = { vaultName: string; groups: Group[]; notes: Note[]; noteBytes: Map<string, number>; embeds: number; skipped: SkippedFile[] };
 export type PlanOptions = { dom: Document; labels: EmbedLabels & { vault: string }; newId: () => string; listStyle: BackupSettings['listStyle'] };
 
-const segmentsOf = (path: string) => path.replace(/\\/g, '/').split('/').filter(Boolean);
-const naturalOrder = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+export const segmentsOf = (path: string) => path.replace(/\\/g, '/').split('/').filter(Boolean);
+export const naturalOrder = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 const PLAN_SETTINGS: BackupSettings = { language: null, theme: 'system', listStyle: 'top', noteSort: 'manual' };
+// Text read in one import (specs/20): bounds the work of a large export without limiting memo count.
+export const IMPORT_TOTAL_RAW_BYTES = 256 * 1024 * 1024;
+export type ReadBudget = { bytes: number };
+export const createReadBudget = (): ReadBudget => ({ bytes: IMPORT_TOTAL_RAW_BYTES });
+export const displayPath = (file: Pick<ImportFile, 'path' | 'archive'>) => file.archive ? `${file.archive}/${file.path}` : file.path;
+export const isoTime = (time: number) => new Date(Number.isFinite(time) && time > 0 && time < 253402300800000 ? time : Date.now()).toISOString();
+
+/** Reads one file within the per-file and per-import limits; null when it is too large. */
+export async function readImportText(file: ImportFile, budget: ReadBudget): Promise<string | null> {
+  if (file.size > IMPORT_RAW_FILE_BYTES || file.size > budget.bytes) return null;
+  budget.bytes -= file.size;
+  const text = await file.read();
+  return text.length > IMPORT_RAW_FILE_BYTES ? null : text;
+}
+
+export type ImportedNote = { title: string; html: string; group: Group; createdAt: string; updatedAt: string; icon?: string };
+
+/**
+ * One converted memo, checked with the same validator and byte measure as a cloud save.
+ * Returns null when it is over the per-memo limit; throws when it is not a valid document.
+ */
+export function buildImportedNote(input: ImportedNote, options: Pick<PlanOptions, 'dom' | 'newId'>): { note: Note; bytes: number } | null {
+  const id = `note-${options.newId()}`;
+  const icon = input.icon ?? '📝';
+  const document = editorHtmlToDocument(`<h1>${escapeHtml(input.title)}</h1>${input.html}`, options.dom);
+  const stored = { id, icon, group: input.group.id, stars: 0 as const, createdAt: input.createdAt, updatedAt: input.updatedAt, document };
+  parseWorkspaceBackup(JSON.stringify({ format: 'drafta-workspace', version: 1, exportedAt: input.updatedAt, groups: [input.group], notes: [stored], settings: PLAN_SETTINGS }));
+  const bytes = new TextEncoder().encode(JSON.stringify(stored)).byteLength;
+  if (bytes > CLOUD_LIMITS.documentBytes) return null;
+  const template = options.dom.createElement('template');
+  template.innerHTML = input.html;
+  template.content.querySelectorAll('p,div,li,h1,h2,h3,pre').forEach(element => element.after(' '));
+  return { note: { id, title: input.title, icon, content: input.html, plainTextContent: (template.content.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    group: input.group.id, stars: 0, createdAt: input.createdAt, updatedAt: input.updatedAt }, bytes };
+}
+
+/**
+ * Within each tray, newer memos sit where the list style adds new memos (specs/14). The sort is
+ * stable, so equal times keep the order given. Trays without memos are left out.
+ */
+export function orderPlanNotes(groups: Group[], notes: Note[], listStyle: BackupSettings['listStyle']): { groups: Group[]; notes: Note[] } {
+  const direction = listStyle === 'bottom' ? 1 : -1;
+  const ordered = groups.flatMap(group => notes.filter(note => note.group === group.id)
+    .sort((a, b) => direction * (Date.parse(a.updatedAt) - Date.parse(b.updatedAt))));
+  const used = new Set(ordered.map(note => note.group));
+  return { groups: groups.filter(group => used.has(group.id)), notes: ordered };
+}
 
 /**
  * Reads and converts files locally. Nothing is saved; the result is a preview candidate.
  * Folder selection gives "Vault/folder/file.md"; loose file selection gives "file.md".
  */
 export async function planObsidianImport(files: ImportFile[], options: PlanOptions): Promise<ImportPlan> {
-  const entries = files.map(file => ({ file, segments: segmentsOf(file.path) }))
+  const skipped: SkippedFile[] = [];
+  const entries = vaultPaths(await expandArchives(files, skipped)).map(file => ({ file, segments: segmentsOf(file.path) }))
     // Obsidian settings, trash and other hidden folders are not user notes.
     .filter(entry => entry.segments.length && !entry.segments.some(segment => segment.startsWith('.')))
     .sort((a, b) => naturalOrder(a.segments.join('/'), b.segments.join('/')));
   const fromFolder = entries.some(entry => entry.segments.length > 1);
   const vaultName = fromFolder ? entries.find(entry => entry.segments.length > 1)!.segments[0] : options.labels.vault;
-  const skipped: SkippedFile[] = [];
+  const budget = createReadBudget();
   const groups = new Map<string, Group>();
   const notes: Note[] = [];
   const noteBytes = new Map<string, number>();
@@ -249,35 +305,39 @@ export async function planObsidianImport(files: ImportFile[], options: PlanOptio
     const path = segments.join('/');
     const name = segments[segments.length - 1];
     if (!/\.md$/i.test(name)) { skipped.push({ path, reason: 'unsupported' }); continue; }
-    if (file.size > IMPORT_RAW_FILE_BYTES) { skipped.push({ path, reason: 'tooLarge' }); continue; }
     try {
-      const converted = obsidianMarkdownToHtml(await file.read(), options.labels);
-      const group = trayFor(segments);
-      const time = new Date(Number.isFinite(file.lastModified) && file.lastModified > 0 ? file.lastModified : Date.now()).toISOString();
-      const title = name.replace(/\.md$/i, '');
-      const id = `note-${options.newId()}`;
-      const document = editorHtmlToDocument(`<h1>${escapeHtml(title)}</h1>${converted.html}`, options.dom);
-      const stored = { id, icon: '📝', group: group.id, stars: 0 as const, createdAt: time, updatedAt: time, document };
-      // The same validator and byte measure as a cloud save.
-      parseWorkspaceBackup(JSON.stringify({ format: 'drafta-workspace', version: 1, exportedAt: time, groups: [group], notes: [stored], settings: PLAN_SETTINGS }));
-      const bytes = new TextEncoder().encode(JSON.stringify(stored)).byteLength;
-      if (bytes > CLOUD_LIMITS.documentBytes) { skipped.push({ path, reason: 'tooLarge' }); continue; }
-      const template = options.dom.createElement('template');
-      template.innerHTML = converted.html;
-      template.content.querySelectorAll('p,div,li,h1,h2,h3,pre').forEach(element => element.after(' '));
-      notes.push({ id, title, icon: '📝', content: converted.html, plainTextContent: (template.content.textContent ?? '').replace(/\s+/g, ' ').trim(),
-        group: group.id, stars: 0, createdAt: time, updatedAt: time });
-      noteBytes.set(id, bytes);
+      const text = await readImportText(file, budget);
+      if (text === null) { skipped.push({ path, reason: 'tooLarge' }); continue; }
+      const converted = obsidianMarkdownToHtml(text, options.labels);
+      const time = isoTime(file.lastModified);
+      const built = buildImportedNote({ title: name.replace(/\.md$/i, ''), html: converted.html, group: trayFor(segments), createdAt: time, updatedAt: time }, options);
+      if (!built) { skipped.push({ path, reason: 'tooLarge' }); continue; }
+      notes.push(built.note);
+      noteBytes.set(built.note.id, built.bytes);
       embeds += converted.embeds;
     } catch { skipped.push({ path, reason: 'invalid' }); }
   }
-  // Within each tray, newer memos sit where the list style adds new memos (specs/14).
-  // The sort is stable, so equal times keep the natural file order from above.
-  const direction = options.listStyle === 'bottom' ? 1 : -1;
-  const ordered = [...groups.values()].flatMap(group => notes.filter(note => note.group === group.id)
-    .sort((a, b) => direction * (Date.parse(a.updatedAt) - Date.parse(b.updatedAt))));
-  const used = new Set(ordered.map(note => note.group));
-  return { vaultName, groups: [...groups.values()].filter(group => used.has(group.id)), notes: ordered, noteBytes, embeds, skipped };
+  // Equal times keep the natural file order from above.
+  return { vaultName, ...orderPlanNotes([...groups.values()], notes, options.listStyle), noteBytes, embeds, skipped };
+}
+
+/**
+ * ZIP entries as if the vault folder had been chosen (specs/20): a ZIP of the vault folder keeps
+ * its folder name, and a ZIP of loose files takes the ZIP's own name as the vault name.
+ */
+function vaultPaths(files: ImportFile[]): ImportFile[] {
+  const tops = new Map<string, Set<string>>();
+  for (const file of files) {
+    if (!file.archive) continue;
+    const segments = segmentsOf(file.path);
+    tops.set(file.archive, (tops.get(file.archive) ?? new Set<string>()).add(segments.length > 1 ? segments[0] : ''));
+  }
+  return files.map(file => {
+    const found = file.archive ? tops.get(file.archive) : undefined;
+    if (!found || (found.size === 1 && !found.has(''))) return file;
+    const base = segmentsOf(file.archive!).pop()!.replace(/\.zip$/i, '') || 'Obsidian';
+    return { ...file, path: `${base}/${file.path}` };
+  });
 }
 
 export type ImportLimitError = 'notes' | 'groups' | 'size';

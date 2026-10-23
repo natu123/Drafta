@@ -3,11 +3,23 @@
 import * as React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useLang } from '@/contexts/lang-context';
+import { planEvernoteImport } from '@/lib/evernote-import';
 import { importCopy, fillCopy } from '@/lib/import-copy';
-import { checkImportLimits, importBatches, planObsidianImport, type ImportLimitError, type ImportPlan } from '@/lib/obsidian-import';
+import { planNotionImport } from '@/lib/notion-import';
+import { checkImportLimits, importBatches, planObsidianImport, type ImportFile, type ImportLimitError, type ImportPlan } from '@/lib/obsidian-import';
+import { transferCopy } from '@/lib/transfer-copy';
+import { blobStream } from '@/lib/zip';
 import type { BackupSettings } from '@/lib/workspace-backup';
 import type { Group, Note } from '@/lib/types';
+
+type Source = 'obsidian' | 'notion' | 'evernote';
+const SOURCES: Source[] = ['obsidian', 'notion', 'evernote'];
+const SOURCE_NAMES: Record<Source, string> = { obsidian: 'Obsidian', notion: 'Notion', evernote: 'Evernote' };
+// File choosers per source (specs/20): a ZIP stands for a folder where a phone cannot choose one.
+const ACCEPT: Record<Source, string> = { obsidian: '.md,text/markdown,.zip,application/zip', notion: '.zip,application/zip', evernote: '.enex,.zip,application/zip' };
 
 type Stage =
   | { kind: 'select' }
@@ -31,6 +43,8 @@ export interface ImportDialogProps {
 export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, onShowTray }: ImportDialogProps) {
   const { lang } = useLang();
   const labels = importCopy[lang];
+  const transfer = transferCopy[lang];
+  const [source, setSource] = React.useState<Source>('obsidian');
   const [stage, setStage] = React.useState<Stage>({ kind: 'select' });
   const folderInput = React.useRef<HTMLInputElement>(null);
   const fileInput = React.useRef<HTMLInputElement>(null);
@@ -51,8 +65,13 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
   const read = async (list: FileList | null) => {
     if (!list?.length) return;
     setStage({ kind: 'reading' });
-    const files = Array.from(list).map(file => ({ path: file.webkitRelativePath || file.name, size: file.size, lastModified: file.lastModified, read: () => file.text() }));
-    const plan = await planObsidianImport(files, { dom: document, labels: { image: labels.image, file: labels.file, vault: 'Obsidian' }, newId: () => crypto.randomUUID(), listStyle: existing.settings.listStyle });
+    const files: ImportFile[] = Array.from(list).map(file => ({ path: file.webkitRelativePath || file.name, size: file.size, lastModified: file.lastModified,
+      read: () => file.text(), blob: file, stream: () => blobStream(file) }));
+    const options = { dom: document, newId: () => crypto.randomUUID(), listStyle: existing.settings.listStyle };
+    const embedLabels = { image: labels.image, file: labels.file, encrypted: transfer.encrypted, vault: SOURCE_NAMES[source] };
+    const plan = source === 'notion' ? await planNotionImport(files, { ...options, labels: { ...embedLabels, notion: SOURCE_NAMES.notion } })
+      : source === 'evernote' ? await planEvernoteImport(files, { ...options, labels: { ...embedLabels, evernote: SOURCE_NAMES.evernote } })
+        : await planObsidianImport(files, { ...options, labels: embedLabels });
     setStage({ kind: 'preview', plan, limit: plan.notes.length ? checkImportLimits(existing, plan, document) : null });
   };
 
@@ -90,15 +109,32 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
                 ? fillCopy(labels.done.one, { tray: stage.plan.groups[0].name, memos: stage.plan.notes.length })
                 : fillCopy(labels.done.many, { trays: stage.plan.groups.length, memos: stage.plan.notes.length })}
             </DialogDescription>
-          ) : <DialogDescription>{labels.description}</DialogDescription>}
+          ) : <DialogDescription>{source === 'obsidian' ? labels.description : transfer.descriptions[source]}</DialogDescription>}
         </DialogHeader>
         <input ref={folderRef} type="file" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
-        <input ref={fileInput} type="file" accept=".md,text/markdown" multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
+        <input ref={fileInput} type="file" accept={ACCEPT[source]} multiple hidden onChange={event => { void read(event.target.files); event.target.value = ''; }} />
 
         {stage.kind === 'select' && (
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => folderInput.current?.click()}>{labels.chooseFolder}</Button>
-            <Button variant="outline" onClick={() => fileInput.current?.click()}>{labels.chooseFiles}</Button>
+          <div className="space-y-4">
+            <RadioGroup value={source} onValueChange={value => setSource(value as Source)} aria-label={transfer.source} className="flex flex-wrap gap-x-5 gap-y-2">
+              {SOURCES.map(item => (
+                <div key={item} className="flex items-center gap-2">
+                  <RadioGroupItem value={item} id={`import-source-${item}`} />
+                  <Label htmlFor={`import-source-${item}`}>{SOURCE_NAMES[item]}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+            <div className="flex flex-wrap gap-2">
+              {source === 'obsidian' && <>
+                <Button onClick={() => folderInput.current?.click()}>{labels.chooseFolder}</Button>
+                <Button variant="outline" onClick={() => fileInput.current?.click()}>{labels.chooseFiles}</Button>
+              </>}
+              {source === 'notion' && <>
+                <Button onClick={() => fileInput.current?.click()}>{transfer.chooseZip}</Button>
+                <Button variant="outline" onClick={() => folderInput.current?.click()}>{labels.chooseFolder}</Button>
+              </>}
+              {source === 'evernote' && <Button onClick={() => fileInput.current?.click()}>{transfer.chooseEnex}</Button>}
+            </div>
           </div>
         )}
         {stage.kind === 'reading' && <p role="status" aria-live="polite">{labels.reading}</p>}
@@ -112,7 +148,7 @@ export function ImportDialog({ open, onOpenChange, existing, onBatch, onRetry, o
                   {plan.groups.map(group => <li key={group.id} className="truncate">{group.name}</li>)}
                 </ul>
               </>
-            ) : <p role="alert">{labels.nothing}</p>}
+            ) : <p role="alert">{source === 'obsidian' ? labels.nothing : transfer.nothing[source]}</p>}
             {plan.embeds > 0 && <p>{fillCopy(labels.embeds, { count: plan.embeds })}</p>}
             {skippedList(plan, false)}
             {stage.kind === 'preview' && stage.limit && <p role="alert" className="text-destructive">{labels.limits[stage.limit]}</p>}
