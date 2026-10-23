@@ -756,8 +756,8 @@ export function plainMarkdownToRich(text: string): string {
       continue;
     }
 
-    // Horizontal rule
-    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+    // Horizontal rule: three or more of the same mark, as in Markdown (0.10.2)
+    if (/^(?:-{3,}|_{3,}|\*{3,})$/.test(trimmed)) {
       closeList();
       result.push('<hr />');
       continue;

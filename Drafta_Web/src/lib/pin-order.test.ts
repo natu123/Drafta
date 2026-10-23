@@ -21,6 +21,10 @@ describe('pin sections', () => {
     expect(pinnedNotes(items).map(n => n.id)).toEqual(['a', 'c']);
     expect(regularNotes(items).map(n => n.id)).toEqual(['b', 'd']);
     expect(items.map(n => n.id)).toEqual(['a', 'b', 'c', 'd']);
+    // A separator goes with the section it was placed in.
+    const lines = [{ ...notes[0], id: 'line-pinned', type: 'separator' as const, isPinned: true }, { ...notes[0], id: 'line', type: 'separator' as const, isPinned: false }];
+    expect(pinnedNotes([...items, ...lines]).map(n => n.id)).toEqual(['a', 'c', 'line-pinned']);
+    expect(regularNotes([...items, ...lines]).map(n => n.id)).toEqual(['b', 'd', 'line']);
   });
   it('reorders only within a pin section', () => {
     expect(reorderPinSection(items, 'c', 'a').map(n => n.id)).toEqual(['c', 'b', 'a', 'd']);

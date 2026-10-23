@@ -9,6 +9,7 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Search, Menu, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
 import { TitlePlaceholder } from './tiptap-extensions/title-placeholder';
+import { TitleCaret } from './tiptap-extensions/title-caret';
 import { NoteFind } from './note-find';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -96,6 +97,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     // eslint-disable-next-line react-hooks/refs
     RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
     TitlePlaceholder.configure({ placeholder: () => t.untitledMemo }),
+    TitleCaret,
   ], [t.untitledMemo]);
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);

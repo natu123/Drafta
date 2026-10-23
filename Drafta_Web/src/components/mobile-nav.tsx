@@ -54,7 +54,7 @@ export function MobileCreateSheet({ label, title, placeholder, onConfirm, onCanc
   /** The visible heading when it differs from the field's name (the tray chip names the tray). */
   title?: string;
   /** A control before the field, such as the all memos view's tray chip; `onPicked` returns to the field. */
-  picker?: React.ReactElement<{ onPicked?: () => void }>;
+  picker?: React.ReactElement<{ onPicked?: () => void; inline?: boolean }>;
 }) {
   const { t } = useLang();
   const input = React.useRef<HTMLInputElement>(null);
@@ -65,7 +65,7 @@ export function MobileCreateSheet({ label, title, placeholder, onConfirm, onCanc
       <div className="mobile-create" role="dialog" aria-label={label}>
         <p className="mobile-create-label">{title ?? label}</p>
         <InlineNameEditor compose inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create} onConfirm={onConfirm} onCancel={onCancel}
-          prefix={picker && React.cloneElement(picker, { onPicked: refocus })} />
+          prefix={picker && React.cloneElement(picker, { onPicked: refocus, inline: true })} />
       </div>
     </>
   );

@@ -70,7 +70,7 @@ describe('Rich-mode Markdown prefixes', () => {
     expect(editor.state.doc.child(1).textContent).toBe('- ');
   });
 
-  it.each([['# ', 'heading'], ['## ', 'heading'], ['### ', 'heading'], ['1. ', 'orderedList'], ['[ ] ', 'taskList'], ['[x] ', 'taskList'], ['```js ', 'codeBlock'], ['~~~ ', 'codeBlock'], ['--- ', 'horizontalRule']])('converts block pattern %s', (text, node) => {
+  it.each([['# ', 'heading'], ['## ', 'heading'], ['### ', 'heading'], ['1. ', 'orderedList'], ['[ ] ', 'taskList'], ['[x] ', 'taskList'], ['```js ', 'codeBlock'], ['~~~ ', 'codeBlock'], ['--- ', 'horizontalRule'], ['------ ', 'horizontalRule'], ['**** ', 'horizontalRule']])('converts block pattern %s', (text, node) => {
     createEditor();type(text);expect(editor.state.doc.child(1).type.name).toBe(node);
   });
 
@@ -92,7 +92,7 @@ describe('Rich-mode Markdown prefixes', () => {
     expect(editor.state.doc.child(1).firstChild!.textContent).toBe('NameStatus');
   });
 
-  it.each(['---', '___', '***'])('converts %s to a horizontal rule on Enter and keeps typing below it', text => {
+  it.each(['---', '----', '-----------', '___', '_____', '***', '****', '\u2014-'])('converts %s to a horizontal rule on Enter and keeps typing below it', text => {
     createEditor();type(text);
     const enter = () => editor.view.someProp('handleKeyDown', handler => handler(editor.view, new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13 })));
     expect(enter()).toBe(true);

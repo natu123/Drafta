@@ -1,7 +1,8 @@
 import type { Note } from './types';
 
-export const pinnedNotes = (items: Note[]) => items.filter(item => item.type !== 'separator' && item.isPinned);
-export const regularNotes = (items: Note[]) => items.filter(item => item.type === 'separator' || !item.isPinned);
+// A separator placed among the pins is pinned too, and stays there (AGENTS.md, Separators; 0.10.2).
+export const pinnedNotes = (items: Note[]) => items.filter(item => item.isPinned);
+export const regularNotes = (items: Note[]) => items.filter(item => !item.isPinned);
 
 // Preserve the other section's order and the original slots when dragging.
 export function reorderPinSection<T extends { id: string; isPinned?: boolean }>(items: T[], active: string, over: string): T[] {

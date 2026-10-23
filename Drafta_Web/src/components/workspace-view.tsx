@@ -16,6 +16,7 @@ import { MemoHistoryAction } from '@/components/memo-history-action';
 import { MemoActions } from '@/components/memo-actions';
 import { MobileCreateSheet, MobileNav, type MobilePane } from '@/components/mobile-nav';
 import { mobileCopy } from '@/lib/mobile-copy';
+import { separatorCopy } from '@/lib/separator-copy';
 import { toast } from '@/hooks/use-toast';
 
 export type WorkspaceViewProps = {
@@ -165,6 +166,10 @@ interface HomeSectionProps {
   quickAddLabel?: string;
   /** False on phones: they add memos with the bottom navigation's New (AGENTS.md, Creation). */
   showAddField?: boolean;
+  /** Choosing where a new separator goes (AGENTS.md, Separators). */
+  placingSeparator?: boolean;
+  onPlaceSeparator?: (spot: SeparatorSpot) => void;
+  onCancelSeparator?: () => void;
   /** The all memos view's tray chip for its add field (AGENTS.md, All Memos). */
   addPicker?: React.ReactElement<{ onPicked?: () => void }>;
   /** Adds a memo from elsewhere, like the phone's New, with the same move to the list's edge. */
@@ -175,6 +180,33 @@ interface HomeSectionProps {
   trayNameValue?: string;
   /** The all memos view: order follows edits, so memos are not dragged; each shows its tray. */
   trayNames?: Map<string, string>;
+}
+
+/** Where a separator goes: before or after an item of a section, or into an empty section. */
+type SeparatorSpot = { pinned: boolean; beforeId?: string; afterId?: string };
+
+/**
+ * One place a separator can go, drawn over the seam between two items so the list keeps its height
+ * and position while a place is chosen (AGENTS.md, Separators; 0.10.2).
+ */
+function SeparatorSlot({ spot, onPlace, start = false, tight = false, alone = false }: { spot: SeparatorSpot; onPlace: (spot: SeparatorSpot) => void; start?: boolean; tight?: boolean; alone?: boolean }) {
+  const { lang } = useLang();
+  return (
+    <button type="button" className={cn('separator-slot', start && 'separator-slot-start', tight && 'separator-slot-tight', alone && 'separator-slot-alone')}
+      onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onPlace(spot); }}>
+      <span>{separatorCopy[lang].placeHere}</span>
+    </button>
+  );
+}
+
+function SeparatorBanner({ onCancel }: { onCancel: () => void }) {
+  const { t, lang } = useLang();
+  return (
+    <div role="status" className="separator-banner">
+      <span className="min-w-0 flex-1">{separatorCopy[lang].choose}</span>
+      <Button variant="ghost" size="sm" className="h-8 shrink-0" onClick={onCancel}>{t.cancel}</Button>
+    </div>
+  );
 }
 
 // Sortable Note Item Component
@@ -273,7 +305,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
               variant="ghost"
               size="icon"
               aria-label={a11y.deleteSeparator}
-              className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
               onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
             >
               <Trash2 className="w-3 h-3" />
@@ -452,17 +484,17 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className="relative flex items-center px-0 py-2 transition-all group/separator"
-        style={{ ...style, width: 'calc(100% + 32px)', marginLeft: '-16px' }}
+        className="relative flex items-center py-2 pl-2 transition-all group/separator"
+        style={style}
       >
-        <div className="w-8 flex justify-center shrink-0" />
+        {/* Inside the list's width: the old row ran 16px past it and hid its delete button (0.10.2). */}
         <div className="flex-1 h-px border-b-2 border-dotted border-gray-400/50" />
         <div className="w-8 flex justify-center shrink-0">
           <Button
             variant="ghost"
             size="icon"
             aria-label={a11y.deleteSeparator}
-            className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 transition-opacity"
+            className="h-6 w-6 text-destructive opacity-0 group-hover/separator:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
             onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
           >
             <Trash2 className="w-3 h-3" />
@@ -519,18 +551,33 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true, paneShown = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
-  groups, onAddSeparator, onQuickAdd, quickAddLabel, showAddField = true, addPicker, addRef, onRestoreGroup, onPermanentDeleteGroup,
+  groups, onAddSeparator, onQuickAdd, quickAddLabel, showAddField = true, addPicker, addRef, placingSeparator = false, onPlaceSeparator, onCancelSeparator, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction, onRenameTray, trayNameValue, trayNames
 }) => {
   const { t, lang } = useLang();
   const a11y = a11yCopy[lang];
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  // Opening the pins shows them: in the chat style they unfold below the bottom edge and stayed out
+  // of sight. The list moves just enough, keeping the heading in view (AGENTS.md, Pins; 0.10.2).
+  const pinnedBox = React.useRef<HTMLDivElement>(null);
+  const togglePins = () => {
+    const opening = pinsCollapsed;
+    onTogglePins();
+    if (!opening) return;
+    requestAnimationFrame(() => {
+      const list = scrollAreaRef.current, box = pinnedBox.current;
+      if (!list || !box) return;
+      const view = list.getBoundingClientRect(), area = box.getBoundingClientRect();
+      const move = Math.min(area.bottom - view.bottom + 8, area.top - view.top);
+      if (move > 0) list.scrollTo({ top: list.scrollTop + move, behavior: 'smooth' });
+    });
+  };
   const [isRenamingTray, setIsRenamingTray] = React.useState(false);
   const sortableAreaRef = React.useRef<HTMLDivElement>(null);
 
   // dnd-kit setup
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
-  const canDragNotes = !isSelectionMode && !isTrash && !trayNames;
+  const canDragNotes = !isSelectionMode && !isTrash && !trayNames && !placingSeparator;
 
   // SortableContext範囲内に制限するカスタムモディファイア
   const restrictToSortableArea = React.useMemo(
@@ -632,7 +679,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   // nearest where the list opens come first and the rest follow between frames; until then a
   // space of their height keeps the scroll position and the scrollbar where they will be.
   const [shownCards, setShownCards] = React.useState(() => items.length <= FIRST_CARDS ? Infinity : FIRST_CARDS);
-  const filling = viewMode === 'list' && shownCards < items.length;
+  const filling = viewMode === 'list' && !placingSeparator && shownCards < items.length;
   // The drag sensor makes the page wait for each touch move, so a phone could not scroll while a step
   // ran: the next cards wait until the list has not been touched or scrolled for a moment (0.8.6).
   const lastTouch = React.useRef(0);
@@ -728,7 +775,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 <CheckSquare className="w-4 h-4" />
               </Button>
               {!isTrash && onAddSeparator && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onAddSeparator} title={t.addSeparator} aria-label={t.addSeparator}>
+                <Button variant="ghost" size="icon" className={cn("h-8 w-8 text-muted-foreground hover:text-primary", placingSeparator && "bg-primary/15 text-primary")} onClick={onAddSeparator} title={t.addSeparator} aria-label={t.addSeparator} aria-pressed={placingSeparator}>
                   <Minus className="w-4 h-4" />
                 </Button>
               )}
@@ -741,7 +788,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
       <CardContent className="flex-1 p-0 overflow-hidden relative min-h-0 w-full flex flex-col">
         {/* The browser's own scrollbar keeps long lists easy to drag (AGENTS.md, Memo Scroll). */}
-        <div className="memo-list-scroll flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden" ref={scrollAreaRef}
+        {placingSeparator && onCancelSeparator && <SeparatorBanner onCancel={onCancelSeparator} />}
+        <div className={cn("memo-list-scroll flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden", placingSeparator && "placing-separator")} ref={scrollAreaRef}
+          onClick={placingSeparator ? event => { if (!(event.target as HTMLElement).closest('.separator-slot')) onCancelSeparator?.(); } : undefined}
           onTouchStart={touched} onTouchMove={touched} onScroll={touched}>
           {/* In the chat style a short list sits at the bottom, like a chat (AGENTS.md, List Style). */}
           <div className={cn("w-full max-w-full overflow-hidden", scrollDirection === 'bottom' && "flex min-h-full flex-col justify-end")}>
@@ -799,21 +848,23 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                       <div className={section.pinned ? 'pinned-items' : 'regular-items'} hidden={section.pinned && pinsCollapsed}>
                         {scrollDirection === 'bottom' && section.rest > 0 && <div className="memo-list-rest memo-list-rest-above" aria-hidden style={{ height: section.rest }} />}
                         <SortableContext items={sectionIds[index]} strategy={verticalListSortingStrategy}>
-                          {section.cards.map(item => <SortableNoteItem key={item.id} item={item} isActive={activeId === item.id}
+                          {placingSeparator && onPlaceSeparator && <SeparatorSlot start alone={!section.cards.length} spot={{ pinned: section.pinned, beforeId: section.cards[0]?.id }} onPlace={onPlaceSeparator} />}
+                          {section.cards.map(item => <React.Fragment key={item.id}><SortableNoteItem item={item} isActive={activeId === item.id}
                             isSelectionMode={isSelectionMode} isSelected={selectedIds.has(item.id)} isTrash={isTrash}
                             canDrag={canDragNotes && !(section.pinned && pinsCollapsed)} onToggleSelect={cardActions.onToggleSelect}
                             onItemSelect={cardActions.onItemSelect} onToggleComplete={onToggleComplete && cardActions.onToggleComplete}
                             onDeleteItem={cardActions.onDeleteItem} onRestoreItem={onRestoreItem && cardActions.onRestoreItem}
                             onPermanentDeleteItem={onPermanentDeleteItem && cardActions.onPermanentDeleteItem} onIconChange={onIconChange && cardActions.onIconChange}
-                            onTogglePin={cardActions.onTogglePin} trayName={trayNames?.get(item.group)} />)}
+                            onTogglePin={cardActions.onTogglePin} trayName={trayNames?.get(item.group)} />
+                            {placingSeparator && onPlaceSeparator && <SeparatorSlot spot={{ pinned: section.pinned, afterId: item.id }} onPlace={onPlaceSeparator} />}</React.Fragment>)}
                         </SortableContext>
                         {scrollDirection !== 'bottom' && section.rest > 0 && <div className="memo-list-rest" aria-hidden style={{ height: section.rest }} />}
                       </div>
                       );
                       // Pinned memos and their heading share one tinted box (AGENTS.md, Pins).
                       return section.pinned && section.list.length > 0 ? (
-                        <div key="pinned" className="pinned-section">
-                          <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 px-2", !pinsCollapsed && "mb-1")} aria-expanded={!pinsCollapsed} onClick={onTogglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>
+                        <div key="pinned" ref={pinnedBox} className="pinned-section">
+                          <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9 px-2", !pinsCollapsed && "mb-1")} aria-expanded={!pinsCollapsed} onClick={togglePins}><Pin className="text-[#C49547]" /><span>{t.pinnedMemos} ({section.list.filter(item => item.type !== 'separator').length})</span><ChevronDown className={cn("ml-auto", pinsCollapsed && "-rotate-90")} /></Button>
                           {cards}
                         </div>
                       ) : <React.Fragment key={String(section.pinned)}>{cards}</React.Fragment>;
@@ -1304,32 +1355,44 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     });
   };
 
+  // A separator goes where the user chooses: the — button shows a place between every two items
+  // of the list, pins included, and one tap puts it there (AGENTS.md, Separators; 0.10.2).
+  const [placingSeparator, setPlacingSeparator] = React.useState<{ list: 'notes'; group: string } | { list: 'trays' } | null>(null);
+  const placingNotes = placingSeparator?.list === 'notes' && placingSeparator.group === activeGroupId;
+  const placingTrays = placingSeparator?.list === 'trays';
+  React.useEffect(() => {
+    if (!placingSeparator) return;
+    const cancel = (event: KeyboardEvent) => { if (event.key === 'Escape') setPlacingSeparator(null); };
+    window.addEventListener('keydown', cancel);
+    return () => window.removeEventListener('keydown', cancel);
+  }, [placingSeparator]);
   const handleAddSeparator = () => {
     if (!groups.some(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator')) return;
-    const newSeparator: Note = {
-      id: `sep-${Date.now()}`,
-      type: 'separator',
-      title: '',
-      icon: '',
-      content: '',
-      plainTextContent: '',
-      group: activeGroupId,
-      stars: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes(prev => {
-      // If there's an active note, insert after it
-      if (activeTabId) {
-        const index = prev.findIndex(n => n.id === activeTabId);
-        if (index !== -1) {
-          const newNotes = [...prev];
-          newNotes.splice(index + 1, 0, newSeparator);
-          return newNotes;
-        }
-      }
-      return [...prev, newSeparator];
-    });
+    setPlacingSeparator(current => current?.list === 'notes' ? null : { list: 'notes', group: activeGroupId });
+  };
+  const handleAddGroupSeparator = () => {
+    setPlacingSeparator(current => current?.list === 'trays' ? null : { list: 'trays' });
+  };
+  // Puts the item before or after its neighbor; an empty section takes it at the end.
+  const insertAt = <T extends { id: string }>(list: T[], item: T, spot: SeparatorSpot, end: (list: T[]) => number) => {
+    const neighbor = spot.beforeId ?? spot.afterId;
+    const index = neighbor ? list.findIndex(entry => entry.id === neighbor) : -1;
+    const at = index < 0 ? end(list) : spot.beforeId ? index : index + 1;
+    return [...list.slice(0, at), item, ...list.slice(at)];
+  };
+  const placeNoteSeparator = (spot: SeparatorSpot) => {
+    const tray = activeGroupId;
+    if (!groups.some(group => group.id === tray && !group.isDeleted && group.type !== 'separator')) return;
+    const now = new Date().toISOString();
+    const separator: Note = { id: `sep-${Date.now()}`, type: 'separator', title: '', icon: '', content: '', plainTextContent: '', group: tray, stars: 0,
+      createdAt: now, updatedAt: now, ...(spot.pinned ? { isPinned: true } : {}) };
+    setNotes(prev => insertAt(prev, separator, spot, list => list.map(note => note.group).lastIndexOf(tray) + 1 || list.length));
+    setPlacingSeparator(null);
+  };
+  const placeGroupSeparator = (spot: SeparatorSpot) => {
+    const separator: Group = { id: `sep-${Date.now()}`, name: '', type: 'separator', ...(spot.pinned ? { isPinned: true } : {}) };
+    setGroups(prev => insertAt(prev, separator, spot, list => list.length));
+    setPlacingSeparator(null);
   };
 
   // The tray the app opens by default; the all memos view adds its memos there (AGENTS.md, All Memos).
@@ -1383,9 +1446,10 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
   const handleGroupSelect = React.useCallback((id: string) => {
     setActiveGroupId(id);
+    setPlacingSeparator(current => current?.list === 'notes' ? null : current);
     if (layoutMode === 'mobile') setMobilePane('notes');
     if (layoutMode === 'tablet') setIsTrayDrawerOpen(false);
-  }, [layoutMode]);
+  }, [layoutMode, setPlacingSeparator]);
 
   // The phone's New opens a field at the top of the screen, above the keyboard: a tray while the
   // tray list shows, a memo otherwise. The new memo is not opened (AGENTS.md, Creation; 0.9.1).
@@ -1459,23 +1523,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     closeTab(id);
   };
 
-  const handleAddGroupSeparator = () => {
-    const newSeparator: Group = { id: `sep-${Date.now()}`, name: '', type: 'separator' };
-    setGroups(prev => {
-      // If there's an active group, insert after it
-      // Note: activeGroupId could be 'inbox', 'trash' etc. We only insert relative to actual groups in the array
-      // But typically we want to insert after the *selected* one if it exists in the list.
-      if (activeGroupId && activeGroupId !== 'restore') {
-        const index = prev.findIndex(g => g.id === activeGroupId);
-        if (index !== -1) {
-          const newGroups = [...prev];
-          newGroups.splice(index + 1, 0, newSeparator);
-          return newGroups;
-        }
-      }
-      return [...prev, newSeparator];
-    });
-  };
   const handleCreateGroup = (name: string) => {
     const newGroup: Group = { id: `group-${crypto.randomUUID()}`, name, type: 'group' };
     setGroups(prev => [...prev, newGroup]);
@@ -1641,7 +1688,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                       <Settings className="h-5 w-5" />
                     </Button>
                   </>}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title={appT.addSeparator} aria-label={appT.addSeparator}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={handleAddGroupSeparator} title={appT.addSeparator} aria-label={appT.addSeparator} aria-pressed={placingTrays}>
                     <Minus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -1649,7 +1696,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
               {!isPhone && scrollDirection !== 'bottom' && trayAddField}
 
-              <ScrollArea ref={trayScrollRef} className="tray-scroll flex-1 px-4">
+              {placingTrays && <SeparatorBanner onCancel={() => setPlacingSeparator(null)} />}
+              <ScrollArea ref={trayScrollRef} className={cn("tray-scroll flex-1 px-4", placingTrays && "placing-separator")}
+                onClick={placingTrays ? event => { if (!(event.target as HTMLElement).closest('.separator-slot')) setPlacingSeparator(null); } : undefined}>
                 <div className="w-full max-w-full overflow-hidden">
                   <DndContext
                     id="groups-dnd"
@@ -1669,15 +1718,17 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                           const section = filteredGroups.filter(group => Boolean(group.isPinned) === pinned);
                           if (!section.length) return null;
                           return <React.Fragment key={String(pinned)}>
-                          {pinned && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9", scrollDirection === 'bottom' && "mt-1")} aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
+                          {pinned && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9", scrollDirection === 'bottom' && "mt-1")} aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.filter(group => group.type !== 'separator').length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
                           {!(pinned && trayPinsCollapsed) && <div id={pinned ? 'pinned-trays' : undefined}>
                         <SortableContext
                           items={section.map(g => g.id)}
                           strategy={verticalListSortingStrategy}
                         >
+                          {placingTrays && <SeparatorSlot start tight spot={{ pinned, beforeId: section[0]?.id }} onPlace={placeGroupSeparator} />}
                           {section.map(group => {
                             const hasNotes = notes.some(n => n.group === group.id && !n.isDeleted);
                             return (
+                              <React.Fragment key={group.id}>
                               <SortableGroupItem
                                 key={group.id}
                                 group={group}
@@ -1689,6 +1740,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                                 rawName={sourceGroups.find(item => item.id === group.id)?.name ?? ''}
                                 onRename={(id, name) => setGroups(prev => prev.map(item => item.id === id ? { ...item, name } : item))}
                               />
+                              {placingTrays && <SeparatorSlot tight spot={{ pinned, afterId: group.id }} onPlace={placeGroupSeparator} />}
+                              </React.Fragment>
                             );
                           })}
                         </SortableContext>
@@ -1771,6 +1824,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               addPicker={addPicker}
               showAddField={!isPhone}
               addRef={homeAdd}
+              placingSeparator={placingNotes}
+              onPlaceSeparator={placeNoteSeparator}
+              onCancelSeparator={() => setPlacingSeparator(null)}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
               onRenameTray={activeGroupId !== 'restore' && activeGroupId !== ALL_MEMOS ? (name) => {
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));

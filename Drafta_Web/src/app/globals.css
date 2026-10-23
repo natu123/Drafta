@@ -39,6 +39,65 @@
 }
 .dark .pinned-section { border-color: rgb(196 149 71 / 0.35); background: rgb(196 149 71 / 0.14); }
 .pinned-section .pinned-summary:hover { background: rgb(196 149 71 / 0.12); }
+/* Choosing where a separator goes (AGENTS.md, Separators): every seam of the list gets a slot, drawn
+   over the seam so nothing moves. Items wait, dimmed; a tap anywhere else cancels. */
+.separator-banner {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid hsl(var(--primary) / 0.3);
+  background: hsl(var(--primary) / 0.08);
+  color: hsl(var(--primary));
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.placing-separator .memo-item,
+.placing-separator .memo-drag-target,
+.placing-separator .tray-row { pointer-events: none; opacity: 0.5; }
+.separator-slot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  height: 28px;
+  margin: -18px 0 -10px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.separator-slot::before {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  left: 6px;
+  border-top: 2px dashed hsl(var(--primary) / 0.55);
+  content: '';
+}
+.separator-slot span {
+  position: relative;
+  padding: 1px 10px;
+  border: 1px solid hsl(var(--primary) / 0.5);
+  border-radius: 9999px;
+  background: hsl(var(--background));
+  color: hsl(var(--primary));
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 18px;
+}
+.separator-slot:hover span,
+.separator-slot:focus-visible span { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.separator-slot:focus-visible { outline: none; }
+/* Before the first item there is no seam above: the slot keeps 4px of its own. */
+.separator-slot-start { margin: 0 0 -24px; }
+/* Tray rows touch each other: the slot sits evenly over both. */
+.separator-slot-tight { margin: -14px 0; }
+.separator-slot-start.separator-slot-tight { margin: 0 0 -24px; }
+/* An empty section has only its slot: it takes its own room instead of lying over the next part. */
+.separator-slot.separator-slot-alone { margin: 4px 0 8px; }
+
 /* At the end of the list (chat style) nothing follows the box, so it needs no space below. */
 .pinned-section:last-child { margin-bottom: 0; }
 
@@ -111,6 +170,35 @@
 }
 .tray-chip:hover { background: hsl(var(--accent)); }
 .tray-chip:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+/* The phone's New field opens the trays right under itself, as part of the field (TrayPicker inline). */
+.tray-chip-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: 50dvh;
+  overflow-y: auto;
+  padding: 4px 12px 10px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+.tray-chip-option {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: hsl(var(--foreground));
+  font-size: 0.9375rem;
+  text-align: start;
+}
+.tray-chip-option:hover { background: hsl(var(--accent)); }
+.tray-chip-option svg { visibility: hidden; color: hsl(var(--primary)); }
+.tray-chip-option[aria-selected="true"] { color: hsl(var(--primary)); font-weight: 600; }
+.tray-chip-option[aria-selected="true"] svg { visibility: visible; }
 
 /* The phone's New: a field at the top of the screen, above the keyboard (specs/19_mobile_design.md). */
 .mobile-create-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / 0.3); }

@@ -1,6 +1,12 @@
 import { Extension, InputRule, wrappingInputRule, markInputRule, textblockTypeInputRule } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
 
+// A rule line, as in Markdown: three or more of the same mark (0.10.2; only exactly three before).
+// iOS may turn "--" into an em dash, so an em dash and hyphens count as well.
+const RULE = '(?:-{3,}|\u2014-+|_{3,}|\\*{3,})';
+const RULE_LINE = new RegExp(`^${RULE}$`);
+const RULE_TYPED = new RegExp(`^${RULE}[ \\u00a0]$`);
+
 export const RichMarkdownInputRules = Extension.create<{ isEnabled: () => boolean }>({
   name: 'richMarkdownInputRules',
   priority: 1000,
@@ -24,7 +30,7 @@ export const RichMarkdownInputRules = Extension.create<{ isEnabled: () => boolea
         const fence = /^(?:```|~~~)([\w+-]*)$/.exec($from.parent.textContent);
         if (fence) return this.editor.chain().deleteRange({ from: $from.start(), to: $from.end() }).setCodeBlock({ language: fence[1] || 'plaintext' }).run();
         // Markdown habit: a rule line followed by Enter, not only by a space.
-        if (/^(?:---|___|\*\*\*)$/.test($from.parent.textContent)) return this.editor.chain().deleteRange({ from: $from.start(), to: $from.end() }).setHorizontalRule().run();
+        if (RULE_LINE.test($from.parent.textContent)) return this.editor.chain().deleteRange({ from: $from.start(), to: $from.end() }).setHorizontalRule().run();
         // A Markdown table starts with a header paragraph and a delimiter paragraph.
         if ($from.depth !== 1 || $from.index(0) < 2) return false;
         const previous = state.doc.child($from.index(0) - 1);
@@ -57,7 +63,7 @@ export const RichMarkdownInputRules = Extension.create<{ isEnabled: () => boolea
       wrappingInputRule({ find: /^\[([ xX]?)\][ \u00a0]$/, type: nodes.taskItem, getAttributes: match => ({ checked: match[1].toLowerCase() === 'x' }) }),
       textblockTypeInputRule({ find: /^(#{1,3})[ \u00a0]$/, type: nodes.heading, getAttributes: match => ({ level: match[1].length }) }),
       textblockTypeInputRule({ find: /^(?:```|~~~)([\w+-]*)[ \u00a0]$/, type: nodes.codeBlock, getAttributes: match => ({ language: match[1] || 'plaintext' }) }),
-      new InputRule({ find: /^(?:---|___|\*\*\*)[ \u00a0]$/, handler: ({ chain, range }) => { chain().deleteRange(range).setHorizontalRule().run(); } }),
+      new InputRule({ find: RULE_TYPED, handler: ({ chain, range }) => { chain().deleteRange(range).setHorizontalRule().run(); } }),
     ];
     const inline = [
       markInputRule({ find: /(?:^|\s)(\*\*(?!\s+\*\*)((?:[^*]+))\*\*(?!\s+\*\*))$/, type: marks.bold }),
