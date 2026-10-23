@@ -7,11 +7,13 @@ import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem } from './ui/dropdown-menu';
 import { useLang } from '@/contexts/lang-context';
 
-export function InlineNameEditor({ initialValue = '', label, placeholder, confirmLabel, onConfirm, onCancel, inputRef, compose = false }: {
+export function InlineNameEditor({ initialValue = '', label, placeholder, confirmLabel, onConfirm, onCancel, inputRef, compose = false, prefix }: {
   initialValue?: string; label: string; placeholder: string; confirmLabel: string;
   onConfirm: (value: string) => void; onCancel: () => void; inputRef?: React.Ref<HTMLInputElement>;
   /** The rounded look of an add field (InlineCreate) rather than a rename in place. */
   compose?: boolean;
+  /** Shown before the field, such as the all memos view's tray chip. */
+  prefix?: React.ReactNode;
 }) {
   const { t } = useLang();
   const [value, setValue] = React.useState(initialValue);
@@ -34,6 +36,7 @@ export function InlineNameEditor({ initialValue = '', label, placeholder, confir
         submitted.current = true;
         onConfirm(value.trim());
       }}>
+      {prefix}
       <Input ref={inputRef} autoFocus aria-label={label} placeholder={placeholder} value={value}
         className={compose ? 'inline-create-input min-w-0 flex-1' : 'min-w-0 flex-1'} onChange={event => setValue(event.target.value)}
         onFocus={event => event.target.select()}
@@ -48,7 +51,15 @@ export function InlineNameEditor({ initialValue = '', label, placeholder, confir
 /** Lets another control open the field, like the phone's New button (specs/19_mobile_design.md). */
 export type InlineCreateHandle = { open: () => void };
 
-export function InlineCreate({ label, placeholder, onCreate, ref }: { label: string; placeholder: string; onCreate: (value: string) => void; ref?: React.Ref<InlineCreateHandle> }) {
+/**
+ * `picker` puts a control at the start of the field, open or closed (the all memos view's tray chip);
+ * in the open field it gets `onPicked`, which gives the focus back to the title. `buttonLabel` is the
+ * closed field's text when the picker already says where the item goes; `label` names the open field.
+ */
+export function InlineCreate({ label, placeholder, onCreate, ref, picker, buttonLabel }: {
+  label: string; placeholder: string; onCreate: (value: string) => void; ref?: React.Ref<InlineCreateHandle>;
+  picker?: React.ReactElement<{ onPicked?: () => void }>; buttonLabel?: string;
+}) {
   const { t } = useLang();
   const [editing, setEditing] = React.useState(false);
   const trigger = React.useRef<HTMLButtonElement>(null);
@@ -56,14 +67,17 @@ export function InlineCreate({ label, placeholder, onCreate, ref }: { label: str
   // An open field keeps its draft and only takes the focus back.
   React.useImperativeHandle(ref, () => ({ open: () => { if (input.current) input.current.focus(); else setEditing(true); } }), []);
   const close = () => { setEditing(false); requestAnimationFrame(() => trigger.current?.focus()); };
+  const refocus = React.useCallback(() => { input.current?.focus(); }, []);
   // A rounded field with a round + at its start, like the box new messages are written in (0.9.1).
-  return editing ? <InlineNameEditor compose inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create}
-    onConfirm={value => { onCreate(value); close(); }} onCancel={close} /> : (
-    <button ref={trigger} type="button" className="inline-create" onClick={() => setEditing(true)}>
+  if (editing) return <InlineNameEditor compose inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create}
+    prefix={picker && React.cloneElement(picker, { onPicked: refocus })} onConfirm={value => { onCreate(value); close(); }} onCancel={close} />;
+  const opener = (
+    <button ref={trigger} type="button" className={picker ? 'inline-create-main' : 'inline-create'} onClick={() => setEditing(true)}>
       <span aria-hidden="true" className="inline-create-plus"><Plus /></span>
-      <span className="min-w-0 truncate">{label}</span>
+      <span className="min-w-0 truncate">{buttonLabel ?? label}</span>
     </button>
   );
+  return picker ? <div className="inline-create inline-create-with-picker">{picker}{opener}</div> : opener;
 }
 
 export function TrayMenu({ label, onRename, onDelete }: { label: string; onRename: () => void; onDelete: () => void }) {

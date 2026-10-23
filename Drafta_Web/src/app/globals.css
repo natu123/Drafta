@@ -76,6 +76,41 @@
 }
 .inline-create-plus svg { width: 18px; height: 18px; }
 .inline-create-input { height: 44px; border-radius: 9999px; padding-inline: 16px; }
+/* With the all memos view's tray chip: the chip, then the + and the label as one button. */
+.inline-create-with-picker { gap: 6px; padding-left: 6px; }
+.inline-create-main {
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.inline-create-main:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.tray-chip {
+  display: inline-flex;
+  max-width: 40%;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px 0 12px;
+  border-radius: 9999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+.tray-chip:hover { background: hsl(var(--accent)); }
+.tray-chip:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 
 /* The phone's New: a field at the top of the screen, above the keyboard (specs/19_mobile_design.md). */
 .mobile-create-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / 0.3); }
@@ -114,6 +149,19 @@
 .mobile-nav-item[aria-current="page"] { color: hsl(var(--primary)); }
 .mobile-nav-item[aria-current="page"] .mobile-nav-label { font-weight: 700; }
 .mobile-nav-item:disabled { opacity: 0.4; }
+/* New, in the middle: a round button in the main color (AGENTS.md, Mobile Layout). */
+.mobile-nav-new { color: hsl(var(--foreground)); }
+.mobile-nav-new-circle {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+}
 .mobile-nav-item:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -4px; border-radius: 10px; }
 .mobile-nav-label { max-width: 100%; padding: 0 2px; overflow: hidden; font-size: 10px; line-height: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .mobile-tabs-count {

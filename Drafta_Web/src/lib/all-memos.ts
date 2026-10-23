@@ -7,11 +7,13 @@ import type { Group, Note } from './types';
 export const ALL_MEMOS = ':all';
 
 /**
- * The tray memos added in the all memos view go to: the first live tray in the stored order, the
- * one the app opens by default (Inbox in a new workspace). The view names it in its add field.
+ * The tray memos added in the all memos view go to: the one chosen there last time on this device
+ * while it is live, otherwise the first live tray in the stored order, the one the app opens by
+ * default (Inbox in a new workspace). The view shows it in its add field and lets it be changed.
  */
-export function trayForNewMemos(groups: Group[]): Group | undefined {
-  return groups.find(group => !group.isDeleted && group.type !== 'separator');
+export function trayForNewMemos(groups: Group[], chosenId?: string | null): Group | undefined {
+  const live = (group: Group) => !group.isDeleted && group.type !== 'separator';
+  return (chosenId ? groups.find(group => group.id === chosenId && live(group)) : undefined) ?? groups.find(live);
 }
 
 /** Every memo in a live tray, by last edit; the newest sits where the list opens (top, or bottom in the chat style). */

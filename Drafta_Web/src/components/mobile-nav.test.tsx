@@ -32,7 +32,9 @@ describe('phone bottom navigation', () => {
 
   it('shows five items with the open tabs at the right end', () => {
     mount('notes');
-    expect(buttons().map(button => button.getAttribute('aria-label') ?? button.textContent)).toEqual(['トレイ', 'メモ', '検索', '新規', '開いているタブ (2)']);
+    expect(buttons().map(button => button.getAttribute('aria-label') ?? button.textContent)).toEqual(['トレイ', 'メモ', '新規', '検索', '開いているタブ (2)']);
+    // New is the round button in the middle.
+    expect(buttons()[2].classList.contains('mobile-nav-new')).toBe(true);
     expect(buttons()[1].getAttribute('aria-current')).toBe('page');
     act(() => buttons()[0].click());
     expect(onPane).toHaveBeenCalledWith('trays');
@@ -51,7 +53,7 @@ describe('phone bottom navigation', () => {
 
   it('cannot add without a tray and shows how many memo bodies have arrived', () => {
     mount('trays', { onCreate: undefined, progress: { loaded: 120, total: 562, label: '本文を読み込み中 (120 / 562)' } });
-    expect(buttons()[3].disabled).toBe(true);
+    expect(buttons()[2].disabled).toBe(true);
     expect(container.querySelector('[role="status"]')?.textContent).toBe('本文を読み込み中 (120 / 562)');
   });
 

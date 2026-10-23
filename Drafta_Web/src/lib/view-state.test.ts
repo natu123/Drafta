@@ -40,4 +40,12 @@ describe('view restore', () => {
     expect(restoreView(view({ groupId: ALL_MEMOS }), state)).toEqual({ groupId: ALL_MEMOS, noteId: 'b', tabIds: ['a', 'b'], pane: 'editor' });
     expect(restoreView(null, state)).toBeNull();
   });
+
+  it("keeps the all memos view's add tray while it is a live tray", () => {
+    writeViewState('alice', view({ groupId: ALL_MEMOS, addTrayId: 'work' }));
+    expect(readViewState('alice')?.addTrayId).toBe('work');
+    expect(restoreView(readViewState('alice'), state)?.addTrayId).toBe('work');
+    expect(restoreView(view({ addTrayId: 'old' }), state)?.addTrayId).toBeUndefined();
+    expect(restoreView(view({ addTrayId: 'missing' }), state)?.addTrayId).toBeUndefined();
+  });
 });

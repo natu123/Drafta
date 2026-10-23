@@ -15,7 +15,11 @@ const notes = [
 ];
 
 describe('all memos view', () => {
-  it('adds new memos to the first live tray in the stored order', () => {
+  it('adds new memos to the tray chosen last time, or else the first live tray in the stored order', () => {
+    expect(trayForNewMemos(groups, 'b')?.id).toBe('b');
+    expect(trayForNewMemos(groups, 'gone')?.id).toBe('a');
+    expect(trayForNewMemos(groups, 'missing')?.id).toBe('a');
+    expect(trayForNewMemos(groups, null)?.id).toBe('a');
     expect(trayForNewMemos(groups)?.id).toBe('a');
     expect(trayForNewMemos([{ id: 'sep', name: '', type: 'separator' }, { id: 'gone', name: 'Gone', isDeleted: true }, { id: 'b', name: 'B', isPinned: true }])?.id).toBe('b');
     expect(trayForNewMemos([{ id: 'gone', name: 'Gone', isDeleted: true }])).toBeUndefined();

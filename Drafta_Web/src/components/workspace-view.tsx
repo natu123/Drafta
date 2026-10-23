@@ -70,6 +70,7 @@ import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { DEFAULT_LIST_STYLE, initialSampleOrder, notesForListStyle } from '@/lib/list-style';
 import { readViewState, restoreView, writeViewState } from '@/lib/view-state';
 import { ALL_MEMOS, allMemos, trayForNewMemos } from '@/lib/all-memos';
+import { TrayPicker } from '@/components/tray-picker';
 
 
 
@@ -164,6 +165,8 @@ interface HomeSectionProps {
   quickAddLabel?: string;
   /** False on phones: they add memos with the bottom navigation's New (AGENTS.md, Creation). */
   showAddField?: boolean;
+  /** The all memos view's tray chip for its add field (AGENTS.md, All Memos). */
+  addPicker?: React.ReactElement<{ onPicked?: () => void }>;
   /** Adds a memo from elsewhere, like the phone's New, with the same move to the list's edge. */
   addRef?: React.Ref<{ add: (title: string) => void }>;
   onIconChange?: (id: string, icon: string) => void;
@@ -516,7 +519,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   onDeleteItem, onRestoreItem, onPermanentDeleteItem, onToggleComplete, isTrash,
   scrollDirection, isVisible = true, paneShown = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
-  groups, onAddSeparator, onQuickAdd, quickAddLabel, showAddField = true, addRef, onRestoreGroup, onPermanentDeleteGroup,
+  groups, onAddSeparator, onQuickAdd, quickAddLabel, showAddField = true, addPicker, addRef, onRestoreGroup, onPermanentDeleteGroup,
   onIconChange, leadingAction, onRenameTray, trayNameValue, trayNames
 }) => {
   const { t, lang } = useLang();
@@ -663,7 +666,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   // Keep the draft local until the inline form is confirmed.
   const addField = showAddField && onQuickAdd && !isTrash ? (
     <div className={cn("memo-add bg-background px-3 py-2 shrink-0", scrollDirection === 'bottom' ? "border-t" : "border-b")}>
-      <InlineCreate label={quickAddLabel ?? t.addMemo} placeholder={t.untitledMemo} onCreate={createMemo} />
+      <InlineCreate label={quickAddLabel ?? t.addMemo} buttonLabel={addPicker ? t.addMemo : undefined} picker={addPicker} placeholder={t.untitledMemo} onCreate={createMemo} />
     </div>
   ) : null;
 
@@ -1008,13 +1011,15 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   const [editorWidth, setEditorWidth] = React.useState(400);
   const [layoutMode, setLayoutMode] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [mobilePane, setMobilePane] = React.useState<MobilePane>(restoredView?.pane ?? 'notes');
+  // The tray the all memos view adds to, chosen there last time on this device (AGENTS.md, All Memos).
+  const [allMemosTrayId, setAllMemosTrayId] = React.useState<string | null>(restoredView?.addTrayId ?? null);
   // Phones have no Writing Mode: its vertical tabs do not fit, and the bottom navigation's tabs
   // take their place, so a phone always shows the panes (AGENTS.md, Mobile Layout).
   const isPhone = layoutMode === 'mobile';
   const view = isPhone ? 'home' : activeView;
   React.useEffect(() => {
-    if (viewKey) writeViewState(viewKey, { groupId: activeGroupId, noteId: activeTabId, tabIds: openTabs.map(tab => tab.id), pane: mobilePane });
-  }, [viewKey, activeGroupId, activeTabId, openTabs, mobilePane]);
+    if (viewKey) writeViewState(viewKey, { groupId: activeGroupId, noteId: activeTabId, tabIds: openTabs.map(tab => tab.id), pane: mobilePane, addTrayId: allMemosTrayId });
+  }, [viewKey, activeGroupId, activeTabId, openTabs, mobilePane, allMemosTrayId]);
   const [isTrayDrawerOpen, setIsTrayDrawerOpen] = React.useState(false);
   // The tray list opens at the side where lists open, like the memo list: the bottom in the chat
   // style. Only when it appears or the style changes; adding or pinning a tray keeps the position.
@@ -1328,10 +1333,15 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   };
 
   // The tray the app opens by default; the all memos view adds its memos there (AGENTS.md, All Memos).
-  const defaultTray = trayForNewMemos(groups);
+  const defaultTray = trayForNewMemos(groups, allMemosTrayId);
   const addTarget = activeGroupId === ALL_MEMOS ? defaultTray : groups.find(group => group.id === activeGroupId && !group.isDeleted && group.type !== 'separator');
   const addTargetId = addTarget?.id;
   const addLabel = activeGroupId === ALL_MEMOS && addTarget ? withName(mobileCopy[lang].addMemoTo, addTarget.name) : appT.addMemo;
+  // In the all memos view the tray is chosen with a chip in the add field (AGENTS.md, All Memos).
+  const liveTrays = React.useMemo(() => groups.filter(group => !group.isDeleted && group.type !== 'separator'), [groups]);
+  const addPicker = activeGroupId === ALL_MEMOS && addTarget
+    ? <TrayPicker trays={liveTrays} value={addTarget} onChange={setAllMemosTrayId} />
+    : undefined;
   const handleQuickCreateNote = (title: string) => {
     if (!addTargetId) return;
     const newNote: Note = {
@@ -1758,6 +1768,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               onAddSeparator={activeGroupId === ALL_MEMOS ? undefined : handleAddSeparator}
               onQuickAdd={addTargetId ? handleQuickCreateNote : undefined}
               quickAddLabel={addLabel}
+              addPicker={addPicker}
               showAddField={!isPhone}
               addRef={homeAdd}
               trayNameValue={sourceGroups.find(group => group.id === activeGroupId)?.name}
@@ -1849,6 +1860,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
         />}
         {isPhone && mobileCreate && <MobileCreateSheet
           label={mobileCreate === 'tray' ? appT.addTray : mobileCreateTarget ? withName(mobileCopy[lang].addMemoTo, mobileCreateTarget.name) : appT.addMemo}
+          title={mobileCreate === 'memo' && addPicker ? appT.addMemo : undefined}
+          picker={mobileCreate === 'memo' ? addPicker : undefined}
           placeholder={mobileCreate === 'tray' ? appT.untitledTray : appT.untitledMemo}
           onConfirm={createFromSheet}
           onCancel={() => setMobileCreate(null)}

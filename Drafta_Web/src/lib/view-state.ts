@@ -1,8 +1,8 @@
 import type { WorkspaceState } from './workspace-state';
 import { ALL_MEMOS } from './all-memos';
 
-/** What was open on this device for the account (AGENTS.md, View Restore). */
-export type ViewState = { groupId: string; noteId: string | null; tabIds: string[]; pane: 'trays' | 'notes' | 'editor' };
+/** What was open on this device for the account, and the all memos view's add tray (AGENTS.md, View Restore). */
+export type ViewState = { groupId: string; noteId: string | null; tabIds: string[]; pane: 'trays' | 'notes' | 'editor'; addTrayId?: string | null };
 
 const keyFor = (uid: string) => `drafta:view:v1:${uid}`;
 const PANES = ['trays', 'notes', 'editor'] as const;
@@ -12,7 +12,7 @@ export function readViewState(uid: string): ViewState | null {
     const value = JSON.parse(window.localStorage.getItem(keyFor(uid)) ?? 'null');
     if (!value || typeof value.groupId !== 'string' || (value.noteId !== null && typeof value.noteId !== 'string') ||
         !Array.isArray(value.tabIds) || value.tabIds.some((id: unknown) => typeof id !== 'string') || !PANES.includes(value.pane)) return null;
-    return { groupId: value.groupId, noteId: value.noteId, tabIds: value.tabIds.slice(0, 50), pane: value.pane };
+    return { groupId: value.groupId, noteId: value.noteId, tabIds: value.tabIds.slice(0, 50), pane: value.pane, ...(typeof value.addTrayId === 'string' ? { addTrayId: value.addTrayId } : {}) };
   } catch { return null; }
 }
 
@@ -35,5 +35,6 @@ export function restoreView(saved: ViewState | null, state: WorkspaceState): Vie
   const tabIds = saved.tabIds.filter(id => memos.has(id));
   if (noteId && !tabIds.includes(noteId)) tabIds.push(noteId);
   const pane = saved.pane === 'editor' && !noteId ? 'notes' : saved.pane;
-  return { groupId, noteId, tabIds, pane };
+  // The all memos view's add tray is kept only while it is a live tray.
+  return { groupId, noteId, tabIds, pane, ...(saved.addTrayId && trays.has(saved.addTrayId) ? { addTrayId: saved.addTrayId } : {}) };
 }

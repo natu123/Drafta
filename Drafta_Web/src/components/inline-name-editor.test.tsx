@@ -51,6 +51,20 @@ describe('inline name draft', () => {
   });
 
 
+  it('keeps a picker at the start of the field, closed and open, and returns the focus after a choice', () => {
+    let picked: (() => void) | undefined;
+    const Picker = ({ onPicked }: { onPicked?: () => void }) => { picked = onPicked; return <button type="button" aria-label="Add to: Inbox">Inbox</button>; };
+    act(() => root.render(<InlineCreate label="Add memo to Inbox" buttonLabel="Add memo" picker={<Picker />} placeholder="Untitled" onCreate={confirm} />));
+    const buttons = () => [...container.querySelectorAll('button')].map(button => button.getAttribute('aria-label') ?? button.textContent);
+    expect(buttons()).toEqual(['Add to: Inbox', 'Add memo']);
+    act(() => container.querySelectorAll('button')[1].click());
+    const input = container.querySelector('input')!;
+    expect(input.getAttribute('aria-label')).toBe('Add memo to Inbox');
+    expect(input.previousElementSibling?.getAttribute('aria-label')).toBe('Add to: Inbox');
+    act(() => { input.blur(); picked?.(); });
+    expect(document.activeElement).toBe(input);
+  });
+
   it('opens the add field from another control and keeps a draft when asked again', () => {
     const handle = React.createRef<InlineCreateHandle>();
     act(() => root.render(<InlineCreate ref={handle} label="Add memo" placeholder="Untitled" onCreate={confirm} />));

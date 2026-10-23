@@ -49,16 +49,23 @@ function useKeyboardOpen() {
  * New's field, at the top of the screen so the keyboard never covers it (AGENTS.md, Creation).
  * Confirming adds the memo or tray and closes; nothing is opened. Tapping outside cancels.
  */
-export function MobileCreateSheet({ label, placeholder, onConfirm, onCancel }: {
+export function MobileCreateSheet({ label, title, placeholder, onConfirm, onCancel, picker }: {
   label: string; placeholder: string; onConfirm: (value: string) => void; onCancel: () => void;
+  /** The visible heading when it differs from the field's name (the tray chip names the tray). */
+  title?: string;
+  /** A control before the field, such as the all memos view's tray chip; `onPicked` returns to the field. */
+  picker?: React.ReactElement<{ onPicked?: () => void }>;
 }) {
   const { t } = useLang();
+  const input = React.useRef<HTMLInputElement>(null);
+  const refocus = React.useCallback(() => { input.current?.focus(); }, []);
   return (
     <>
       <button type="button" className="mobile-create-backdrop" aria-label={t.cancel} tabIndex={-1} onClick={onCancel} />
       <div className="mobile-create" role="dialog" aria-label={label}>
-        <p className="mobile-create-label">{label}</p>
-        <InlineNameEditor compose label={label} placeholder={placeholder} confirmLabel={t.create} onConfirm={onConfirm} onCancel={onCancel} />
+        <p className="mobile-create-label">{title ?? label}</p>
+        <InlineNameEditor compose inputRef={input} label={label} placeholder={placeholder} confirmLabel={t.create} onConfirm={onConfirm} onCancel={onCancel}
+          prefix={picker && React.cloneElement(picker, { onPicked: refocus })} />
       </div>
     </>
   );
@@ -91,8 +98,9 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
   const items: NavItem[] = [
     { key: 'trays', label: t.trays, icon: Inbox, current: pane === 'trays', onSelect: () => onPane('trays') },
     { key: 'notes', label: t.memosSection, icon: List, current: pane === 'notes', onSelect: () => onPane('notes') },
-    { key: 'search', label: t.search, icon: Search, onSelect: onSearch },
+    // New sits in the middle as a round button: reachable with either thumb, and the most used.
     { key: 'new', label: copy.newMemo, icon: SquarePen, disabled: !onCreate, onSelect: () => onCreate?.() },
+    { key: 'search', label: t.search, icon: Search, onSelect: onSearch },
   ];
   const tabCount = tabs.length > 99 ? '99+' : String(tabs.length);
 
@@ -114,8 +122,10 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
       )}
       <nav aria-label={copy.nav} className="grid h-14 grid-cols-5">
         {items.map(({ key, label, icon: Icon, current, disabled, onSelect }) => (
-          <button key={key} type="button" className="mobile-nav-item" aria-current={current ? 'page' : undefined} disabled={disabled} onClick={onSelect}>
-            <Icon aria-hidden="true" className="size-5" />
+          <button key={key} type="button" className={key === 'new' ? 'mobile-nav-item mobile-nav-new' : 'mobile-nav-item'} aria-current={current ? 'page' : undefined} disabled={disabled} onClick={onSelect}>
+            {key === 'new'
+              ? <span aria-hidden="true" className="mobile-nav-new-circle"><Icon className="size-5" /></span>
+              : <Icon aria-hidden="true" className="size-5" />}
             <span className="mobile-nav-label">{label}</span>
           </button>
         ))}
