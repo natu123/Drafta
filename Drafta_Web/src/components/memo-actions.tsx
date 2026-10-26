@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 /**
  * Delete, history, search and pin for the open memo, in that order, on the right of the editor's
  * toolbar (AGENTS.md, Editor Layout; Gles's order of 2026-10-26). The editor hands in its search button.
- * Delete stands apart from history, search and pin: a gap after it on PCs; on phones one button's
- * width left of them, clear of the list buttons below (Gles's choices of 2026-10-26).
+ * Delete stands apart from history, search and pin by a gap on PCs; on phones it sits right before
+ * them at the end of the top row (Gles's choices of 2026-10-26).
  */
 export function MemoActions({ isPinned, onTogglePin, historyAction, onDelete, search }: {
   isPinned: boolean;
