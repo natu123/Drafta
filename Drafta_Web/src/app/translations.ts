@@ -133,6 +133,7 @@ export interface AppT {
   deleteMemoTitle: string;
   deleteMemoDesc: string;
   delete: string;
+  deleteMemo: string;
   // Language switcher
   language: string;
 }
@@ -222,6 +223,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'Delete Memo Forever?',
     deleteMemoDesc: 'This will permanently delete this memo. This action cannot be undone.',
     delete: 'Delete',
+    deleteMemo: 'Delete memo',
     language: 'Language',
   },
   'ja': {
@@ -248,7 +250,7 @@ export const appTranslations: Record<Lang, AppT> = {
     noActiveMemo: 'メモが選択されていません',
     noActiveMemoDesc: 'リストからメモを選ぶか、新しいメモを作成してください。',
     renameTray: 'トレイ名を変更',
-    findInMemo: 'ノート内検索',
+    findInMemo: 'メモ内検索',
     previousMatch: '前の一致',
     nextMatch: '次の一致',
     pinMemo: 'ピン留め',
@@ -308,6 +310,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'メモを完全削除しますか?',
     deleteMemoDesc: 'このメモが完全に削除されます。この操作は取り消せません。',
     delete: '削除',
+    deleteMemo: 'メモを削除',
     language: '言語',
   },
   'zh-CN': {
@@ -394,6 +397,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: '永久删除备忘录?',
     deleteMemoDesc: '此操作将永久删除该备忘录，无法撤销。',
     delete: '删除',
+    deleteMemo: '删除备忘录',
     language: '语言',
   },
   'es': {
@@ -480,6 +484,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: '¿Eliminar nota para siempre?',
     deleteMemoDesc: 'Esto eliminará permanentemente esta nota. Esta acción no se puede deshacer.',
     delete: 'Eliminar',
+    deleteMemo: 'Eliminar nota',
     language: 'Idioma',
   },
   'ko': {
@@ -566,6 +571,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: '메모를 영구 삭제하시겠습니까?',
     deleteMemoDesc: '이 메모가 영구 삭제됩니다. 이 작업은 취소할 수 없습니다.',
     delete: '삭제',
+    deleteMemo: '메모 삭제',
     language: '언어',
   },
   'fr': {
@@ -652,6 +658,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'Supprimer la note définitivement ?',
     deleteMemoDesc: 'Cela supprimera définitivement cette note. Cette action est irréversible.',
     delete: 'Supprimer',
+    deleteMemo: 'Supprimer la note',
     language: 'Langue',
   },
   'pt-BR': {
@@ -738,6 +745,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'Excluir Nota Permanentemente?',
     deleteMemoDesc: 'Isso excluirá permanentemente esta nota. Esta ação não pode ser desfeita.',
     delete: 'Excluir',
+    deleteMemo: 'Excluir nota',
     language: 'Idioma',
   },
   'hi': {
@@ -824,6 +832,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'नोट हमेशा के लिए हटाएं?',
     deleteMemoDesc: 'यह इस नोट को स्थायी रूप से हटा देगा। यह क्रिया पूर्ववत नहीं की जा सकती।',
     delete: 'हटाएं',
+    deleteMemo: 'नोट हटाएं',
     language: 'भाषा',
   },
   'ar': {
@@ -910,6 +919,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'حذف الملاحظة نهائيًا؟',
     deleteMemoDesc: 'سيؤدي هذا إلى حذف هذه الملاحظة نهائيًا. لا يمكن التراجع عن هذا الإجراء.',
     delete: 'حذف',
+    deleteMemo: 'حذف الملاحظة',
     language: 'اللغة',
   },
   'ru': {
@@ -996,6 +1006,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'Удалить заметку навсегда?',
     deleteMemoDesc: 'Это безвозвратно удалит эту заметку. Это действие нельзя отменить.',
     delete: 'Удалить',
+    deleteMemo: 'Удалить заметку',
     language: 'Язык',
   },
   'id': {
@@ -1082,6 +1093,7 @@ export const appTranslations: Record<Lang, AppT> = {
     deleteMemoTitle: 'Hapus Catatan Selamanya?',
     deleteMemoDesc: 'Ini akan menghapus catatan ini secara permanen. Tindakan ini tidak dapat dibatalkan.',
     delete: 'Hapus',
+    deleteMemo: 'Hapus catatan',
     language: 'Bahasa',
   },
 };

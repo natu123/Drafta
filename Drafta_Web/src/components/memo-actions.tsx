@@ -29,9 +29,9 @@ export function MemoActions({ isPinned, onTogglePin, historyAction, onDelete, se
       {onDelete && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="memo-delete" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
+            <Button variant="ghost" size="icon" className="memo-delete" aria-label={t.deleteMemo} onClick={onDelete}><Trash2 /></Button>
           </TooltipTrigger>
-          <TooltipContent>{t.delete}</TooltipContent>
+          <TooltipContent>{t.deleteMemo}</TooltipContent>
         </Tooltip>
       )}
     <div role="group" aria-label={mobileCopy[lang].memoActions} className="editor-memo-actions">
