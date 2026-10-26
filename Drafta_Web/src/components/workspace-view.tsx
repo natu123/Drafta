@@ -45,7 +45,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { LanguageMenu } from '@/components/header';
 import { AppBar } from '@/components/app-bar';
-import { TabStrip } from '@/components/tab-strip';
+import { EditorBar } from '@/components/editor-bar';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
@@ -1277,7 +1277,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       : 'Drafta';
   }, [activeNote, appT.untitledMemo]);
 
-  // The open memos in tab order: the tab strip on tablets and PCs, the tabs list on phones.
+  // The open memos in tab order, for the list of open tabs (AGENTS.md, Web Layout and Mobile Layout).
   const openTabDetails = React.useMemo(() => {
     const byId = new Map(notes.map(note => [note.id, note]));
     return openTabs.map(tab => byId.get(tab.id)).filter((note): note is Note => Boolean(note));
@@ -1332,22 +1332,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
         setActiveTabId(null);
       }
     }
-  };
-
-  // Puts the dragged tab before the target, or after it when dropped on its far half.
-  const handleReorderTabs = (draggedId: string, targetId: string, after = false) => {
-    setOpenTabs(prev => {
-      const dIndex = prev.findIndex(t => t.id === draggedId);
-      const tIndex = prev.findIndex(t => t.id === targetId);
-      if (dIndex === -1 || tIndex === -1) return prev;
-
-      const newTabs = [...prev];
-      const [dragged] = newTabs.splice(dIndex, 1);
-      // Recalculate tIndex since splice might shift
-      const newTIndex = newTabs.findIndex(t => t.id === targetId) + (after ? 1 : 0);
-      newTabs.splice(newTIndex, 0, dragged);
-      return newTabs;
-    });
   };
 
   // A separator goes where the user chooses: the — button shows a place between every two items
@@ -1813,7 +1797,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             />
           </div>
 
-          {/* PANE 3: EDITOR, under the tab strip on tablets and PCs (AGENTS.md, Web Layout) */}
+          {/* PANE 3: EDITOR, under the editor bar on tablets and PCs (AGENTS.md, Web Layout) */}
           <div
             className={cn(
               "bg-background relative overflow-hidden min-w-0 min-h-0 flex-col",
@@ -1821,12 +1805,12 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               isPhone && (mobilePane === 'editor' ? "flex w-full" : "hidden")
             )}
           >
-            {!isPhone && <TabStrip
-              items={openTabDetails}
-              activeId={activeTabId}
-              onSelect={id => openTab(id, 'note')}
-              onClose={closeTab}
-              onReorder={handleReorderTabs}
+            {!isPhone && <EditorBar
+              tabs={openTabDetails}
+              activeNote={activeNote ?? null}
+              activeTabId={activeTabId}
+              onOpenTab={id => openTab(id, 'note')}
+              onCloseTab={closeTab}
               focused={view === 'editor'}
               onToggleFocus={handleToggleView}
               history={history.map(item => {

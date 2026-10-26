@@ -1,15 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { createPortal } from 'react-dom';
-import { CloudOff, Inbox, List, Search, SquarePen, X } from 'lucide-react';
+import { CloudOff, Inbox, List, Search, SquarePen } from 'lucide-react';
 import { useLang } from '@/contexts/lang-context';
-import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { mobileCopy } from '@/lib/mobile-copy';
 import type { Note } from '@/lib/types';
-import { cn, stripColorMarkdown } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { InlineNameEditor } from './inline-name-editor';
+import { OpenTabsPopover, TabCount } from './open-tabs-list';
 
 export type MobilePane = 'trays' | 'notes' | 'editor';
 
@@ -95,7 +92,6 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
   const { t, lang } = useLang();
   const copy = mobileCopy[lang];
   const keyboardOpen = useKeyboardOpen();
-  const [tabsOpen, setTabsOpen] = React.useState(false);
   const items: NavItem[] = [
     { key: 'trays', label: t.trays, icon: Inbox, current: pane === 'trays', onSelect: () => onPane('trays') },
     { key: 'notes', label: t.memosSection, icon: List, current: pane === 'notes', onSelect: () => onPane('notes') },
@@ -103,7 +99,6 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
     { key: 'new', label: copy.newMemo, icon: SquarePen, disabled: !onCreate, onSelect: () => onCreate?.() },
     { key: 'search', label: t.search, icon: Search, onSelect: onSearch },
   ];
-  const tabCount = tabs.length > 99 ? '99+' : String(tabs.length);
 
   return (
     <div className="mobile-nav shrink-0 border-t bg-background" hidden={keyboardOpen}>
@@ -130,42 +125,12 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
             <span className="mobile-nav-label">{label}</span>
           </button>
         ))}
-        <Popover open={tabsOpen} onOpenChange={setTabsOpen}>
-          <PopoverTrigger asChild>
-            <button type="button" className="mobile-nav-item" aria-current={pane === 'editor' ? 'page' : undefined} aria-label={`${copy.openTabs} (${tabs.length})`}>
-              {/* A square with the count, like a phone browser's tab switcher. */}
-              <span aria-hidden="true" className={cn('mobile-tabs-count', tabCount.length > 2 && 'text-[8px]')}>{tabCount}</span>
-              <span aria-hidden="true" className="mobile-nav-label">{copy.tabs}</span>
-            </button>
-          </PopoverTrigger>
-          {/* The list floats as a card over a dimmed screen (2026-10-26, Gles's request). */}
-          {tabsOpen && createPortal(<div aria-hidden="true" className="mobile-tabs-backdrop fixed inset-0 z-40 bg-black/35" />, document.body)}
-          <PopoverContent side="top" align="end" sideOffset={8} collisionPadding={8} className="w-[min(24rem,calc(100vw-16px))] overflow-hidden rounded-xl border p-0 shadow-2xl">
-            <h2 className="border-b px-3 py-2 text-sm font-semibold">{copy.openTabs} ({tabs.length})</h2>
-            {tabs.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-muted-foreground">{copy.noTabs}</p>
-            ) : (
-              <ul className="max-h-[min(24rem,55dvh)] overflow-y-auto py-1">
-                {tabs.map(note => {
-                  const title = stripColorMarkdown(note.title) || t.untitledMemo;
-                  const active = note.id === activeTabId;
-                  return (
-                    <li key={note.id} className={cn('flex items-center gap-1 pr-1', active && 'bg-primary/10')}>
-                      <button type="button" className={cn('flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-start text-sm', active && 'font-medium text-primary')} aria-current={active ? 'true' : undefined}
-                        onClick={() => { setTabsOpen(false); onOpenTab(note.id); }}>
-                        <span aria-hidden="true" className="shrink-0 text-base">{note.icon || '📝'}</span>
-                        <span className={cn('truncate', note.isCompleted && 'line-through opacity-70')}>{title}</span>
-                      </button>
-                      <button type="button" className="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={withName(a11yCopy[lang].closeTab, title)} onClick={() => onCloseTab(note.id)}>
-                        <X aria-hidden="true" className="size-4" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </PopoverContent>
-        </Popover>
+        <OpenTabsPopover side="top" tabs={tabs} activeTabId={activeTabId} onOpenTab={onOpenTab} onCloseTab={onCloseTab}>
+          <button type="button" className="mobile-nav-item" aria-current={pane === 'editor' ? 'page' : undefined} aria-label={`${copy.openTabs} (${tabs.length})`}>
+            <TabCount count={tabs.length} />
+            <span aria-hidden="true" className="mobile-nav-label">{copy.tabs}</span>
+          </button>
+        </OpenTabsPopover>
       </nav>
     </div>
   );

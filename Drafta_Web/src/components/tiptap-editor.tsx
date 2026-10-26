@@ -893,7 +893,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     <TooltipProvider delayDuration={200} disableHoverableContent>
       <SlashCommandMenu editor={editor} enabled={!isPlainTextMode && !readOnly} />
       {/* ADDED: plain-mode class for CSS targeting */}
-      <div className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode")} onKeyDownCapture={event => {
+      <div className={cn("editor-shell flex flex-col h-full min-w-0", isPlainTextMode && "plain-text-mode", note.isCompleted && "memo-completed")} onKeyDownCapture={event => {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
           event.preventDefault(); setFindOpen(true);
           const shell = event.currentTarget;

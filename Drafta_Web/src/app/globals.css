@@ -435,6 +435,13 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     @apply my-0 font-bold;
 }
 
+/* A completed memo's title is struck through, as its card in the list (2026-10-26, Gles's request). */
+.memo-completed .ProseMirror.drafta-editor > h1:first-child {
+    text-decoration-line: line-through;
+    text-decoration-thickness: 2px;
+    color: hsl(var(--foreground) / 0.65);
+}
+
 /* Title H1 (first child) — largest, with distinct border */
 .ProseMirror.drafta-editor > h1:first-child {
     @apply text-3xl font-bold;
