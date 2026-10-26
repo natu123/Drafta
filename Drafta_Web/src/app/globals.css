@@ -456,9 +456,10 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     color: hsl(var(--foreground) / 0.65);
 }
 
-/* Title H1 (first child): the one-line title row stuck above the body (AGENTS.md, Editor Layout). It
-   runs edge to edge over the scroller's 16px side padding; a long title is cut off with an ellipsis
-   until the caret is in it (TitleRow marks that with .is-editing). */
+/* Title H1 (first child): the title row stuck above the body (AGENTS.md, Editor Layout). It runs edge
+   to edge over the scroller's 16px side padding and shows in full by default, a very long one up to
+   five lines; while the body is being written it is one line cut off with an ellipsis (.is-body), and
+   with the caret in it all of it shows, up to half the screen (.is-editing; TitleRow marks both). */
 .ProseMirror.drafta-editor > h1:first-child {
     @apply text-lg font-bold;
     position: sticky;
@@ -469,13 +470,25 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     line-height: 1.75rem;
     background: hsl(var(--background));
     border-bottom: 1px solid hsl(var(--border));
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.ProseMirror.drafta-editor > h1:first-child:not(.is-editing):not(.is-empty) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
+}
+.ProseMirror.drafta-editor > h1:first-child.is-body:not(.is-editing) {
+    display: block;
+    -webkit-line-clamp: unset;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .ProseMirror.drafta-editor > h1:first-child.is-editing {
-    white-space: pre-wrap;
-    text-overflow: clip;
+    max-height: 50dvh;
+    overflow-y: auto;
 }
 
 /* Body H1s — smaller than title, no border */

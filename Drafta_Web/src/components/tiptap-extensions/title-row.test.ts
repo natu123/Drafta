@@ -11,18 +11,21 @@ let editor: Editor;
 afterEach(() => editor?.destroy());
 const at = (pos: number) => editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, pos)));
 const focused = (value: boolean) => editor.view.dispatch(editor.state.tr.setMeta(titleRowKey, value));
-const editing = () => (editor.view.dom as HTMLElement).querySelector('h1')!.classList.contains('is-editing');
+const marks = () => {
+  const list = (editor.view.dom as HTMLElement).querySelector('h1')!.classList;
+  return { editing: list.contains('is-editing'), body: list.contains('is-body') };
+};
 
 describe('title row', () => {
-  it('marks the title while the focused editor has the caret in it', () => {
+  it('marks nothing until the editor has the focus, then where the caret is', () => {
     editor = new Editor({ extensions: [TitleDocument, Title, StarterKit.configure({ document: false }), TitleRow], content: '<h1>A long title</h1><p>Body</p>' });
     at(3);
-    expect(editing()).toBe(false);
+    expect(marks()).toEqual({ editing: false, body: false });
     focused(true);
-    expect(editing()).toBe(true);
+    expect(marks()).toEqual({ editing: true, body: false });
     at(16);
-    expect(editing()).toBe(false);
-    at(3); focused(false);
-    expect(editing()).toBe(false);
+    expect(marks()).toEqual({ editing: false, body: true });
+    focused(false);
+    expect(marks()).toEqual({ editing: false, body: false });
   });
 });
