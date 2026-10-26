@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { CloudOff, Inbox, List, Search, SquarePen, X } from 'lucide-react';
 import { useLang } from '@/contexts/lang-context';
 import { a11yCopy, withName } from '@/lib/a11y-copy';
@@ -137,7 +138,9 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
               <span aria-hidden="true" className="mobile-nav-label">{copy.tabs}</span>
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="end" sideOffset={6} collisionPadding={8} className="w-[min(24rem,calc(100vw-16px))] p-0">
+          {/* The list floats as a card over a dimmed screen (2026-10-26, Gles's request). */}
+          {tabsOpen && createPortal(<div aria-hidden="true" className="mobile-tabs-backdrop fixed inset-0 z-40 bg-black/35" />, document.body)}
+          <PopoverContent side="top" align="end" sideOffset={8} collisionPadding={8} className="w-[min(24rem,calc(100vw-16px))] overflow-hidden rounded-xl border p-0 shadow-2xl">
             <h2 className="border-b px-3 py-2 text-sm font-semibold">{copy.openTabs} ({tabs.length})</h2>
             {tabs.length === 0 ? (
               <p className="px-3 py-4 text-sm text-muted-foreground">{copy.noTabs}</p>
@@ -151,7 +154,7 @@ export function MobileNav({ pane, onPane, onSearch, onCreate, tabs, activeTabId,
                       <button type="button" className={cn('flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-start text-sm', active && 'font-medium text-primary')} aria-current={active ? 'true' : undefined}
                         onClick={() => { setTabsOpen(false); onOpenTab(note.id); }}>
                         <span aria-hidden="true" className="shrink-0 text-base">{note.icon || '📝'}</span>
-                        <span className="truncate">{title}</span>
+                        <span className={cn('truncate', note.isCompleted && 'line-through opacity-70')}>{title}</span>
                       </button>
                       <button type="button" className="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={withName(a11yCopy[lang].closeTab, title)} onClick={() => onCloseTab(note.id)}>
                         <X aria-hidden="true" className="size-4" />

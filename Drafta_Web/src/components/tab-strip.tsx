@@ -119,7 +119,7 @@ export function TabStrip({ items, activeId, onSelect, onClose, onReorder, focuse
               )}
             >
               <span aria-hidden="true" className="shrink-0">{item.icon || '📝'}</span>
-              <span className="truncate">{title}</span>
+              <span className={cn('truncate', item.isCompleted && 'line-through opacity-70')}>{title}</span>
               <button
                 type="button"
                 tabIndex={-1}
@@ -147,7 +147,7 @@ export function TabStrip({ items, activeId, onSelect, onClose, onReorder, focuse
             {items.map(item => (
               <DropdownMenuItem key={item.id} onSelect={() => onSelect(item.id)} className={cn(item.id === activeId && 'bg-primary/10 font-medium text-primary')}>
                 <span aria-hidden="true" className="shrink-0">{item.icon || '📝'}</span>
-                <span className="truncate">{titleOf(item)}</span>
+                <span className={cn('truncate', item.isCompleted && 'line-through opacity-70')}>{titleOf(item)}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

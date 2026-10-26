@@ -68,6 +68,39 @@ describe('title caret', () => {
     at(5);
     expect(press('ArrowLeft')).toBe(false);
   });
+  it('keeps Enter in the title and Delete at its end from touching the body', () => {
+    create('<h1>Title</h1><p>Body</p>');
+    const before = editor.getHTML();
+    at(3);
+    expect(press('Enter')).toBe(true);
+    at(6);
+    expect(press('Enter')).toBe(true);
+    expect(press('Delete')).toBe(true);
+    expect(editor.getHTML()).toBe(before);
+    expect(editor.state.selection.from).toBe(6);
+  });
+  it('keeps Backspace at the start of the body from joining the title', () => {
+    create('<h1>Title</h1><p>Body</p>');
+    const before = editor.getHTML();
+    at(8);
+    expect(press('Backspace')).toBe(true);
+    expect(editor.getHTML()).toBe(before);
+    expect(editor.state.selection.$from.parent.type.name).toBe('paragraph');
+  });
+  it('removes an empty first line with Backspace and stays in the body', () => {
+    create('<h1>Title</h1><p></p><p>Next</p>');
+    at(8);
+    expect(press('Backspace')).toBe(true);
+    expect(editor.getHTML()).toBe('<h1>Title</h1><p>Next</p>');
+    expect(editor.state.selection.$from.parent.textContent).toBe('Next');
+  });
+  it('leaves Backspace in a list at the start of the body to the list', () => {
+    create('<h1>T</h1><ul><li><p>Item</p></li></ul>');
+    at(6);
+    press('Backspace');
+    expect(editor.state.doc.firstChild!.textContent).toBe('T');
+    expect(editor.state.selection.$from.parent.type.name).not.toBe('title');
+  });
   it('runs before the gap cursor of the real editor when a table comes first', () => {
     editor = new Editor({ extensions: [...documentExtensions, TitleCaret], content: '<h1>T</h1><table><tr><td><p>Cell</p></td></tr></table><p>After</p>' });
     at(2);

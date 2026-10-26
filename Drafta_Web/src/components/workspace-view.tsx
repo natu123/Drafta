@@ -873,7 +873,10 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 {/* Note: min-h-[44px]はSortableNoteItemの元カードと高さを揃えるため必要
                     左カラム(SortableGroupItem)は単純な1行構造のため高さ指定不要 */}
                 <DragOverlay modifiers={[restrictToVerticalAxis]}>
-                  {activeDragItem && (
+                  {/* A separator keeps its line while dragged instead of turning into an untitled memo. */}
+                  {activeDragItem?.type === 'separator' ? (
+                    <div className="flex h-9 items-center rounded-md border-2 border-primary bg-card px-3 opacity-90 shadow-2xl"><div className="h-px flex-1 bg-border" /></div>
+                  ) : activeDragItem && (
                     <div className="opacity-90 shadow-2xl rounded-lg border-2 border-primary bg-card p-2">
                       <div className="flex items-center gap-2 min-h-[44px]">
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-base pointer-events-none shrink-0">
@@ -1680,8 +1683,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                         {(scrollDirection === 'bottom' ? [false, true] : [true, false]).map(pinned => {
                           const section = filteredGroups.filter(group => Boolean(group.isPinned) === pinned);
                           if (!section.length) return null;
-                          return <React.Fragment key={String(pinned)}>
-                          {pinned && <Button variant="ghost" className={cn("pinned-summary w-full justify-start h-9", scrollDirection === 'bottom' && "mt-1")} aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.filter(group => group.type !== 'separator').length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
+                          // Pinned trays share one gold-tinted box with their heading, as in the memo list (2026-10-26).
+                          return <div key={String(pinned)} className={cn(pinned && "pinned-section", pinned && scrollDirection === 'bottom' && "mt-2")}>
+                          {pinned && <Button variant="ghost" className="pinned-summary w-full justify-start h-9" aria-expanded={!trayPinsCollapsed} aria-controls="pinned-trays" onClick={() => setTrayPinsCollapsed(value => !value)}><Pin className="text-[#C49547]" /><span>{appT.pinnedTrays} ({section.filter(group => group.type !== 'separator').length})</span><ChevronDown className={cn('ml-auto', trayPinsCollapsed && '-rotate-90')} /></Button>}
                           {!(pinned && trayPinsCollapsed) && <div id={pinned ? 'pinned-trays' : undefined}>
                         <SortableContext
                           items={section.map(g => g.id)}
@@ -1709,14 +1713,16 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                           })}
                         </SortableContext>
                           </div>}
-                          </React.Fragment>;
+                          </div>;
                         })}
                       </div>
 
                       <div className="pt-2 mt-2 border-t">{scrollDirection === 'bottom' ? allMemosEntry : restoreEntry}</div>
                     </div>
                     {groupOverlayContainer && createPortal(<DragOverlay>
-                      {activeDragGroup && (
+                      {activeDragGroup?.type === 'separator' ? (
+                        <div className="flex h-full w-full items-center rounded-md border-2 border-primary bg-card px-3 opacity-90 shadow-2xl"><div className="h-px flex-1 bg-border" /></div>
+                      ) : activeDragGroup && (
                         <div
                           className="opacity-90 shadow-2xl border-2 border-primary bg-card rounded-md flex items-center justify-start gap-2 h-full w-full px-4"
                         >
