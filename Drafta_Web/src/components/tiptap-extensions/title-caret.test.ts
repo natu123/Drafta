@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
@@ -45,13 +45,27 @@ describe('title caret', () => {
     at(10);
     expect(press('ArrowLeft')).toBe(false);
   });
-  it('leaves the other arrows, Shift and a selection to the browser', () => {
+  it('keeps the down arrow on the last line of the title and the up arrow on the first line of the body', () => {
+    create('<h1>Title</h1><p>Body</p><p>More</p>');
+    const edge = vi.spyOn(editor.view, 'endOfTextblock');
+    edge.mockReturnValue(true);
+    at(3);
+    expect(press('ArrowDown')).toBe(true);
+    at(9);
+    expect(press('ArrowUp')).toBe(true);
+    at(15);
+    expect(press('ArrowUp')).toBe(false);
+    edge.mockReturnValue(false);
+    at(3);
+    expect(press('ArrowDown')).toBe(false);
+    at(9);
+    expect(press('ArrowUp')).toBe(false);
+  });
+  it('leaves Shift and a selection to the browser', () => {
     create('<h1>Title</h1><p>Body</p>');
     at(6);
-    expect(press('ArrowDown')).toBe(false);
     expect(press('ArrowRight', { shiftKey: true })).toBe(false);
     at(8);
-    expect(press('ArrowUp')).toBe(false);
     expect(press('ArrowLeft', { shiftKey: true })).toBe(false);
     editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, 8, 10)));
     expect(press('ArrowLeft')).toBe(false);
