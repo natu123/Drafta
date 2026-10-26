@@ -41,8 +41,10 @@ import { webLayoutReleaseCopy } from './web-layout-release-copy';
 import { titleKeysReleaseCopy } from './title-keys-release-copy';
 import { resumeScrollReleaseCopy } from './resume-scroll-release-copy';
 import { editorBarReleaseCopy } from './editor-bar-release-copy';
+import { titleRowReleaseCopy } from './title-row-release-copy';
 
 export interface ReleaseCopy {
+  release0114: string;
   release0113: string;
   release0112: string;
   release0111: string;
@@ -111,7 +113,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102' | 'release0103' | 'release0104' | 'release0110' | 'release0111' | 'release0112' | 'release0113'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102' | 'release0103' | 'release0104' | 'release0110' | 'release0111' | 'release0112' | 'release0113' | 'release0114'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -445,6 +447,7 @@ export const releaseCopy = Object.fromEntries(
     release0111: titleKeysReleaseCopy[language as Lang],
     release0112: resumeScrollReleaseCopy[language as Lang],
     release0113: editorBarReleaseCopy[language as Lang],
+    release0114: titleRowReleaseCopy[language as Lang],
     // Sign-in is for saving; the Playground lets anyone try without it (AGENTS.md, Playground).
     warning: playgroundCopy[language as Lang].warning,
   }]),
