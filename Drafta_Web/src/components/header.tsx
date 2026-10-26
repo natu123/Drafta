@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
-import { History, Settings, PanelLeft, AppWindow, Search, Globe } from 'lucide-react';
-import { BrandIcon } from '@/components/brand-icon';
+import { History, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -31,7 +29,8 @@ interface HistoryNavProps {
   onHistorySelect: (id: string, type: 'note') => void;
 }
 
-const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => {
+/** The recently opened memos, at the end of the tab strip on tablets and PCs (specs/21_web_layout.md). */
+export const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => {
   const { t } = useLang();
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -112,7 +111,7 @@ const HistoryNav: React.FC<HistoryNavProps> = ({ history, onHistorySelect }) => 
 };
 
 
-/** The language switcher, in the header or, on phones, in the tray list header (specs/19_mobile_design.md). */
+/** The language switcher, in the app bar on tablets and PCs or the tray list header on phones (specs/19, specs/21). */
 export function LanguageMenu() {
   const { lang, setLang, t } = useLang();
   return (
@@ -148,94 +147,3 @@ export function LanguageMenu() {
     </DropdownMenu>
   );
 }
-
-interface HeaderProps {
-  accountMenu?: React.ReactNode;
-  onToggleView: () => void;
-  activeView: 'home' | 'editor';
-  onOpenSettings: () => void;
-  onOpenSearch: () => void;
-  history: HistoryItem[];
-  onHistorySelect: (id: string, type: 'note') => void;
-}
-
-const Header: React.FC<HeaderProps> = ({
-  onToggleView,
-  activeView,
-  onOpenSettings,
-  onOpenSearch,
-  history,
-  onHistorySelect,
-  accountMenu,
-}) => {
-  const { t } = useLang();
-
-  return (
-    <header className="flex items-center h-[57px] px-2 sm:px-4 border-b bg-background z-50">
-      {/* Left: Logo Section */}
-      <div className="flex-1 min-w-0 flex items-center">
-        <Link href="/" aria-label="Drafta" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <BrandIcon />
-          <h1 className="hidden sm:block text-2xl font-bold font-headline tracking-tight text-foreground">Drafta</h1>
-        </Link>
-      </div>
-
-      {/* Center: Main Actions Section */}
-      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.search} onClick={onOpenSearch}>
-                <Search className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t.search}</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={activeView === 'home' ? t.writingMode : t.homeMode}
-                onClick={onToggleView}
-              >
-                {activeView === 'home' ? <PanelLeft className="h-5 w-5" /> : <AppWindow className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{activeView === 'home' ? t.writingMode : t.homeMode}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      {/* Right: Util Actions Section */}
-      <div className="flex-1 min-w-0 flex items-center justify-end gap-0.5 sm:gap-1">
-        {accountMenu}
-        <div className="hidden sm:block">
-          <HistoryNav history={history} onHistorySelect={onHistorySelect} />
-        </div>
-
-        <LanguageMenu />
-
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.settings} onClick={onOpenSettings}>
-                <Settings className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t.settings}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </header>
-  );
-};
-
-export default Header;

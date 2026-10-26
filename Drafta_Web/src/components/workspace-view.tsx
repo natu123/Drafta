@@ -43,8 +43,9 @@ import { Minus, Inbox, Trash2, RotateCcw, FolderInput, CheckSquare, X, ChevronLe
 import { InlineCreate, InlineNameEditor, TrayMenu } from '@/components/inline-name-editor';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import Header, { LanguageMenu } from '@/components/header';
-import VerticalTabs from '@/components/vertical-note-tabs';
+import { LanguageMenu } from '@/components/header';
+import { AppBar } from '@/components/app-bar';
+import { TabStrip } from '@/components/tab-strip';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
@@ -175,7 +176,6 @@ interface HomeSectionProps {
   /** Adds a memo from elsewhere, like the phone's New, with the same move to the list's edge. */
   addRef?: React.Ref<{ add: (title: string) => void }>;
   onIconChange?: (id: string, icon: string) => void;
-  leadingAction?: React.ReactNode;
   onRenameTray?: (name: string) => void;
   trayNameValue?: string;
   /** The all memos view: order follows edits, so memos are not dragged; each shows its tray. */
@@ -552,7 +552,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
   scrollDirection, isVisible = true, paneShown = true,
   isSelectionMode, onToggleSelectionMode, selectedIds, onToggleSelect, onBulkDelete, onBulkMove,
   groups, onAddSeparator, onQuickAdd, quickAddLabel, showAddField = true, addPicker, addRef, placingSeparator = false, onPlaceSeparator, onCancelSeparator, onRestoreGroup, onPermanentDeleteGroup,
-  onIconChange, leadingAction, onRenameTray, trayNameValue, trayNames
+  onIconChange, onRenameTray, trayNameValue, trayNames
 }) => {
   const { t, lang } = useLang();
   const a11y = a11yCopy[lang];
@@ -721,7 +721,6 @@ const HomeSection: React.FC<HomeSectionProps> = ({
     <Card className="h-full w-full border-none shadow-none bg-transparent flex flex-col overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between px-4 border-b bg-background/95 backdrop-blur z-20 sticky top-0 shrink-0 h-[57px]">
         <CardTitle className="text-lg flex items-center gap-2 min-w-0">
-          {leadingAction}
           <Icon className="w-5 h-5 text-primary" />
           {onRenameTray && isRenamingTray ? <InlineNameEditor label={t.renameTray} initialValue={trayNameValue ?? ''} placeholder={t.untitledTray} confirmLabel={t.renameTray}
             onConfirm={value => { onRenameTray(value); setIsRenamingTray(false); }} onCancel={() => setIsRenamingTray(false)} /> : onRenameTray ? (
@@ -1054,19 +1053,19 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   };
 
   // Column Layout - Desktop keeps the 3-pane ratio. Narrow screens use adaptive navigation.
-  const MIN_LEFT_WIDTH = 140;
+  // The tray column holds the app bar on PCs, so it keeps room for its controls (AGENTS.md, Web Layout).
+  const MIN_LEFT_WIDTH = 208;
   const MIN_CENTER_WIDTH = 280;
   const MIN_EDITOR_WIDTH = 720;
 
-  const [listsWidth, setListsWidth] = React.useState(180);
+  const [listsWidth, setListsWidth] = React.useState(MIN_LEFT_WIDTH);
   const [notesWidth, setNotesWidth] = React.useState(400);
-  const [editorWidth, setEditorWidth] = React.useState(400);
   const [layoutMode, setLayoutMode] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [mobilePane, setMobilePane] = React.useState<MobilePane>(restoredView?.pane ?? 'notes');
   // The tray the all memos view adds to, chosen there last time on this device (AGENTS.md, All Memos).
   const [allMemosTrayId, setAllMemosTrayId] = React.useState<string | null>(restoredView?.addTrayId ?? null);
-  // Phones have no Writing Mode: its vertical tabs do not fit, and the bottom navigation's tabs
-  // take their place, so a phone always shows the panes (AGENTS.md, Mobile Layout).
+  // Phones have no focus view: the bottom navigation's tabs take the tab strip's place, so a phone
+  // always shows the panes (AGENTS.md, Mobile Layout). Elsewhere 'editor' is the focus view (Web Layout).
   const isPhone = layoutMode === 'mobile';
   const view = isPhone ? 'home' : activeView;
   React.useEffect(() => {
@@ -1093,10 +1092,10 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       setLayoutMode(nextMode);
 
       if (nextMode === 'desktop') {
-        // 1.7:3.4:6.9 = 12 parts total (right column remains widest for the editor toolbar).
-        setListsWidth(Math.max(MIN_LEFT_WIDTH, Math.floor(viewportWidth * (1.7 / 12))));
-        setNotesWidth(Math.max(MIN_CENTER_WIDTH, Math.floor(viewportWidth * (3.4 / 12))));
-        setEditorWidth(Math.max(MIN_EDITOR_WIDTH, Math.floor(viewportWidth * (6.9 / 12))));
+        // 1.7:3.4:6.9 = 12 parts total; the editor takes the rest and keeps 720px for its toolbar.
+        const lists = Math.max(MIN_LEFT_WIDTH, Math.floor(viewportWidth * (1.7 / 12)));
+        setListsWidth(lists);
+        setNotesWidth(Math.max(MIN_CENTER_WIDTH, Math.min(Math.floor(viewportWidth * (3.4 / 12)), viewportWidth - lists - MIN_EDITOR_WIDTH)));
         setIsTrayDrawerOpen(false);
       }
     };
@@ -1201,7 +1200,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
 
 
-  const [tabSearchTerm, setTabSearchTerm] = React.useState(''); // Added for VerticalTabs
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
 
@@ -1272,23 +1270,11 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       : 'Drafta';
   }, [activeNote, appT.untitledMemo]);
 
+  // The open memos in tab order: the tab strip on tablets and PCs, the tabs list on phones.
   const openTabDetails = React.useMemo(() => {
-    return openTabs
-      .map(tab => {
-        if (tab.type === 'note') {
-          const note = notes.find(n => n.id === tab.id);
-          // Filter by tabSearchTerm if present
-          if (note && tabSearchTerm) {
-            if (!note.title.toLowerCase().includes(tabSearchTerm.toLowerCase())) {
-              return null;
-            }
-          }
-          return note ? { ...note, type: 'note' as const } : null;
-        }
-        return null;
-      })
-      .filter((item): item is Note & { type: 'note' } => item !== null);
-  }, [openTabs, notes, tabSearchTerm]);
+    const byId = new Map(notes.map(note => [note.id, note]));
+    return openTabs.map(tab => byId.get(tab.id)).filter((note): note is Note => Boolean(note));
+  }, [openTabs, notes]);
 
 
 
@@ -1341,7 +1327,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     }
   };
 
-  const handleReorderTabs = (draggedId: string, targetId: string) => {
+  // Puts the dragged tab before the target, or after it when dropped on its far half.
+  const handleReorderTabs = (draggedId: string, targetId: string, after = false) => {
     setOpenTabs(prev => {
       const dIndex = prev.findIndex(t => t.id === draggedId);
       const tIndex = prev.findIndex(t => t.id === targetId);
@@ -1350,7 +1337,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       const newTabs = [...prev];
       const [dragged] = newTabs.splice(dIndex, 1);
       // Recalculate tIndex since splice might shift
-      const newTIndex = newTabs.findIndex(t => t.id === targetId);
+      const newTIndex = newTabs.findIndex(t => t.id === targetId) + (after ? 1 : 0);
       newTabs.splice(newTIndex, 0, dragged);
       return newTabs;
     });
@@ -1468,7 +1455,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     setMobileCreate(null);
   };
   // The bottom navigation's tabs list every open memo, whatever the desktop tab filter says.
-  const mobileTabs = React.useMemo(() => isPhone ? openTabs.map(tab => notes.find(note => note.id === tab.id)).filter((note): note is Note => Boolean(note)) : [], [isPhone, openTabs, notes]);
   const handleMobileCloseTab = (id: string) => {
     if (openTabs.length === 1 && openTabs[0].id === id && mobilePane === 'editor') setMobilePane('notes');
     closeTab(id);
@@ -1610,19 +1596,8 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     <>
       <div className={cn("app-shell flex flex-col bg-background text-foreground overflow-hidden", isPhone && "has-mobile-nav")}>
         {notice}
-        {/* Phones use the bottom navigation and the tray list header instead (AGENTS.md, Mobile Layout). */}
-        {!isPhone && <Header
-          accountMenu={accountMenu}
-          onToggleView={handleToggleView}
-          activeView={activeView}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          history={history.map(item => {
-            const currentNote = notes.find(note => note.id === item.id);
-            return currentNote ? { ...item, title: currentNote.title } : item;
-          })}
-          onHistorySelect={handleNoteSelect}
-        />}
+        {/* No common header: the app bar sits at the top of the leftmost list column, the tabs above
+            the editor (AGENTS.md, Web Layout); phones use the bottom navigation (Mobile Layout). */}
 
         <div role="main" className="flex flex-1 overflow-hidden relative min-h-0">
 
@@ -1632,20 +1607,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               aria-label={a11yCopy[lang].closeTrays}
               className="absolute inset-0 z-30 bg-black/20"
               onClick={() => setIsTrayDrawerOpen(false)}
-            />
-          )}
-
-          {/* PANE 0: VERTICAL TABS (Only in Writing Mode) */}
-          {view === 'editor' && openTabDetails.length > 0 && (
-            <VerticalTabs
-              items={openTabDetails}
-              activeId={activeTabId}
-              onTabSelect={(id) => openTab(id, 'note')}
-              onTabClose={closeTab}
-              onReorderTabs={handleReorderTabs}
-              searchTerm={tabSearchTerm}
-              onSearchChange={setTabSearchTerm}
-              scrollDirection={scrollDirection}
             />
           )}
 
@@ -1663,8 +1624,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             )}
             style={layoutMode === 'desktop' ? { width: listsWidth } : undefined}
           >
-              {/* Header for Lists */}
-              <div className="flex items-center justify-between px-3 sm:px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
+              {layoutMode === 'desktop' && <AppBar accountMenu={accountMenu} onOpenSearch={() => setIsSearchOpen(true)} onOpenSettings={() => setIsSettingsOpen(true)} />}
+              {/* Header for Lists: under the app bar on PCs, the drawer's top on tablets, the phone's starting screen. */}
+              <div className={cn("flex items-center justify-between px-3 sm:px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0", layoutMode === 'desktop' ? "h-11" : "h-[57px]")}>
                 <div className="flex items-center gap-1 min-w-0">
                   {layoutMode === 'tablet' && (
                     <Button
@@ -1678,7 +1640,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                       <ChevronLeft className="w-5 h-5" />
                     </Button>
                   )}
-                  <h2 className="text-lg font-semibold truncate">{appT.trays}</h2>
+                  <h2 className={cn("font-semibold truncate", layoutMode === 'desktop' ? "text-base" : "text-lg")}>{appT.trays}</h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {/* The tray list is a phone's starting screen, so the app-wide controls live here. */}
@@ -1786,6 +1748,11 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             style={layoutMode === 'desktop' ? { width: view === 'home' ? notesWidth : '100%' } : undefined}
           >
 
+            {layoutMode === 'tablet' && <AppBar accountMenu={accountMenu} onOpenSearch={() => setIsSearchOpen(true)} onOpenSettings={() => setIsSettingsOpen(true)} leading={(
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" title={a11yCopy[lang].openTrays} aria-label={a11yCopy[lang].openTrays} onClick={() => setIsTrayDrawerOpen(true)}>
+                <Menu className="w-5 h-5" />
+              </Button>
+            )} />}
             <HomeSection
               key={activeGroupId}
               pinsCollapsed={Boolean(collapsedPins[activeGroupId])}
@@ -1833,35 +1800,32 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 setGroups(prev => prev.map(group => group.id === activeGroupId ? { ...group, name } : group));
               } : undefined}
               onIconChange={handleIconChange}
-              leadingAction={layoutMode === 'tablet' ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 shrink-0"
-                  title={a11yCopy[lang].openTrays}
-                  aria-label={a11yCopy[lang].openTrays}
-                  onClick={() => setIsTrayDrawerOpen(true)}
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
-              ) : undefined}
             />
           </div>
 
-          {/* PANE 3: EDITOR */}
+          {/* PANE 3: EDITOR, under the tab strip on tablets and PCs (AGENTS.md, Web Layout) */}
           <div
             className={cn(
-              "bg-background relative overflow-hidden min-w-0 min-h-0",
-              view === 'editor' && "flex flex-1",
-              view === 'home' && layoutMode === 'desktop' && "flex shrink-0",
-              view === 'home' && layoutMode === 'tablet' && "flex flex-1",
-              view === 'home' && isPhone && (mobilePane === 'editor' ? "flex w-full" : "hidden")
+              "bg-background relative overflow-hidden min-w-0 min-h-0 flex-col",
+              !isPhone && "flex flex-1",
+              isPhone && (mobilePane === 'editor' ? "flex w-full" : "hidden")
             )}
-            style={layoutMode === 'desktop'
-              ? (view === 'editor' ? { minWidth: editorWidth } : { width: editorWidth })
-              : undefined
-            }
           >
+            {!isPhone && <TabStrip
+              items={openTabDetails}
+              activeId={activeTabId}
+              onSelect={id => openTab(id, 'note')}
+              onClose={closeTab}
+              onReorder={handleReorderTabs}
+              focused={view === 'editor'}
+              onToggleFocus={handleToggleView}
+              history={history.map(item => {
+                const currentNote = notes.find(note => note.id === item.id);
+                return currentNote ? { ...item, title: currentNote.title } : item;
+              })}
+              onHistorySelect={handleNoteSelect}
+            />}
+            <div className="relative flex min-h-0 min-w-0 flex-1">
             {activeNote && !editorNote ? (
               <div role="status" className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">{storageCopy[lang].bodyLoading}</div>
             ) : activeNote && editorNote ? (
@@ -1900,6 +1864,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 }} /></div>}
               </div>
             )}
+            </div>
           </div>
         </div >
 
@@ -1908,7 +1873,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           onPane={setMobilePane}
           onSearch={() => setIsSearchOpen(true)}
           onCreate={mobilePane === 'trays' || mobileCreateTarget ? handleMobileCreate : undefined}
-          tabs={mobileTabs}
+          tabs={openTabDetails}
           activeTabId={activeTabId}
           onOpenTab={id => { openTab(id, 'note'); setMobilePane('editor'); }}
           onCloseTab={handleMobileCloseTab}
@@ -1930,8 +1895,10 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
           scrollDirection={scrollDirection}
           onScrollDirectionChange={handleListStyleChange}
           // Imports save as they go, so they wait for the bodies of a new device (specs/17).
-          onImport={bodyProgress ? undefined : () => { setIsSettingsOpen(false); setIsImportOpen(true); }}
-          onExport={bodyProgress ? undefined : () => { setIsSettingsOpen(false); setIsExportOpen(true); }}
+          // Phones have no data section: picking folders and saving files are unreliable there,
+          // above all in the iPhone's home-screen app (AGENTS.md, Import/Export).
+          onImport={bodyProgress || isPhone ? undefined : () => { setIsSettingsOpen(false); setIsImportOpen(true); }}
+          onExport={bodyProgress || isPhone ? undefined : () => { setIsSettingsOpen(false); setIsExportOpen(true); }}
         />
 
         <ExportDialog open={isExportOpen} onOpenChange={setIsExportOpen} notes={notes} groups={sourceGroups} />
