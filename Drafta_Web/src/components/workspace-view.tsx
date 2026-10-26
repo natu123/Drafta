@@ -45,7 +45,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { LanguageMenu } from '@/components/header';
 import { AppBar } from '@/components/app-bar';
-import { EditorBar } from '@/components/editor-bar';
+import { EditorTabs, FocusToggle } from '@/components/editor-tabs';
 import { emojis } from '@/components/editor-options';
 import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
@@ -1797,7 +1797,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             />
           </div>
 
-          {/* PANE 3: EDITOR, under the editor bar on tablets and PCs (AGENTS.md, Web Layout) */}
+          {/* PANE 3: EDITOR; on tablets and PCs its toolbar also holds the focus view toggle and Tabs (AGENTS.md, Web Layout) */}
           <div
             className={cn(
               "bg-background relative overflow-hidden min-w-0 min-h-0 flex-col",
@@ -1805,20 +1805,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
               isPhone && (mobilePane === 'editor' ? "flex w-full" : "hidden")
             )}
           >
-            {!isPhone && <EditorBar
-              tabs={openTabDetails}
-              activeNote={activeNote ?? null}
-              activeTabId={activeTabId}
-              onOpenTab={id => openTab(id, 'note')}
-              onCloseTab={closeTab}
-              focused={view === 'editor'}
-              onToggleFocus={handleToggleView}
-              history={history.map(item => {
-                const currentNote = notes.find(note => note.id === item.id);
-                return currentNote ? { ...item, title: currentNote.title } : item;
-              })}
-              onHistorySelect={handleNoteSelect}
-            />}
             <div className="relative flex min-h-0 min-w-0 flex-1">
             {activeNote && !editorNote ? (
               <div role="status" className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">{storageCopy[lang].bodyLoading}</div>
@@ -1827,6 +1813,18 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 externalRevision={editorSyncRevision}
                 continuityKey={editorContinuity?.noteId === activeNote.id ? editorContinuity.key : undefined}
                 note={editorNote}
+                toolbarStart={!isPhone && <FocusToggle focused={view === 'editor'} onToggle={handleToggleView} />}
+                toolbarEnd={!isPhone && <EditorTabs
+                  tabs={openTabDetails}
+                  activeTabId={activeTabId}
+                  onOpenTab={id => openTab(id, 'note')}
+                  onCloseTab={closeTab}
+                  history={history.map(item => {
+                    const currentNote = notes.find(note => note.id === item.id);
+                    return currentNote ? { ...item, title: currentNote.title } : item;
+                  })}
+                  onHistorySelect={handleNoteSelect}
+                />}
                 memoActions={activeNote.type !== 'separator' && <MemoActions
                   isPinned={Boolean(activeNote.isPinned)}
                   onTogglePin={!activeNote.isDeleted ? () => handleTogglePin(activeNote.id) : undefined}

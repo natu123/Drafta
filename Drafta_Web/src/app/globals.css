@@ -22,11 +22,15 @@
 .editor-tools-content > [data-orientation="vertical"] { display: none; }
 .editor-tools button { flex: 0 0 36px; width: 36px; height: 40px; min-width: 36px; padding: 4px; }
 .editor-palette:not([hidden]) { display: flex; flex-wrap: wrap; flex-basis: 100%; gap: 2px; }
-/* Pin, history and delete sit together at the end of the toolbar row they land on (AGENTS.md, Editor Layout). */
-.editor-memo-actions { display: flex; gap: 2px; margin-inline-start: auto; }
-/* Only the memo icon stays on the title line, so the title runs to the right edge. */
-.editor-title-icon { position: absolute; left: 0; top: 16px; }
-.editor-document .drafta-editor > h1:first-child { padding-left: 44px; }
+/* Pin, history and delete sit together at the end of the toolbar row they land on (AGENTS.md, Editor Layout);
+   on tablets and PCs Tabs and the recent memos come just before them (Web Layout). */
+.editor-memo-actions { display: flex; gap: 2px; }
+.editor-toolbar-end { display: flex; align-items: center; gap: 2px; margin-inline-start: auto; }
+.editor-tools .editor-tabs-button { flex: 0 0 auto; width: auto; padding: 0 8px; }
+/* The title is a one-line row stuck above the body, the memo icon at its start (AGENTS.md, Editor
+   Layout, 2026-10-26). The icon's holder has no height of its own and sticks with the row. */
+.editor-title-icon { position: sticky; top: 0; z-index: 3; height: 0; }
+.editor-title-icon > button { position: relative; top: 2px; }
 .memo-pin { z-index: 1; }
 /* The pinned memos and their heading share one gold-tinted box (AGENTS.md, Pins). Its padding is
    outside the cards, so card heights (cardHeight, contain-intrinsic-size) stay as they are. */
@@ -442,13 +446,26 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     color: hsl(var(--foreground) / 0.65);
 }
 
-/* Title H1 (first child) — largest, with distinct border */
+/* Title H1 (first child): the one-line title row stuck above the body (AGENTS.md, Editor Layout). It
+   runs edge to edge over the scroller's 16px side padding; a long title is cut off with an ellipsis
+   until the caret is in it (TitleRow marks that with .is-editing). */
 .ProseMirror.drafta-editor > h1:first-child {
-    @apply text-3xl font-bold;
-    padding-top: 1rem;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.75rem;
-    border-bottom: 3px solid hsl(var(--foreground) / 0.7);
+    @apply text-lg font-bold;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0 -16px 0.75rem;
+    padding: 0.5rem 16px 0.5rem 60px;
+    line-height: 1.75rem;
+    background: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ProseMirror.drafta-editor > h1:first-child.is-editing {
+    white-space: pre-wrap;
+    text-overflow: clip;
 }
 
 /* Body H1s — smaller than title, no border */

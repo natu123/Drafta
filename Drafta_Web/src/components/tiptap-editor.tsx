@@ -6,9 +6,10 @@ import { TextSelection } from '@tiptap/pm/state';
 import * as React from 'react';
 import { useEditor, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Search, Menu, Copy } from 'lucide-react';
+import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Search, Palette, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
 import { TitlePlaceholder } from './tiptap-extensions/title-placeholder';
+import { TitleRow } from './tiptap-extensions/title-row';
 import { TitleCaret } from './tiptap-extensions/title-caret';
 import { NoteFind } from './note-find';
 import { Button } from './ui/button';
@@ -42,6 +43,9 @@ interface TiptapEditorProps {
   scrollDirection?: 'top' | 'bottom';
   /** Pin, history and delete for this memo, at the right end of the toolbar (AGENTS.md, Editor Layout). */
   memoActions?: React.ReactNode;
+  /** The focus view toggle at the start of the toolbar, and Tabs with the recent memos before the memo actions (tablets and PCs, AGENTS.md, Web Layout). */
+  toolbarStart?: React.ReactNode;
+  toolbarEnd?: React.ReactNode;
 }
 
 const baseColors = [
@@ -72,7 +76,7 @@ function EditorMount({ editor, ...props }: { editor: Editor | null } & React.HTM
   return <div ref={ref} {...props} />;
 }
 
-const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', onDuplicate, externalRevision = 0, memoActions }) => {
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection = 'bottom', onDuplicate, externalRevision = 0, memoActions, toolbarStart, toolbarEnd }) => {
   // isProtected also blocks deletion; guide samples only block editing.
   const readOnly = Boolean(note.isProtected) || isEditLockedSample(note);
   const { resolvedTheme } = useTheme();
@@ -98,6 +102,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
     RichMarkdownInputRules.configure({ isEnabled: () => !isPlainTextModeRef.current }),
     TitlePlaceholder.configure({ placeholder: () => t.untitledMemo }),
     TitleCaret,
+    TitleRow,
   ], [t.untitledMemo]);
 
   const [isPlainTextMode, setIsPlainTextMode] = React.useState(false);
@@ -368,6 +373,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       attributes: {
         class: 'drafta-editor max-w-none focus:outline-hidden min-h-[calc(100vh-150px)]',
       },
+      // The title row stays at the top, so the caret is kept clear of it when it is scrolled into view.
+      scrollMargin: { top: 64, bottom: 8, left: 5, right: 5 },
       clipboardTextSerializer: (slice, view) => {
         try {
           const schema = view.state.schema;
@@ -902,6 +909,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
       }}>
         <div className="editor-toolbar border-b bg-background px-2 py-1">
           <div className="editor-tools">
+            {toolbarStart}
             <div className="editor-tools-content">
           <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label={t.findInMemo} onClick={() => setFindOpen(open => !open)}><Search /></Button></TooltipTrigger><TooltipContent>{t.findInMemo}</TooltipContent></Tooltip>
           <Tooltip>
@@ -1047,8 +1055,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <Separator orientation="vertical" className="h-6 mx-2" />
 
             </div>
-            <Button className="editor-palette-toggle" variant="ghost" size="icon" aria-label={t.colorPalette} title={t.colorPalette} aria-expanded={paletteOpen} aria-controls={paletteId} onClick={() => setPaletteOpen(open => !open)}><Menu /></Button>
-            {memoActions}
+            <Button className="editor-palette-toggle" variant="ghost" size="icon" aria-label={t.colorPalette} title={t.colorPalette} aria-expanded={paletteOpen} aria-controls={paletteId} onClick={() => setPaletteOpen(open => !open)}><Palette /></Button>
+            {(toolbarEnd || memoActions) && <div className="editor-toolbar-end">{toolbarEnd}{memoActions}</div>}
           <div id={paletteId} className="editor-palette" hidden={!paletteOpen}>
             {/* Drawn when shown: every memo opens with the palette closed (0.8.5). */}
             {paletteOpen && colors.map(color => {

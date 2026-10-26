@@ -14,9 +14,11 @@ interface EditorProps {
   scrollDirection?: 'top' | 'bottom';
   onDuplicate?: () => void;
   memoActions?: React.ReactNode;
+  toolbarStart?: React.ReactNode;
+  toolbarEnd?: React.ReactNode;
 }
 
-const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, onDuplicate, externalRevision, continuityKey, memoActions }) => {
+const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrollDirection, onDuplicate, externalRevision, continuityKey, memoActions, toolbarStart, toolbarEnd }) => {
 
   const handleContentUpdate = React.useCallback((updates: Partial<Note>, noteId: string) => {
     onNoteUpdate(updates, noteId);
@@ -38,6 +40,8 @@ const Editor: React.FC<EditorProps> = ({ note, onNoteUpdate, onIconChange, scrol
         scrollDirection={scrollDirection}
         onDuplicate={onDuplicate}
         memoActions={memoActions}
+        toolbarStart={toolbarStart}
+        toolbarEnd={toolbarEnd}
       />
     </div>
   );
