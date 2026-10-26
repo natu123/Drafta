@@ -26,10 +26,10 @@
    on tablets and PCs Tabs and the recent memos come just before them (Web Layout). */
 .editor-memo-actions { display: flex; gap: 2px; }
 .editor-toolbar-end { display: flex; align-items: center; gap: 2px; margin-inline-start: auto; }
-/* Delete stands apart by a little gap on PCs; on phones it sits right before history, search and pin at
-   the end of the top row (2026-10-26, Gles's choice after comparing; the one-button gap of 0.11.5 looked
-   out of place). */
-.editor-toolbar-end .memo-delete { margin-inline-end: 20px; }
+/* Delete sits right before history, search and pin: on PCs after a little gap from Plain/Rich and Remove
+   formatting, on phones at the end of the top row (2026-10-26, Gles's choice after comparing; the
+   one-button gap of 0.11.5 looked out of place). */
+.editor-toolbar-end .memo-delete { margin-inline-start: 20px; }
 @media (max-width: 767px) {
   .editor-toolbar-end { order: -1; flex-basis: 100%; }
   .editor-toolbar-end .editor-memo-actions { margin-inline-start: auto; }
