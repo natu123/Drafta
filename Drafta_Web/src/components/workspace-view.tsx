@@ -72,6 +72,7 @@ import { a11yCopy, withName } from '@/lib/a11y-copy';
 import { DEFAULT_LIST_STYLE, initialSampleOrder, forListStyle } from '@/lib/list-style';
 import { readViewState, restoreView, writeViewState } from '@/lib/view-state';
 import { ALL_MEMOS, allMemos, defaultTray, trayForNewMemos } from '@/lib/all-memos';
+import { isHomeScreenApp, onResume, refreshScrollAreas } from '@/lib/scroll-refresh';
 import { TrayPicker } from '@/components/tray-picker';
 
 
@@ -873,9 +874,9 @@ const HomeSection: React.FC<HomeSectionProps> = ({
                 {/* Note: min-h-[44px]はSortableNoteItemの元カードと高さを揃えるため必要
                     左カラム(SortableGroupItem)は単純な1行構造のため高さ指定不要 */}
                 <DragOverlay modifiers={[restrictToVerticalAxis]}>
-                  {/* A separator keeps its line while dragged instead of turning into an untitled memo. */}
+                  {/* A separator keeps its dotted line while dragged (no card), in the primary color while held. */}
                   {activeDragItem?.type === 'separator' ? (
-                    <div className="flex h-9 items-center rounded-md border-2 border-primary bg-card px-3 opacity-90 shadow-2xl"><div className="h-px flex-1 bg-border" /></div>
+                    <div className="flex h-10 items-center px-8"><div className="h-px flex-1 border-b-2 border-dotted border-primary" /></div>
                   ) : activeDragItem && (
                     <div className="opacity-90 shadow-2xl rounded-lg border-2 border-primary bg-card p-2">
                       <div className="flex items-center gap-2 min-h-[44px]">
@@ -1071,6 +1072,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   // always shows the panes (AGENTS.md, Mobile Layout). Elsewhere 'editor' is the focus view (Web Layout).
   const isPhone = layoutMode === 'mobile';
   const view = isPhone ? 'home' : activeView;
+  // Back from the background, the iPhone's home-screen app could leave a list that did not scroll
+  // until it was hidden and shown again; its scroll areas are made anew instead (AGENTS.md, Mobile Layout).
+  React.useEffect(() => isPhone && isHomeScreenApp() ? onResume(() => refreshScrollAreas()) : undefined, [isPhone]);
   React.useEffect(() => {
     if (viewKey) writeViewState(viewKey, { groupId: activeGroupId, noteId: activeTabId, tabIds: openTabs.map(tab => tab.id), pane: mobilePane, addTrayId: allMemosTrayId });
   }, [viewKey, activeGroupId, activeTabId, openTabs, mobilePane, allMemosTrayId]);
@@ -1721,7 +1725,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                     </div>
                     {groupOverlayContainer && createPortal(<DragOverlay>
                       {activeDragGroup?.type === 'separator' ? (
-                        <div className="flex h-full w-full items-center rounded-md border-2 border-primary bg-card px-3 opacity-90 shadow-2xl"><div className="h-px flex-1 bg-border" /></div>
+                        <div className="flex h-full w-full items-center pl-2 pr-8"><div className="h-px flex-1 border-b-2 border-dotted border-primary" /></div>
                       ) : activeDragGroup && (
                         <div
                           className="opacity-90 shadow-2xl border-2 border-primary bg-card rounded-md flex items-center justify-start gap-2 h-full w-full px-4"

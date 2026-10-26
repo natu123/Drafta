@@ -223,6 +223,14 @@
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .app-shell.has-mobile-nav { padding-bottom: 0; }
+/* The app's own frame does not bounce: on the iPhone a swipe that the list did not take moved the
+   whole screen instead (2026-10-26, Gles's report). The lists keep their own scrolling and bounce. */
+html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
+/* In the iPhone's home-screen app the system blurs the top edge under the status bar, more toward
+   the top, and the editor's first toolbar row sat in it (2026-10-26, Gles's report): a little more room. */
+@media (display-mode: standalone) and (max-width: 767px) {
+  .app-shell { padding-top: calc(env(safe-area-inset-top) + 12px); }
+}
 .mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
 .mobile-nav-item {
   display: flex;

@@ -440,16 +440,24 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   React.useEffect(() => {
     if (previousExternalRevision.current !== externalRevision) return;
     // Use setTimeout to ensure content is rendered
+    let frame = 0;
     const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        if (scrollDirection === 'bottom') {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-        } else {
-          scrollContainerRef.current.scrollTop = 0;
-        }
-      }
+      const box = scrollContainerRef.current;
+      if (!box) return;
+      if (scrollDirection !== 'bottom') { box.scrollTop = 0; return; }
+      // The end of the text, not of the empty space kept below it for taps: a memo that fits stays
+      // at its title (on phones the space made even short memos open below the title, 2026-10-26).
+      // A phone shows the editor pane as the memo opens, so wait a few frames for it to have a size.
+      let tries = 0;
+      const toEnd = () => {
+        const last = box.querySelector('.ProseMirror')?.lastElementChild?.getBoundingClientRect();
+        if ((!box.clientHeight || !last?.height) && ++tries < 10) { frame = requestAnimationFrame(toEnd); return; }
+        const end = last ? last.bottom - box.getBoundingClientRect().top + box.scrollTop + 16 : box.scrollHeight;
+        box.scrollTop = Math.max(0, end - box.clientHeight);
+      };
+      toEnd();
     }, 50);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); cancelAnimationFrame(frame); };
   }, [scrollDirection, note.id, externalRevision]);
 
   // Sync external note changes (switching notes)
@@ -1099,7 +1107,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 cursor-text"
+          className="editor-scroll flex-1 overflow-y-auto px-4 cursor-text"
           onMouseDown={(e) => {
             // Clicks land where they point. The scrollbar belongs to the browser; ProseMirror
             // resolves its own area (gaps between blocks) to the nearest position. Only the space
