@@ -4,7 +4,7 @@ import { DOMSerializer, DOMParser, Node as ProseMirrorNode } from '@tiptap/pm/mo
 import { TextSelection } from '@tiptap/pm/state';
 
 import * as React from 'react';
-import { useEditor, Editor } from '@tiptap/react';
+import { useEditor, useEditorState, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Undo, Redo, Bold, Italic, Strikethrough, Code, Pilcrow, List, ListChecks, ListOrdered, Minus, FileText, Type, Search, Palette, Copy } from 'lucide-react';
 import { NoteSearch } from './tiptap-extensions/note-search';
@@ -499,7 +499,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   // Insert NEW ordered list (startFrom=1 で新規リスト)
   // toggleOrderedList は隣接リストをマージするので、直接ノードを操作
   const insertOrderedList = React.useCallback(() => {
-    if (!editor) return;
+    if (!editor || editor.state.selection.$from.parent.type.name === 'title') return;
 
     const isCurrentlyOL = editor.isActive('orderedList');
     const isCurrentlyUL = editor.isActive('bulletList');
@@ -545,7 +545,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   // Continue ordered list - 前のリストの続きの番号で開始
   // 作成時に前のリストを検索し、startFrom を計算して固定
   const continueOrderedList = React.useCallback(() => {
-    if (!editor) return;
+    if (!editor || editor.state.selection.$from.parent.type.name === 'title') return;
 
     const isCurrentlyOL = editor.isActive('orderedList');
     const isCurrentlyUL = editor.isActive('bulletList');
@@ -621,6 +621,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
   // Remove ordered list (convert to paragraphs)
   // Renumbering is automatically handled by onUpdate -> renumberAllOrderedLists
+  // The toolbar is not drawn again on every transaction; it only needs to know when the caret enters or leaves the title.
+  const caretInTitle = useEditorState({ editor, selector: ({ editor: current }) => current?.state.selection.$from.parent.type.name === 'title' }) ?? false;
+
   const removeOrderedList = React.useCallback(() => {
     if (!editor) return;
     editor.chain().focus().toggleOrderedList().run();
@@ -629,6 +632,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
   if (!editor) {
     return null;
   }
+  const blockLocked = readOnly || isPlainTextMode || caretInTitle;
+  const findButton = <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label={t.findInMemo} onClick={() => setFindOpen(open => !open)}><Search /></Button></TooltipTrigger><TooltipContent>{t.findInMemo}</TooltipContent></Tooltip>;
 
   const handleSetColor = (color: string) => {
     // Black (#000000) and White (#FFFFFF) are default colors - remove color formatting instead of setting it
@@ -911,7 +916,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           <div className="editor-tools">
             {toolbarStart}
             <div className="editor-tools-content">
-          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label={t.findInMemo} onClick={() => setFindOpen(open => !open)}><Search /></Button></TooltipTrigger><TooltipContent>{t.findInMemo}</TooltipContent></Tooltip>
           <Tooltip>
             {/* Logic unchanged */}
             <TooltipTrigger asChild>
@@ -933,7 +937,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
           {/* List buttons ... */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.addSeparator} onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={readOnly || isPlainTextMode}>
+              <Button variant="ghost" size="icon" aria-label={t.addSeparator} onClick={() => editor.chain().focus().setHorizontalRule().run()} disabled={blockLocked}>
                 <Minus />
               </Button>
             </TooltipTrigger>
@@ -942,19 +946,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={readOnly || isPlainTextMode}>
+              <Button variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={blockLocked}>
                 <List />
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>{t.bulletList}</p></TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.checkboxList} onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={readOnly || isPlainTextMode}>
-                <ListChecks />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>{t.checkboxList}</p></TooltipContent>
           </Tooltip>
           {/* Ordered List: 前にリストがあればPopover、なければ直接作成 */}
           {editor.isActive('orderedList') ? (
@@ -965,7 +961,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   size="icon"
                   aria-label={t.removeNumberedList}
                   onClick={removeOrderedList}
-                  disabled={readOnly || isPlainTextMode}
+                  disabled={blockLocked}
                 >
                   <ListOrdered />
                 </Button>
@@ -981,7 +977,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                       variant="ghost"
                       size="icon"
                       aria-label={t.numberedList}
-                      disabled={readOnly || isPlainTextMode}
+                      disabled={blockLocked}
                     >
                       <ListOrdered />
                     </Button>
@@ -1022,7 +1018,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
                   size="icon"
                   aria-label={t.numberedList}
                   onClick={insertOrderedList}
-                  disabled={readOnly || isPlainTextMode}
+                  disabled={blockLocked}
                 >
                   <ListOrdered />
                 </Button>
@@ -1030,8 +1026,21 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
               <TooltipContent><p>{t.numberedList}</p></TooltipContent>
             </Tooltip>
           )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant={editor.isActive('taskList') ? 'secondary' : 'ghost'} size="icon" aria-label={t.checkboxList} onClick={() => editor.chain().focus().toggleTaskList().run()} disabled={blockLocked}>
+                <ListChecks />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{t.checkboxList}</p></TooltipContent>
+          </Tooltip>
 
-          <Separator orientation="vertical" className="h-6 mx-2" />
+
+            </div>
+            <Button className="editor-palette-toggle" variant="ghost" size="icon" aria-label={t.colorPalette} title={t.colorPalette} aria-expanded={paletteOpen} aria-controls={paletteId} onClick={() => setPaletteOpen(open => !open)}><Palette /></Button>
+            {/* Right: Plain/Rich, Remove formatting, then delete, history, search and pin, then Tabs on
+                tablets and PCs; on phones this group is the first row (AGENTS.md, Editor Layout). */}
+            <div className="editor-toolbar-end">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={isPlainTextMode ? t.toRichText : t.toPlainText} onClick={handleTogglePlainTextMode}>
@@ -1052,11 +1061,9 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             </TooltipTrigger>
             <TooltipContent><p>{t.removeFormatting}</p></TooltipContent>
           </Tooltip>
-          <Separator orientation="vertical" className="h-6 mx-2" />
-
+              {React.isValidElement<{ search?: React.ReactNode }>(memoActions) ? React.cloneElement(memoActions, { search: findButton }) : <div className="editor-memo-actions">{findButton}</div>}
+              {toolbarEnd}
             </div>
-            <Button className="editor-palette-toggle" variant="ghost" size="icon" aria-label={t.colorPalette} title={t.colorPalette} aria-expanded={paletteOpen} aria-controls={paletteId} onClick={() => setPaletteOpen(open => !open)}><Palette /></Button>
-            {(toolbarEnd || memoActions) && <div className="editor-toolbar-end">{toolbarEnd}{memoActions}</div>}
           <div id={paletteId} className="editor-palette" hidden={!paletteOpen}>
             {/* Drawn when shown: every memo opens with the palette closed (0.8.5). */}
             {paletteOpen && colors.map(color => {

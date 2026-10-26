@@ -26,6 +26,15 @@
    on tablets and PCs Tabs and the recent memos come just before them (Web Layout). */
 .editor-memo-actions { display: flex; gap: 2px; }
 .editor-toolbar-end { display: flex; align-items: center; gap: 2px; margin-inline-start: auto; }
+/* Delete and history stand apart: a little gap on PCs, the middle of the top row on phones (2026-10-26, Gles's request). */
+.memo-delete-group { display: flex; gap: 2px; }
+.editor-toolbar-end .memo-delete-group { margin-inline-end: 20px; }
+@media (max-width: 767px) {
+  .editor-toolbar-end { order: -1; flex-basis: 100%; }
+  .editor-toolbar-end .editor-memo-actions { margin-inline-start: auto; }
+  .editor-toolbar-end .memo-delete-group { margin-inline: auto; }
+  .editor-toolbar-end .memo-delete-group + .editor-memo-actions { margin-inline-start: 0; }
+}
 .editor-tools .editor-tabs-button { flex: 0 0 auto; width: auto; padding: 0 8px; }
 /* The title is a one-line row stuck above the body, the memo icon at its start (AGENTS.md, Editor
    Layout, 2026-10-26). The icon's holder has no height of its own and sticks with the row. */

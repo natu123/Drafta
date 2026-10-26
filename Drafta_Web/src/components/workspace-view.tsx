@@ -47,7 +47,7 @@ import { LanguageMenu } from '@/components/header';
 import { AppBar } from '@/components/app-bar';
 import { EditorTabs, FocusToggle } from '@/components/editor-tabs';
 import { emojis } from '@/components/editor-options';
-import type { Note, Group, HistoryItem, OpenTab } from '@/lib/types';
+import type { Note, Group, OpenTab } from '@/lib/types';
 import { notes as initialNotes, groups as initialGroups } from '@/lib/data';
 import { localizeSampleNote, applySampleEdit, isEditLockedSample, duplicateSampleForEdit } from '@/lib/sample-notes';
 import { sampleLockCopy } from '@/lib/sample-lock-copy';
@@ -1208,7 +1208,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
 
 
-  const [history, setHistory] = React.useState<HistoryItem[]>([]);
 
   // Group DnD State (dnd-kit)
   const [activeDragGroupId, setActiveDragGroupId] = React.useState<string | null>(null);
@@ -1285,19 +1284,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
 
 
 
-  const addToHistory = React.useCallback((item: Note) => {
-    setHistory(prev => {
-      const newHistory: HistoryItem = {
-        id: item.id,
-        type: 'note',
-        title: item.title,
-        icon: item.icon,
-        accessedAt: new Date().toISOString(),
-      };
-      const filtered = prev.filter(h => h.id !== item.id);
-      return [newHistory, ...filtered].slice(0, 15);
-    });
-  }, []);
 
   // The editor names its memo, since a delayed write can arrive after switching memos.
   const handleNoteUpdate = React.useCallback((updatedNote: Partial<Note> & { content?: string }, noteId: string | null = activeTabId) => {
@@ -1418,10 +1404,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     const note = notes.find(n => n.id === id);
     if (note) {
       openTab(id, 'note'); // Ensure tab opens
-      addToHistory(note);
       if (layoutMode === 'mobile') setMobilePane('editor');
     }
-  }, [notes, layoutMode, openTab, addToHistory]);
+  }, [notes, layoutMode, openTab]);
 
   const handleGroupSelect = React.useCallback((id: string) => {
     setActiveGroupId(id);
@@ -1819,11 +1804,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                   activeTabId={activeTabId}
                   onOpenTab={id => openTab(id, 'note')}
                   onCloseTab={closeTab}
-                  history={history.map(item => {
-                    const currentNote = notes.find(note => note.id === item.id);
-                    return currentNote ? { ...item, title: currentNote.title } : item;
-                  })}
-                  onHistorySelect={handleNoteSelect}
                 />}
                 memoActions={activeNote.type !== 'separator' && <MemoActions
                   isPinned={Boolean(activeNote.isPinned)}

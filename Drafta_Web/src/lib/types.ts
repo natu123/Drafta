@@ -30,14 +30,6 @@ export type Group = {
   isDeleted?: boolean;
 };
 
-export type HistoryItem = {
-  id: string;
-  type: 'note';
-  title: string;
-  icon?: string;
-  accessedAt: string;
-}
-
 export type OpenTab = {
   id: string;
   type: 'note';
