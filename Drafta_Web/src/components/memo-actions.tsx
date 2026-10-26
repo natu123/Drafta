@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 /**
  * Delete, history, search and pin for the open memo, in that order, on the right of the editor's
  * toolbar (AGENTS.md, Editor Layout; Gles's order of 2026-10-26). The editor hands in its search button.
- * Delete and history stand apart from search and pin: a gap after them on PCs, the middle of the top
- * row on phones (Gles's choice of 2026-10-26).
+ * Delete stands apart from history, search and pin: a gap after it on PCs; on phones one button's
+ * width left of them, clear of the list buttons below (Gles's choices of 2026-10-26).
  */
 export function MemoActions({ isPinned, onTogglePin, historyAction, onDelete, search }: {
   isPinned: boolean;
@@ -26,18 +26,16 @@ export function MemoActions({ isPinned, onTogglePin, historyAction, onDelete, se
   if (!onTogglePin && !historyAction && !onDelete && !search) return null;
   return (
     <>
-      {(onDelete || historyAction) && <div role="group" aria-label={mobileCopy[lang].memoActions} className="memo-delete-group">
-        {onDelete && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
-            </TooltipTrigger>
-            <TooltipContent>{t.delete}</TooltipContent>
-          </Tooltip>
-        )}
-        {historyAction}
-      </div>}
-    <div className="editor-memo-actions">
+      {onDelete && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="memo-delete" aria-label={t.delete} onClick={onDelete}><Trash2 /></Button>
+          </TooltipTrigger>
+          <TooltipContent>{t.delete}</TooltipContent>
+        </Tooltip>
+      )}
+    <div role="group" aria-label={mobileCopy[lang].memoActions} className="editor-memo-actions">
+      {historyAction}
       {search}
       {onTogglePin && (
         <Tooltip>
