@@ -7,7 +7,7 @@ export const titleRowKey = new PluginKey<boolean>('draftaTitleRow');
 /**
  * The title is a row stuck above the body (AGENTS.md, Editor Layout). It shows in full by default
  * (a very long one up to five lines), is cut to one line with "…" while the body is being written,
- * and shows all of itself while the caret is in it. This marks the two focused states: .is-editing
+ * and while the caret is in it scrolls inside the same five lines. This marks the two focused states: .is-editing
  * with the caret in the title, .is-body with the caret anywhere else (2026-10-26, Gles's request).
  */
 export const TitleRow = Extension.create({

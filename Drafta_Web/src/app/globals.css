@@ -459,7 +459,8 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
 /* Title H1 (first child): the title row stuck above the body (AGENTS.md, Editor Layout). It runs edge
    to edge over the scroller's 16px side padding and shows in full by default, a very long one up to
    five lines; while the body is being written it is one line cut off with an ellipsis (.is-body), and
-   with the caret in it all of it shows, up to half the screen (.is-editing; TitleRow marks both). */
+   with the caret in it the same five lines scroll inside the row (.is-editing; TitleRow marks both).
+   Lines, not a share of the screen: on the iPhone the keyboard covered half-screen titles (2026-10-27). */
 .ProseMirror.drafta-editor > h1:first-child {
     @apply text-lg font-bold;
     position: sticky;
@@ -487,7 +488,7 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     text-overflow: ellipsis;
 }
 .ProseMirror.drafta-editor > h1:first-child.is-editing {
-    max-height: 50dvh;
+    max-height: calc(5 * 1.75rem + 1rem + 1px);
     overflow-y: auto;
 }
 
