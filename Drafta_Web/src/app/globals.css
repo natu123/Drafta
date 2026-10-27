@@ -485,12 +485,9 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     -webkit-line-clamp: 5;
     overflow: hidden;
 }
+/* One line by the same clamp as the five: nowrap with text-overflow lost its ellipsis after the title was edited (2026-10-27). */
 .ProseMirror.drafta-editor > h1:first-child.is-body:not(.is-editing) {
-    display: block;
-    -webkit-line-clamp: unset;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    -webkit-line-clamp: 1;
 }
 .ProseMirror.drafta-editor > h1:first-child.is-editing {
     max-height: calc(5 * 1.75rem + 1rem);
