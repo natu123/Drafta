@@ -1,5 +1,5 @@
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey, Selection, TextSelection, type EditorState } from '@tiptap/pm/state';
+import { AllSelection, Plugin, PluginKey, TextSelection, type EditorState } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 export const titleRowKey = new PluginKey<boolean>('draftaTitleRow');
@@ -22,8 +22,8 @@ const LINE_PACE = 150;
  * handles don't scroll the row, and lines hidden in it showed their selection over the body (2026-10-27).
  * On touch screens the row scrolls one line at a steady pace (all at once, then one line per change, it
  * raced to the end). A selection stays on the side of the title line it was on: a quick swipe ran it
- * into the body (Gles's idea), and on PCs a drag did the same (Gles's request). Selecting the whole memo
- * still works.
+ * into the body (Gles's idea), and on PCs a drag did the same (Gles's request). Select all (Ctrl+A, the
+ * iPhone's menu) selects only the side the caret is on, every time (Gles's choice).
  */
 export const TitleRow = Extension.create({
   name: 'draftaTitleRow',
@@ -68,13 +68,13 @@ export const TitleRow = Extension.create({
       },
       appendTransaction: (transactions, previous, state) => {
         const title = state.doc.firstChild, { selection } = state;
-        if (!transactions.some(tr => tr.selectionSet) || title?.type.name !== 'title' || !(selection instanceof TextSelection)) return null;
+        if (!transactions.some(tr => tr.selectionSet) || title?.type.name !== 'title' || !(selection instanceof TextSelection || selection instanceof AllSelection)) return null;
         const end = title.nodeSize - 1;
         const doc = state.doc, was = previous.selection;
-        if ((selection.from <= end) === (selection.to <= end) || (selection.from <= 1 && selection.to >= Selection.atEnd(doc).to)) return null;
+        if ((selection.from <= end) === (selection.to <= end)) return null;
         const inTitle = was.to <= end || (was.from > end ? false : selection.anchor <= end);
         return state.tr.setSelection(inTitle
-          ? TextSelection.between(doc.resolve(selection.from), doc.resolve(end), -1)
+          ? TextSelection.between(doc.resolve(Math.max(selection.from, 1)), doc.resolve(end), -1)
           : TextSelection.between(doc.resolve(selection.to), doc.resolve(title.nodeSize), 1));
       },
       props: {

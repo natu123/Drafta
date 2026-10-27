@@ -1141,7 +1141,19 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ note, onNoteUpdate, onIconC
             const doc = editor.view.dom.getBoundingClientRect();
             const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low + 1), high - 1);
             const hit = belowContent ? null : editor.view.posAtCoords({ left: clamp(e.clientX, doc.left, doc.right), top: clamp(e.clientY, doc.top, doc.bottom) });
-            editor.chain().setTextSelection(hit?.pos ?? editor.state.doc.content.size).focus(null, { scrollIntoView: false }).run();
+            const anchor = hit?.pos ?? editor.state.doc.content.size;
+            editor.chain().setTextSelection(anchor).focus(null, { scrollIntoView: false }).run();
+            // Holding the button and moving still selects: without the default the browser does
+            // not, so a drag from the side padding selected nothing (2026-10-27, Gles's report).
+            const { view } = editor;
+            const move = (event: MouseEvent) => {
+              const area = view.dom.getBoundingClientRect();
+              const head = view.posAtCoords({ left: clamp(event.clientX, area.left, area.right), top: clamp(event.clientY, area.top, area.bottom) });
+              if (head && !view.isDestroyed) view.dispatch(view.state.tr.setSelection(TextSelection.between(view.state.doc.resolve(anchor), view.state.doc.resolve(head.pos))));
+            };
+            const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', up);
           }}
         >
           {onDuplicate && isEditLockedSample(note) && !note.isDeleted && (
