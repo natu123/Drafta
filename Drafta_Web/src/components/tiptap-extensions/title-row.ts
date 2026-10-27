@@ -9,6 +9,8 @@ const isEditing = (state: EditorState) => {
   return !!titleRowKey.getState(state) && title?.type.name === 'title' && state.selection.$from.parent === title;
 };
 const touch = () => !!window.matchMedia?.('(pointer: coarse)').matches;
+/** On touch screens the row scrolls one line per this many milliseconds while a selection end is hidden. */
+const LINE_PACE = 250;
 
 /**
  * The title is a row stuck above the body (AGENTS.md, Editor Layout). It shows in full by default
@@ -17,9 +19,10 @@ const touch = () => !!window.matchMedia?.('(pointer: coarse)').matches;
  * with the caret in the title, .is-body with the caret anywhere else (2026-10-26, Gles's request).
  * While a selection changes in it, the row scrolls to the end that moved: the iPhone's selection
  * handles don't scroll the row, and lines hidden in it showed their selection over the body (2026-10-27).
- * On touch screens the row scrolls one line per change (all at once it raced to the end), and a
- * selection stays on the side of the title line it was on: a quick swipe ran it into the body (Gles's idea).
- * Selecting the whole memo still works.
+ * On touch screens the row scrolls one line at a steady pace (all at once, then one line per change, it
+ * raced to the end). A selection stays on the side of the title line it was on: a quick swipe ran it
+ * into the body (Gles's idea), and on PCs a drag did the same (Gles's request). Selecting the whole memo
+ * still works.
  */
 export const TitleRow = Extension.create({
   name: 'draftaTitleRow',
@@ -30,27 +33,41 @@ export const TitleRow = Extension.create({
         init: () => false,
         apply: (tr, focused) => tr.getMeta(titleRowKey) ?? focused,
       },
-      view: () => ({
-        update: (view, previous) => {
+      view: view => {
+        let side: 'from' | 'to' = 'to', last = 0, timer = 0;
+        const follow = () => {
+          timer = 0;
           const { selection } = view.state;
-          if (!isEditing(view.state) || previous.selection.eq(selection)) return;
-          const row = view.dom.firstElementChild;
-          if (!row || row.scrollHeight <= row.clientHeight) return;
-          const pos = selection.to !== previous.selection.to ? selection.to : selection.from;
+          const row = view.dom.firstElementChild, pos = selection[side];
+          if (!isEditing(view.state) || !row || row.scrollHeight <= row.clientHeight) return;
           if (pos < 1 || pos >= view.state.doc.firstChild!.nodeSize) return;
-          const caret = view.coordsAtPos(pos, pos === selection.from && !selection.empty ? 1 : -1);
-          const box = row.getBoundingClientRect(), style = getComputedStyle(row);
+          const caret = view.coordsAtPos(pos, side === 'from' && !selection.empty ? 1 : -1);
+          const box = row.getBoundingClientRect(), style = getComputedStyle(row), line = parseFloat(style.lineHeight);
           const top = box.top + parseFloat(style.borderTopWidth), bottom = box.bottom - parseFloat(style.borderBottomWidth);
           // coordsAtPos gives the glyphs; widen them to the whole line so lines show in full.
-          const leading = Math.max(0, (parseFloat(style.lineHeight) - (caret.bottom - caret.top)) / 2);
-          const step = touch() ? parseFloat(style.lineHeight) : Infinity;
-          if (caret.bottom + leading > bottom) row.scrollTop += Math.min(step, caret.bottom + leading - bottom);
-          else if (caret.top - leading < top) row.scrollTop -= Math.min(step, top - (caret.top - leading));
-        },
-      }),
+          const leading = Math.max(0, (line - (caret.bottom - caret.top)) / 2);
+          const move = caret.bottom + leading > bottom ? caret.bottom + leading - bottom : caret.top - leading < top ? caret.top - leading - top : 0;
+          if (!move) return;
+          if (!touch()) { row.scrollTop += move; return; }
+          const wait = last + LINE_PACE - Date.now();
+          if (wait > 0) { timer ||= window.setTimeout(follow, wait); return; }
+          last = Date.now();
+          row.scrollTop += Math.sign(move) * Math.min(line, Math.abs(move));
+          if (Math.abs(move) > line) timer = window.setTimeout(follow, LINE_PACE);
+        };
+        return {
+          update: (_, previous) => {
+            const { selection } = view.state;
+            if (!isEditing(view.state) || previous.selection.eq(selection)) return;
+            side = selection.to !== previous.selection.to ? 'to' : 'from';
+            follow();
+          },
+          destroy: () => window.clearTimeout(timer),
+        };
+      },
       appendTransaction: (transactions, previous, state) => {
         const title = state.doc.firstChild, { selection } = state;
-        if (!transactions.some(tr => tr.selectionSet) || title?.type.name !== 'title' || !(selection instanceof TextSelection) || !touch()) return null;
+        if (!transactions.some(tr => tr.selectionSet) || title?.type.name !== 'title' || !(selection instanceof TextSelection)) return null;
         const end = title.nodeSize - 1;
         const doc = state.doc, was = previous.selection;
         if ((selection.from <= end) === (selection.to <= end) || (selection.from <= 1 && selection.to >= Selection.atEnd(doc).to)) return null;
