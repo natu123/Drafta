@@ -9,8 +9,9 @@ const isEditing = (state: EditorState) => {
   return !!titleRowKey.getState(state) && title?.type.name === 'title' && state.selection.$from.parent === title;
 };
 const touch = () => !!window.matchMedia?.('(pointer: coarse)').matches;
-/** On touch screens the row scrolls one line per this many milliseconds while a selection end is hidden. */
-const LINE_PACE = 250;
+/** On touch screens the row scrolls one line per this many milliseconds while a selection end is hidden
+ * (250 was a little slow, 2026-10-27). */
+const LINE_PACE = 150;
 
 /**
  * The title is a row stuck above the body (AGENTS.md, Editor Layout). It shows in full by default
