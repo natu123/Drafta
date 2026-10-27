@@ -467,10 +467,12 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     top: 0;
     z-index: 2;
     margin: 0 -16px 0.75rem;
-    padding: 0.5rem 16px 0 60px;
+    padding: 0 16px 0 60px;
     line-height: 1.75rem;
     background: hsl(var(--background));
-    /* The space below the text is a border, not padding: overflow is cut at the padding edge, so a sixth line peeked into padding (2026-10-27). */
+    /* The space above and below the text is a border, not padding: overflow is cut at the padding edge, so a
+       sixth line peeked into padding, and so did the line above while the row was scrolled (2026-10-27). */
+    border-top: 0.5rem solid hsl(var(--background));
     border-bottom: 0.5rem solid hsl(var(--background));
     box-shadow: 0 1px 0 hsl(var(--border));
     white-space: pre-wrap;
