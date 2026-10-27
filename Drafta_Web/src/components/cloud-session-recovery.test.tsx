@@ -79,7 +79,7 @@ describe('account-scoped interrupted edits', () => {
   it('retains the held edits after server loading fails during reauthentication', async () => {
     await click('Edit'); await auth(null); mocks.load.mockRejectedValueOnce(new Error('offline'));
     await auth('alice'); expect(container.querySelector('[data-theme]')).toBeNull();
-    await click('Retry'); expect(container.querySelector('[data-theme]')?.textContent).toBe('dark');
+    await click('Sync now'); expect(container.querySelector('[data-theme]')?.textContent).toBe('dark');
   });
   it('merges a server change with the held local edit rather than overwriting it', async () => {
     await click('Edit'); await auth(null);

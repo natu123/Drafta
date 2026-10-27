@@ -3,6 +3,16 @@ import { isValidatedBackup, type WorkspaceBackup } from './workspace-backup';
 import type { WorkspaceMerge } from './workspace-merge';
 
 export type QueueStatus = 'pending' | 'saving' | 'saved' | 'error' | 'conflict';
+/**
+ * A save that neither finishes nor fails within this time counts as failed. After a sleep or a network
+ * change a transaction could hang, and every later edit and retry waited behind it, showing "unsaved
+ * changes" with no way out (2026-10-27, Gles's report). If the abandoned save commits later, the next
+ * save meets a newer revision and goes through the ordinary conflict merge.
+ */
+export const SAVE_TIMEOUT_MS = 20_000;
+export class SaveTimeoutError extends Error {
+  constructor() { super('The save did not finish in time.'); this.name = 'SaveTimeoutError'; }
+}
 type Save = (value: WorkspaceBackup, base: SavedWorkspace | null) => Promise<SavedWorkspace>;
 export type QueueSync = {
   /** Brings edits still held by the UI into the queue before a merge reads them. */
@@ -23,6 +33,8 @@ export class WorkspaceSaveQueue {
   private failures = 0;
   private state: QueueStatus;
   private deferredRemote: SavedWorkspace | null = null;
+  /** Gives up the save in progress, so an explicit retry does not wait for a hung one. */
+  private interrupt: (() => void) | null = null;
 
   constructor(private base: SavedWorkspace | null, private save: Save, private report: (status: QueueStatus) => void, private sync?: QueueSync) {
     this.state = base ? 'saved' : 'pending';
@@ -96,7 +108,7 @@ export class WorkspaceSaveQueue {
       this.pending = null;
       this.emit('saving');
       try {
-        const saved = await this.save(value, this.base);
+        const saved = await this.attempt(value);
         if (this.disposed) return;
         this.base = saved;
         this.failures = 0;
@@ -121,10 +133,22 @@ export class WorkspaceSaveQueue {
     }
     if (!this.disposed && !this.pending) this.emit('saved');
   }
+  private attempt(value: WorkspaceBackup) {
+    return new Promise<SavedWorkspace>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new SaveTimeoutError()), SAVE_TIMEOUT_MS);
+      this.interrupt = () => { clearTimeout(timer); reject(new SaveTimeoutError()); };
+      this.save(value, this.base).then(saved => { clearTimeout(timer); resolve(saved); }, error => { clearTimeout(timer); reject(error); });
+    }).finally(() => { this.interrupt = null; });
+  }
   retry() {
     if (this.disposed || this.state === 'conflict') return Promise.resolve();
     this.stopped = false;
     this.failures = 0;
+    const running = this.running;
+    if (running && this.interrupt) {
+      this.interrupt();
+      return running.then(() => { this.failures = 0; return this.flush(); });
+    }
     return this.flush();
   }
   dispose() {

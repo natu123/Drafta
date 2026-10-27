@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WorkspaceSaveQueue } from './workspace-save-queue';
+import { SAVE_TIMEOUT_MS, WorkspaceSaveQueue } from './workspace-save-queue';
 import { WorkspaceConflictError, type SavedWorkspace } from './cloud-workspace';
 import { snapshotWorkspace, type WorkspaceBackup } from './workspace-backup';
 import { notes, groups } from './data';
@@ -181,5 +181,33 @@ describe('workspace autosave queue', () => {
     queue.enqueue(value()); const flushing = queue.flush(); queue.enqueue(value()); queue.dispose(); report.mockClear();
     resolve(saved(value())); await flushing;
     expect(report).not.toHaveBeenCalled(); expect(save).toHaveBeenCalledTimes(1);
+  });
+  it('gives up a save that hangs and saves the newest edit on the next try', async () => {
+    vi.useFakeTimers();
+    const base = saved(value(), 3);
+    const save = vi.fn((input: WorkspaceBackup): Promise<SavedWorkspace> => save.mock.calls.length === 1 ? new Promise(() => {}) : Promise.resolve(saved(input, 4)));
+    const statuses: string[] = [];
+    const queue = new WorkspaceSaveQueue(base, save, status => statuses.push(status));
+    queue.enqueue(value(), true);
+    const latest = value(); latest.settings.language = 'ja'; queue.enqueue(latest);
+    expect(queue.status).toBe('pending');
+    await vi.advanceTimersByTimeAsync(SAVE_TIMEOUT_MS);
+    expect(statuses).toContain('error');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(save.mock.calls[1]).toEqual([latest, base]);
+    expect(queue.status).toBe('saved'); expect(queue.dirty).toBe(false);
+    queue.dispose();
+  });
+  it('does not make an explicit retry wait for a hung save', async () => {
+    vi.useFakeTimers();
+    const base = saved(value(), 3);
+    const save = vi.fn((input: WorkspaceBackup): Promise<SavedWorkspace> => save.mock.calls.length === 1 ? new Promise(() => {}) : Promise.resolve(saved(input, 4)));
+    const queue = new WorkspaceSaveQueue(base, save, vi.fn());
+    queue.enqueue(value(), true);
+    const latest = value(); latest.settings.theme = 'dark'; queue.enqueue(latest);
+    await queue.retry();
+    expect(save).toHaveBeenCalledTimes(2); expect(save.mock.calls[1]).toEqual([latest, base]);
+    expect(queue.status).toBe('saved'); expect(queue.dirty).toBe(false);
+    queue.dispose();
   });
 });

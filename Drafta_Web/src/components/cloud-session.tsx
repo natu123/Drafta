@@ -350,7 +350,14 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     const flush = () => { flushEdits(); void queue.current?.flush(); void cacheWrites.current.flush(); };
     // Focus can leave while React removes the editor; flush after that commit finishes.
     const flushLater = () => { queueMicrotask(flush); };
-    const visibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    // Back online or back on the page, a stopped save starts again; one in progress is left to finish
+    // or time out (2026-10-27, Gles's report: unsaved changes stayed after the network came back).
+    const resume = () => {
+      const current = queue.current;
+      if (!current || !serverChecked.current || document.visibilityState === 'hidden') return;
+      if (current.status === 'error') void current.retry(); else if (current.dirty) void current.flush();
+    };
+    const visibility = () => { if (document.visibilityState === 'hidden') flush(); else resume(); };
     const saveShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); flush(); }
     };
@@ -360,7 +367,8 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     window.addEventListener('pagehide', flush);
     window.addEventListener('keydown', saveShortcut);
     document.addEventListener('visibilitychange', visibility);
-    return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flushLater); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flushLater); window.removeEventListener('keydown', saveShortcut); };
+    window.addEventListener('online', resume);
+    return () => { window.removeEventListener('online', resume); window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flushLater); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flushLater); window.removeEventListener('keydown', saveShortcut); };
   }, [heldDirty]);
 
   const sessionKey = session?.key;
