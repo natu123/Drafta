@@ -1060,7 +1060,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   // The tray column holds the app bar on PCs, so it keeps room for its controls (AGENTS.md, Web Layout).
   const MIN_LEFT_WIDTH = 208;
   const MIN_CENTER_WIDTH = 280;
-  const MIN_EDITOR_WIDTH = 720;
 
   const [listsWidth, setListsWidth] = React.useState(MIN_LEFT_WIDTH);
   const [notesWidth, setNotesWidth] = React.useState(400);
@@ -1095,16 +1094,9 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   React.useLayoutEffect(() => {
     const updateLayout = () => {
       const viewportWidth = window.innerWidth;
-      const nextMode = viewportWidth < 768 ? 'mobile' : viewportWidth < 1280 ? 'tablet' : 'desktop';
-      setLayoutMode(nextMode);
-
-      if (nextMode === 'desktop') {
-        // 1.7:3.4:6.9 = 12 parts total; the editor takes the rest and keeps 720px for its toolbar.
-        const lists = Math.max(MIN_LEFT_WIDTH, Math.floor(viewportWidth * (1.7 / 12)));
-        setListsWidth(lists);
-        setNotesWidth(Math.max(MIN_CENTER_WIDTH, Math.min(Math.floor(viewportWidth * (3.4 / 12)), viewportWidth - lists - MIN_EDITOR_WIDTH)));
-        setIsTrayDrawerOpen(false);
-      }
+      // PCs use the tablet's two columns with the tray drawer too: three columns looked cluttered
+      // (2026-10-27, Gles's choice; specs/21). The three-column 'desktop' layout is no longer chosen.
+      setLayoutMode(viewportWidth < 768 ? 'mobile' : 'tablet');
     };
 
     updateLayout();
