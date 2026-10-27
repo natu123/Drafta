@@ -57,8 +57,10 @@ import { titleFollowReleaseCopy } from './title-follow-release-copy';
 import { titleClampReleaseCopy } from './title-clamp-release-copy';
 import { titlePaceReleaseCopy } from './title-pace-release-copy';
 import { titlePace2ReleaseCopy } from './title-pace2-release-copy';
+import { selectSideReleaseCopy } from './select-side-release-copy';
 
 export interface ReleaseCopy {
+  release01120: string;
   release01119: string;
   release01118: string;
   release01117: string;
@@ -143,7 +145,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102' | 'release0103' | 'release0104' | 'release0110' | 'release0111' | 'release0112' | 'release0113' | 'release0114' | 'release0115' | 'release0116' | 'release0117' | 'release0118' | 'release0119' | 'release01110' | 'release01111' | 'release01112' | 'release01113' | 'release01114' | 'release01115' | 'release01116' | 'release01117' | 'release01118' | 'release01119'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102' | 'release0103' | 'release0104' | 'release0110' | 'release0111' | 'release0112' | 'release0113' | 'release0114' | 'release0115' | 'release0116' | 'release0117' | 'release0118' | 'release0119' | 'release01110' | 'release01111' | 'release01112' | 'release01113' | 'release01114' | 'release01115' | 'release01116' | 'release01117' | 'release01118' | 'release01119' | 'release01120'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -493,6 +495,7 @@ export const releaseCopy = Object.fromEntries(
     release01117: titleClampReleaseCopy[language as Lang],
     release01118: titlePaceReleaseCopy[language as Lang],
     release01119: titlePace2ReleaseCopy[language as Lang],
+    release01120: selectSideReleaseCopy[language as Lang],
     // Sign-in is for saving; the Playground lets anyone try without it (AGENTS.md, Playground).
     warning: playgroundCopy[language as Lang].warning,
   }]),
