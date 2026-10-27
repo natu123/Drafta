@@ -1056,20 +1056,14 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     setScrollDirection(direction);
   };
 
-  // Column Layout - Desktop keeps the 3-pane ratio. Narrow screens use adaptive navigation.
-  // The tray column holds the app bar on PCs, so it keeps room for its controls (AGENTS.md, Web Layout).
-  const MIN_LEFT_WIDTH = 208;
-  const MIN_CENTER_WIDTH = 280;
-
-  const [listsWidth, setListsWidth] = React.useState(MIN_LEFT_WIDTH);
-  const [notesWidth, setNotesWidth] = React.useState(400);
-  const [layoutMode, setLayoutMode] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  // Phones (narrower than 768px) show one pane at a time; tablets and PCs show the memo list and the
+  // editor, with the trays in a drawer (AGENTS.md, Mobile Layout and Web Layout; three columns until 0.11.21).
+  const [isPhone, setIsPhone] = React.useState(false);
   const [mobilePane, setMobilePane] = React.useState<MobilePane>(restoredView?.pane ?? 'notes');
   // The tray the all memos view adds to, chosen there last time on this device (AGENTS.md, All Memos).
   const [allMemosTrayId, setAllMemosTrayId] = React.useState<string | null>(restoredView?.addTrayId ?? null);
   // Phones have no focus view: the bottom navigation's tabs take the tab strip's place, so a phone
   // always shows the panes (AGENTS.md, Mobile Layout). Elsewhere 'editor' is the focus view (Web Layout).
-  const isPhone = layoutMode === 'mobile';
   const view = isPhone ? 'home' : activeView;
   // Back from the background, the iPhone's home-screen app could leave a list that did not scroll
   // until it was hidden and shown again; its scroll areas are made anew instead (AGENTS.md, Mobile Layout).
@@ -1081,7 +1075,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   // The tray list opens at the side where lists open, like the memo list: the bottom in the chat
   // style. Only when it appears or the style changes; adding or pinning a tray keeps the position.
   const trayScrollRef = React.useRef<HTMLDivElement>(null);
-  const traysShown = view === 'home' && (layoutMode === 'desktop' || (layoutMode === 'tablet' ? isTrayDrawerOpen : mobilePane === 'trays'));
+  const traysShown = view === 'home' && (isPhone ? mobilePane === 'trays' : isTrayDrawerOpen);
   React.useEffect(() => {
     if (!traysShown) return;
     const timer = setTimeout(() => {
@@ -1092,53 +1086,14 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
   }, [traysShown, scrollDirection]);
 
   React.useLayoutEffect(() => {
-    const updateLayout = () => {
-      const viewportWidth = window.innerWidth;
-      // PCs use the tablet's two columns with the tray drawer too: three columns looked cluttered
-      // (2026-10-27, Gles's choice; specs/21). The three-column 'desktop' layout is no longer chosen.
-      setLayoutMode(viewportWidth < 768 ? 'mobile' : 'tablet');
-    };
+    // PCs use the tablet's two columns with the tray drawer too: three columns looked cluttered
+    // (2026-10-27, Gles's choice; specs/21).
+    const updateLayout = () => setIsPhone(window.innerWidth < 768);
 
     updateLayout();
     window.addEventListener('resize', updateLayout);
     return () => window.removeEventListener('resize', updateLayout);
   }, []);
-
-  // Manual resize state (only left-center boundary is resizable)
-  const [isResizingLists, setIsResizingLists] = React.useState(false);
-
-  // Manual resize handler for left-center boundary
-  React.useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizingLists) {
-        const newWidth = e.clientX;
-        // Left column: min width to (left+center total - center min)
-        const maxLeftWidth = listsWidth + notesWidth - MIN_CENTER_WIDTH;
-        if (newWidth >= MIN_LEFT_WIDTH && newWidth <= maxLeftWidth) {
-          const delta = newWidth - listsWidth;
-          setListsWidth(newWidth);
-          setNotesWidth(notesWidth - delta); // Adjust center column accordingly
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizingLists(false);
-      document.body.classList.remove('resizing-columns');
-    };
-
-    if (isResizingLists) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.classList.add('resizing-columns');
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.classList.remove('resizing-columns');
-    };
-  }, [isResizingLists, listsWidth, notesWidth]);
 
   // Selection Mode State
   const [isSelectionMode, setIsSelectionMode] = React.useState(false);
@@ -1396,16 +1351,15 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     const note = notes.find(n => n.id === id);
     if (note) {
       openTab(id, 'note'); // Ensure tab opens
-      if (layoutMode === 'mobile') setMobilePane('editor');
+      if (isPhone) setMobilePane('editor');
     }
-  }, [notes, layoutMode, openTab]);
+  }, [notes, isPhone, openTab]);
 
   const handleGroupSelect = React.useCallback((id: string) => {
     setActiveGroupId(id);
     setPlacingSeparator(current => current?.list === 'notes' ? null : current);
-    if (layoutMode === 'mobile') setMobilePane('notes');
-    if (layoutMode === 'tablet') setIsTrayDrawerOpen(false);
-  }, [layoutMode, setPlacingSeparator]);
+    if (isPhone) setMobilePane('notes'); else setIsTrayDrawerOpen(false);
+  }, [isPhone, setPlacingSeparator]);
 
   // The phone's New opens a field at the top of the screen, above the keyboard: a tray while the
   // tray list shows, a memo otherwise. The new memo is not opened (AGENTS.md, Creation; 0.9.1).
@@ -1564,12 +1518,12 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
     <>
       <div className={cn("app-shell flex flex-col bg-background text-foreground overflow-hidden", isPhone && "has-mobile-nav")}>
         {notice}
-        {/* No common header: the app bar sits at the top of the leftmost list column, the tabs above
+        {/* No common header: the app bar sits at the top of the memo list column, the tabs above
             the editor (AGENTS.md, Web Layout); phones use the bottom navigation (Mobile Layout). */}
 
         <div role="main" className="flex flex-1 overflow-hidden relative min-h-0">
 
-          {layoutMode === 'tablet' && isTrayDrawerOpen && view === 'home' && (
+          {!isPhone && isTrayDrawerOpen && view === 'home' && (
             <button
               type="button"
               aria-label={a11yCopy[lang].closeTrays}
@@ -1583,20 +1537,17 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             className={cn(
               "flex-col border-r bg-secondary min-h-0",
               view !== 'home' && "hidden",
-              view === 'home' && layoutMode === 'desktop' && "flex relative shrink-0",
-              view === 'home' && layoutMode === 'tablet' && cn(
+              view === 'home' && !isPhone && cn(
                 "flex absolute inset-y-0 left-0 z-40 w-[min(20rem,85vw)] shadow-xl transition-transform duration-200",
                 isTrayDrawerOpen ? "translate-x-0" : "-translate-x-full"
               ),
               view === 'home' && isPhone && (mobilePane === 'trays' ? "flex relative w-full" : "hidden")
             )}
-            style={layoutMode === 'desktop' ? { width: listsWidth } : undefined}
           >
-              {layoutMode === 'desktop' && <AppBar accountMenu={accountMenu} onOpenSearch={() => setIsSearchOpen(true)} onOpenSettings={() => setIsSettingsOpen(true)} />}
-              {/* Header for Lists: under the app bar on PCs, the drawer's top on tablets, the phone's starting screen. */}
-              <div className={cn("flex items-center justify-between px-3 sm:px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0", layoutMode === 'desktop' ? "h-11" : "h-[57px]")}>
+              {/* Header for Lists: the drawer's top on tablets and PCs, the phone's starting screen. */}
+              <div className="flex items-center justify-between px-3 sm:px-4 border-b bg-background/95 backdrop-blur sticky top-0 z-20 shrink-0 h-[57px]">
                 <div className="flex items-center gap-1 min-w-0">
-                  {layoutMode === 'tablet' && (
+                  {!isPhone && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1608,7 +1559,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                       <ChevronLeft className="w-5 h-5" />
                     </Button>
                   )}
-                  <h2 className={cn("font-semibold truncate", layoutMode === 'desktop' ? "text-base" : "text-lg")}>{appT.trays}</h2>
+                  <h2 className="font-semibold truncate text-lg">{appT.trays}</h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {/* The tray list is a phone's starting screen, so the app-wide controls live here. */}
@@ -1700,11 +1651,6 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                 </div>
               </ScrollArea>
               {!isPhone && scrollDirection === 'bottom' && trayAddField}
-              {/* Resizer Handle for Lists */}
-              <div
-                className="resize-handle absolute right-0 top-0 bottom-0 w-[6px] translate-x-1/2 bg-transparent hover:bg-foreground/40 z-[9999] transition-colors"
-                onMouseDown={(e) => { e.preventDefault(); setIsResizingLists(true); }}
-              />
           </div>
 
           {/* PANE 2: NOTES LIST */}
@@ -1712,14 +1658,12 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
             className={cn(
               "flex-col border-r relative min-h-0",
               view !== 'home' && "hidden",
-              view === 'home' && layoutMode === 'desktop' && "flex shrink-0",
-              view === 'home' && layoutMode === 'tablet' && "flex shrink-0 w-[clamp(18rem,38vw,24rem)]",
+              view === 'home' && !isPhone && "flex shrink-0 w-[clamp(18rem,38vw,24rem)]",
               view === 'home' && isPhone && (mobilePane === 'notes' ? "flex w-full" : "hidden")
             )}
-            style={layoutMode === 'desktop' ? { width: view === 'home' ? notesWidth : '100%' } : undefined}
           >
 
-            {layoutMode === 'tablet' && <AppBar accountMenu={accountMenu} onOpenSearch={() => setIsSearchOpen(true)} onOpenSettings={() => setIsSettingsOpen(true)} leading={(
+            {!isPhone && <AppBar accountMenu={accountMenu} onOpenSearch={() => setIsSearchOpen(true)} onOpenSettings={() => setIsSettingsOpen(true)} leading={(
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" title={a11yCopy[lang].openTrays} aria-label={a11yCopy[lang].openTrays} onClick={() => setIsTrayDrawerOpen(true)}>
                 <Menu className="w-5 h-5" />
               </Button>

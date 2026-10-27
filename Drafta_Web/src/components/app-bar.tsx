@@ -9,9 +9,9 @@ import { LanguageMenu } from '@/components/header';
 import { useLang } from '@/contexts/lang-context';
 
 /**
- * The app-wide controls of tablets and PCs, at the top of the leftmost list column: the tray column
- * on PCs, the memo column on tablets, where `leading` opens the tray drawer. It replaced the common
- * header above the columns (AGENTS.md, Web Layout; specs/21_web_layout.md).
+ * The app-wide controls of tablets and PCs, at the top of the memo list column, where `leading` opens
+ * the tray drawer. It replaced the common header above the columns (AGENTS.md, Web Layout;
+ * specs/21_web_layout.md).
  */
 export function AppBar({ accountMenu, onOpenSearch, onOpenSettings, leading }: {
   accountMenu?: React.ReactNode;
