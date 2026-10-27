@@ -475,6 +475,9 @@ html:has(.app-shell), html:has(.app-shell) body { overscroll-behavior: none; }
     box-shadow: 0 1px 0 hsl(var(--border));
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    /* The scrollbar that appears while editing keeps its room in every state, so the title wraps at the same places (2026-10-27). */
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
 }
 .ProseMirror.drafta-editor > h1:first-child:not(.is-editing):not(.is-empty) {
     display: -webkit-box;
