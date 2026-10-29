@@ -47,3 +47,8 @@ ui-debug.log
 .emulator-data/
 
 .vscode/
+
+# Cloud Functions secrets for the emulator (never commit; specs/23)
+.secret.local
+**/functions/.secret.local
+**/functions/.runtimeconfig.json
