@@ -104,7 +104,8 @@ Glesさんの作業 (キーは私の見える場所 (チャット・ファイル
 
 - 済み: `Drafta_Web/functions/` (TypeScript, `firebase-functions` 7.4.0, `firebase-admin` 14.5.0, `stripe` 23.0.1. Glesさんの選択で最新版を使い, APIの版は`2026-09-30.endive`). 3つの関数 (`createCheckoutSession`, `createPortalSession`, `stripeWebhook`) と, 状態の計算の単体テスト7件. Firestoreルールに`/users/{uid}/billing/subscription` (本人は読むだけ, 誰も書けない) を足し, ルールのテストを9件にしました (本番のルールには未反映. A4). `firebase.json`とEmulatorの設定にFunctionsを足しました (Hostingだけの公開の手順は変わりません). アプリの型チェック・Lint・テストは`functions/`を対象外にしました.
 - テスト用のシークレットキーは, Glesさんが`.secret.local`に書きました. 書いたときに, ファイルの変更の通知でキーの値が私に表示されました. テスト用のキーのため, Glesさんの判断でそのまま使います. 本番のキーはこの方法で扱いません.
-- 残り: 料金のID (月・年) をEmulatorの設定 (`functions/.env.local`, Git対象外) に入れて, 購入ページが開くかを確かめる. Stripe CLIで通知を転送し, 購入・更新・解約・支払失敗・二重通知・順番の入れ替わりを確かめる. Managed PaymentsのサブスクでCustomer Portalが使えるか (Linkのサイトで管理する形か) を確かめる.
+- 購入ページと契約管理 (2026-10-29): 料金のID (月・年) をEmulatorの設定 (`functions/.env.local`, Git対象外) に入れ, EmulatorのテストアカウントからStripeのサンドボックスへ呼び出しました. ログインなしと月・年以外は断られ, 月払い・年払いのManaged PaymentsのCheckoutのURLと, Customer PortalのURLが返りました.
+- 残り: Stripe CLIで通知を転送し, 購入・更新・解約・支払失敗・二重通知・順番の入れ替わりを確かめる. Managed PaymentsのサブスクでCustomer Portalが使えるか (Linkのサイトで管理する形か) を確かめる.
 
 ### 費用の目安 (導入時に再確認)
 
