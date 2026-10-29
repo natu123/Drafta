@@ -122,4 +122,25 @@ describe.skipIf(!host)('Firestore owner isolation (emulator only)', () => {
     await assertFails(setDoc(doc(db, 'users/alice/workspaces/other/bodies/memo-1'), body()));
     await assertSucceeds(deleteDoc(ref));
   });
+  it('lets the owner read the Pro state but nobody write it (specs/23)', async () => {
+    await env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), 'users/alice/billing/subscription'), { plan: 'pro', status: 'active' });
+      await setDoc(doc(context.firestore(), 'billingCustomers/alice'), { customerId: 'cus_test' });
+      await setDoc(doc(context.firestore(), 'stripeEvents/evt_test'), { type: 'test' });
+    });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(getDoc(doc(alice, 'users/alice/billing/subscription')));
+    await assertFails(setDoc(doc(alice, 'users/alice/billing/subscription'), { plan: 'pro', status: 'active' }));
+    await assertFails(updateDoc(doc(alice, 'users/alice/billing/subscription'), { plan: 'free' }));
+    await assertFails(deleteDoc(doc(alice, 'users/alice/billing/subscription')));
+    await assertFails(setDoc(doc(alice, 'users/alice/billing/other'), { plan: 'pro' }));
+    for (const path of ['billingCustomers/alice', 'stripeEvents/evt_test']) {
+      await assertFails(getDoc(doc(alice, path)));
+      await assertFails(setDoc(doc(alice, path), { x: 1 }));
+    }
+    for (const db of [env.unauthenticatedContext().firestore(), env.authenticatedContext('bob').firestore()]) {
+      await assertFails(getDoc(doc(db, 'users/alice/billing/subscription')));
+      await assertFails(setDoc(doc(db, 'users/alice/billing/subscription'), { plan: 'pro' }));
+    }
+  });
 });

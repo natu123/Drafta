@@ -77,7 +77,13 @@ service cloud.firestore {
         }
       }
     }
-    // No client access to billing, plans, other profiles, or unrecognized paths.
+    // The Pro state: its owner reads it, only the server (Cloud Functions with the Admin SDK) writes it,
+    // so nobody can make themselves Pro (specs/23_billing_foundation.md).
+    match /users/{uid}/billing/{docId} {
+      allow read: if owns(uid) && docId == 'subscription';
+      allow write: if false;
+    }
+    // No client access to billing customers, processed Stripe events, other profiles, or unrecognized paths.
     match /{document=**} { allow read, write: if false; }
   }
 }
