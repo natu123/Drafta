@@ -95,10 +95,10 @@
 Glesさんの作業 (キーは私の見える場所 (チャット・ファイルの中身の表示・ログ) に出しません):
 
 1. **Managed Paymentsが使えるか**: StripeのDashboardで, Managed Paymentsが有効か, 審査待ちになっていないかを確かめます. 限定公開のため, 使えない場合は (b) Stripe Taxで組み, 有効になったら切り替えます.
-2. **テスト用のシークレットキー**: Dashboardをテスト環境 (サンドボックス) に切り替え, で始まるシークレットキーを確かめます. B1では, Emulatorが読む  に, Glesさんが自分で次の1行を書きます (このファイルはGitの対象外です): . 本番のキー () は書きません. 本番の前 (B5) には, 権限を絞った制限付きキーに替えます.
-3. **Stripe CLI**: Stripeの通知を手元のEmulatorへ転送するために入れ, でテスト環境のアカウントにログインします. が表示する署名用のシークレット () も, 同じファイルに  として書きます.
+2. **テスト用のシークレットキー**: Dashboardをテスト環境 (サンドボックス) に切り替え, `sk_test_`で始まるシークレットキーを確かめます. B1では, Emulatorが読む `Drafta_Web/functions/.secret.local` に, Glesさんが自分で次の1行を書きます (このファイルはGitの対象外です): `STRIPE_SECRET_KEY=sk_test_...`. 本番のキー (`sk_live_`) は書きません. 本番の前 (B5) には, 権限を絞った制限付きキーに替えます.
+3. **Stripe CLI**: Stripeの通知を手元のEmulatorへ転送するために入れ, `stripe login`でテスト環境のアカウントにログインします. `stripe listen`が表示する署名用のシークレット (`whsec_`) も, 同じファイルに `STRIPE_WEBHOOK_SECRET=whsec_...` として書きます.
 
-私の作業: の骨組み (TypeScript, 第2世代, asia-northeast1), 3つの関数, Proの状態の置き場とルール, Emulatorのテスト. とEmulatorの設定にFunctionsを足しますが, 本番へのDeployはしません. 秘密のファイルの中身は読みません (関数はEmulatorが読み込みます).
+私の作業: `functions/`の骨組み (TypeScript, 第2世代, asia-northeast1), 3つの関数, Proの状態の置き場とルール, Emulatorのテスト. `firebase.json`とEmulatorの設定にFunctionsを足しますが, 本番へのDeployはしません. 秘密のファイルの中身は読みません (関数はEmulatorが読み込みます).
 
 ### 費用の目安 (導入時に再確認)
 
