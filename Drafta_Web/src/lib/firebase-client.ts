@@ -43,7 +43,7 @@ export function getFirebaseClient() {
     connectFirestoreEmulator(db, '127.0.0.1', 8080);
   }
   return {
-    auth, db,
+    app, auth, db,
     async login() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });

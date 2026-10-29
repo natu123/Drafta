@@ -26,6 +26,9 @@ import { StorageMigration } from './storage-migration';
 import { WorkspaceSaveQueue } from '@/lib/workspace-save-queue';
 import { flushPendingEdits } from '@/lib/pending-edits';
 import { AccountMenu, type SaveStatus } from './account-menu';
+import { ProDialog } from './pro-dialog';
+import { proEnabled, stripePage, watchPro, type ProView } from '@/lib/billing-client';
+import { proCopy } from '@/lib/pro-copy';
 import { cloudCopy } from '@/lib/cloud-copy';
 import { Button } from './ui/button';
 import { DeleteConfirmDialog } from './delete-confirm-dialog';
@@ -97,6 +100,9 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const [remoteUpdate, setRemoteUpdate] = React.useState<WorkspaceUpdate | undefined>(undefined);
   const [reviewRemote, setReviewRemote] = React.useState<SavedWorkspace | null>(null);
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  // Drafta Pro (specs/23, 3.5): the state the server wrote for this account, and the yearly/monthly dialog.
+  const [proState, setProState] = React.useState<{ uid: string; view: ProView } | null>(null);
+  const [proOpen, setProOpen] = React.useState(false);
   // Bodies arriving after the summaries (specs/17): each goes to its memo's token as it is read.
   const [bodyProgress, setBodyProgress] = React.useState<{ loaded: number; total: number } | null>(null);
   const bodyTokens = React.useRef(new Map<string, object>());
@@ -371,6 +377,26 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     return () => { window.removeEventListener('online', resume); window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('blur', flushLater); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', visibility); document.removeEventListener('focusout', flushLater); window.removeEventListener('keydown', saveShortcut); };
   }, [heldDirty]);
 
+  const proUid = session?.user?.uid;
+  // Kept with its account, so another account never sees it while its own is read.
+  const pro = proState && proState.uid === proUid ? proState.view : null;
+  React.useEffect(() => {
+    const db = client.current?.db;
+    if (!proUid || !db || !proEnabled()) return;
+    return watchPro(db, proUid, view => setProState({ uid: proUid, view }));
+  }, [proUid]);
+  // Back from Stripe's page: the webhook makes the account Pro a moment later; the address is cleaned.
+  React.useEffect(() => {
+    if (!proEnabled()) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('billing') !== 'done') return;
+    toast({ description: proCopy[lang].returned });
+    url.searchParams.delete('billing');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    // Only on arrival; the language may still change afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const sessionKey = session?.key;
   const uid = session?.user?.uid;
   const changed = React.useCallback((state: WorkspaceState) => {
@@ -469,7 +495,20 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     // Before the server check finished, only a new load can bring the workspace up to date.
     if (queue.current && serverChecked.current) void queue.current.retry(); else reload();
   };
-  const menu = <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} statusText={bodyProgress ? storageCopy[lang].hydrating(bodyProgress.loaded, bodyProgress.total) : undefined} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} />;
+  const proLabels = proCopy[lang];
+  const proDay = (time: number) => new Intl.DateTimeFormat(lang, { month: 'numeric', day: 'numeric' }).format(new Date(time));
+  const openStripe = async (page: 'year' | 'month' | 'manage') => { window.location.assign(await stripePage(getFirebaseClient()!.app, page)); };
+  const proItem = !pro ? undefined : pro.plan === 'free'
+    ? { label: proLabels.upgrade, action: null, onSelect: () => setProOpen(true) }
+    : {
+      label: pro.cancelAt ? proLabels.ends.replace('{date}', proDay(pro.cancelAt)) : pro.currentPeriodEnd ? proLabels.renews.replace('{date}', proDay(pro.currentPeriodEnd)) : '✨ Pro',
+      action: proLabels.manage,
+      onSelect: () => { openStripe('manage').catch(() => toast({ description: proLabels.failed })); },
+    };
+  const menu = <>
+    <AccountMenu labels={reviewRemote ? { ...labels, reload: syncLabels.title } : labels} name={session?.user ? session.user.displayName || session.user.email || labels.account : null} status={status} statusText={bodyProgress ? storageCopy[lang].hydrating(bodyProgress.loaded, bodyProgress.total) : undefined} errorCode={status === 'error' ? errorCode : null} busy={busy || status === 'loading'} onLogin={login} onLogout={logout} onRetry={retry} onReload={reload} pro={proItem} />
+    {proItem && <ProDialog open={proOpen} onOpenChange={setProOpen} copy={proLabels} onChoose={openStripe} />}
+  </>;
   if (!session?.user) return <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-6 text-center"><Link href="/" className="flex items-center gap-2"><BrandIcon /><h1 className="text-3xl font-bold">Drafta</h1></Link><p className="max-w-lg">{hasHeldEdits ? authRecoveryCopy[lang] : loginRequiredCopy[lang]}</p>{status !== 'guest' && <p role="status" aria-live="polite">{labels.status[status]}</p>}{loginNotice && <p role="alert" className="max-w-lg">{authErrorCopy[lang][loginNotice]}</p>}{status !== 'loading' && <Button disabled={busy} onClick={retry}>{isAuthenticated ? labels.retry : labels.login}</Button>}{!isAuthenticated && !hasHeldEdits && <Link href="/playground/" className="text-sm text-muted-foreground underline underline-offset-4">{playgroundCopy[lang].tryIt}</Link>}</main>;
   if (session.migration) return <StorageMigration uid={session.user.uid} accountMenu={menu} onDone={afterMigration} />;
   const resolveReview = () => {

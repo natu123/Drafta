@@ -21,10 +21,12 @@ export type AccountMenuProps = {
   onLogout: () => void;
   onRetry: () => void;
   onReload: () => void;
+  /** Drafta Pro: "Get Pro", or the Pro state and "Manage subscription" (specs/23, 3.5). */
+  pro?: { label: string; action: string | null; onSelect: () => void };
 };
 
 /** Parent owns authentication, error handling and unsaved-change confirmation. */
-export function AccountMenu({ labels, name, status, busy, errorCode, statusText, onLogin, onLogout, onRetry, onReload }: AccountMenuProps) {
+export function AccountMenu({ labels, name, status, busy, errorCode, statusText, onLogin, onLogout, onRetry, onReload, pro }: AccountMenuProps) {
   const statusLabel = statusText ?? labels.status[status];
   const StatusIcon = status === 'saved' ? CloudCheck : status === 'loading' || status === 'saving' ? LoaderCircle : CloudOff;
   // A long status gives way to the account button: in the narrow tray column it pushed the button out
@@ -48,6 +50,14 @@ export function AccountMenu({ labels, name, status, busy, errorCode, statusText,
             {errorCode && <DropdownMenuLabel><span role="alert">{errorCode}</span></DropdownMenuLabel>}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
+          {pro && name !== null && <>
+            <DropdownMenuGroup>
+              {pro.action === null
+                ? <DropdownMenuItem onSelect={pro.onSelect}>{pro.label}</DropdownMenuItem>
+                : <><DropdownMenuLabel>{pro.label}</DropdownMenuLabel><DropdownMenuItem onSelect={pro.onSelect}>{pro.action}</DropdownMenuItem></>}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+          </>}
           <DropdownMenuGroup>
             {(status === 'error' || status === 'pending' || status === 'saving') && <DropdownMenuItem disabled={busy} onSelect={onRetry}>{labels.retry}</DropdownMenuItem>}
             {status === 'conflict' && <DropdownMenuItem disabled={busy} onSelect={onReload}>{labels.reload}</DropdownMenuItem>}
