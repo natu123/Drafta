@@ -122,7 +122,7 @@ export function assemble(envelope: WorkspaceEnvelope, order: string[], noteFor: 
 }
 
 /** Cloud-only repository. All reads come from the server, never offline cache. */
-export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryFailure?: () => void; historySnapshot?: (note: BackupNote) => BackupNote } = {}) {
+export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryFailure?: () => void; historySnapshot?: (note: BackupNote) => BackupNote; afterSave?: (changed: BackupNote[], deleted: string[]) => void } = {}) {
   const root = workspaceRoot(db, uid);
   const summariesCollection = collection(root, 'notes');
   const bodiesCollection = collection(root, 'bodies');
@@ -318,6 +318,8 @@ export function cloudWorkspace(db: Firestore, uid: string, options: { onHistoryF
     // Archive only after the primary transaction has been acknowledged. Its success
     // must remain acknowledged even if the optional history write fails.
     const changedIds = new Set([...summaries, ...bodies].map(([id]) => id));
+    // Shared memos' public copies follow without holding up the save (specs/24).
+    options.afterSave?.(notes.filter(note => changedIds.has(note.id)), deletes);
     const jobs = [
       ...notes.filter(note => changedIds.has(note.id)).map(note => async () => {
         const candidate = historyCandidate(note, previous.get(note.id));

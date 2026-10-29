@@ -29,6 +29,7 @@ import { AccountMenu, type SaveStatus } from './account-menu';
 import { ProDialog } from './pro-dialog';
 import { proEnabled, stripePage, watchPro, type ProView } from '@/lib/billing-client';
 import { proCopy } from '@/lib/pro-copy';
+import { shareLinks, type ShareLinks } from '@/lib/share-links';
 import { cloudCopy } from '@/lib/cloud-copy';
 import { Button } from './ui/button';
 import { DeleteConfirmDialog } from './delete-confirm-dialog';
@@ -103,6 +104,12 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   // Drafta Pro (specs/23, 3.5): the state the server wrote for this account, and the yearly/monthly dialog.
   const [proState, setProState] = React.useState<{ uid: string; view: ProView } | null>(null);
   const [proOpen, setProOpen] = React.useState(false);
+  // Share links (specs/24): which memos this account shares, read once per account when first needed.
+  const shares = React.useRef<{ uid: string; links: ShareLinks } | null>(null);
+  const sharesFor = React.useCallback((uid: string) => {
+    if (shares.current?.uid !== uid) shares.current = { uid, links: shareLinks(client.current!.db, uid) };
+    return shares.current.links;
+  }, []);
   // Bodies arriving after the summaries (specs/17): each goes to its memo's token as it is read.
   const [bodyProgress, setBodyProgress] = React.useState<{ loaded: number; total: number } | null>(null);
   const bodyTokens = React.useRef(new Map<string, object>());
@@ -131,7 +138,9 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const repositoryFor = React.useCallback((uid: string, id: number) => cloudWorkspace(client.current!.db, uid, {
     onHistoryFailure: () => { if (id === generation.current) toast({ description: historyLabelsRef.current.warning }); },
     historySnapshot: note => freezeHistorySample(note, document, historyContext.current.lang, historyContext.current.shortcutMod),
-  }), []);
+    // A copy that fails to follow is written again in full by the next save of that memo.
+    afterSave: proEnabled() ? (changed, deleted) => { void sharesFor(uid).follow(changed, deleted).catch(() => undefined); } : undefined,
+  }), [sharesFor]);
 
   const applyRemote = React.useCallback((backup: WorkspaceBackup, copies: { originalId: string; copyId: string }[]) => {
     const state = workspaceToState(backup, document, { lazyBodies: true });
@@ -385,6 +394,18 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     if (!proUid || !db || !proEnabled()) return;
     return watchPro(db, proUid, view => setProState({ uid: proUid, view }));
   }, [proUid]);
+  // Until the share button exists (specs/24, C2), the local emulator build exposes sharing for checks.
+  React.useEffect(() => {
+    if (!proUid || !proEnabled()) return;
+    const noteOf = (id: string) => lastBackup.current?.notes.find(note => note.id === id);
+    const hook = {
+      start: (id: string) => { const note = noteOf(id); return note ? sharesFor(proUid).start(note) : Promise.reject(new Error('No such memo')); },
+      stop: (id: string) => sharesFor(proUid).stop(id),
+      tokenOf: (id: string) => sharesFor(proUid).tokenOf(id),
+    };
+    (window as { __draftaShares?: typeof hook }).__draftaShares = hook;
+    return () => { delete (window as { __draftaShares?: typeof hook }).__draftaShares; };
+  }, [proUid, sharesFor]);
   // Back from Stripe's page: the webhook makes the account Pro a moment later; the address is cleaned.
   React.useEffect(() => {
     if (!proEnabled()) return;

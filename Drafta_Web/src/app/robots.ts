@@ -7,6 +7,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
+      // Shared memos (specs/24).
+      disallow: '/s/',
     },
     sitemap: 'https://drafta-memo.com/sitemap.xml',
   };

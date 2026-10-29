@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (host && host !== '127.0.0.1:8080') throw new Error('Rules tests only support the local emulator at 127.0.0.1:8080');
@@ -11,6 +11,8 @@ const workspace = (revision = 1) => ({ schemaVersion: 1, revision, metadataJson:
 const note = () => ({ schemaVersion: 1, payloadJson: '{}', updatedAt: serverTimestamp() });
 const summary = () => ({ schemaVersion: 2, summaryJson: '{}', updatedAt: serverTimestamp() });
 const body = () => ({ schemaVersion: 2, documentJson: '{}', updatedAt: serverTimestamp() });
+const TOKEN = 'abcdefghijklmnopqrstuv';
+const share = (owner = 'alice', extra: Record<string, unknown> = {}) => ({ schemaVersion: 1, ownerUid: owner, noteId: 'memo-1', title: 'Shared', documentJson: '{}', updatedAt: serverTimestamp(), blocked: false, ...extra });
 
 describe.skipIf(!host)('Firestore owner isolation (emulator only)', () => {
   beforeAll(async () => {
@@ -142,5 +144,50 @@ describe.skipIf(!host)('Firestore owner isolation (emulator only)', () => {
       await assertFails(getDoc(doc(db, 'users/alice/billing/subscription')));
       await assertFails(setDoc(doc(db, 'users/alice/billing/subscription'), { plan: 'pro' }));
     }
+  });
+it('lets a Pro owner share a memo, anyone read it one at a time, and nobody else change it (specs/24)', async () => {
+    const pro = async (uid: string, plan: 'pro' | 'free') => env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), `users/${uid}/billing/subscription`), { plan, status: plan === 'pro' ? 'active' : 'canceled' });
+    });
+    await pro('alice', 'pro'); await pro('bob', 'free');
+    const alice = env.authenticatedContext('alice').firestore();
+    const create = writeBatch(alice);
+    create.set(doc(alice, `shares/${TOKEN}`), share());
+    create.set(doc(alice, 'users/alice/workspaces/default/shareLinks/memo-1'), { token: TOKEN, createdAt: serverTimestamp() });
+    await assertSucceeds(create.commit());
+    await assertSucceeds(getDoc(doc(alice, 'users/alice/workspaces/default/shareLinks/memo-1')));
+    await assertSucceeds(setDoc(doc(alice, `shares/${TOKEN}`), share('alice', { title: 'Edited' })));
+    // The owner cannot move the copy to another memo, add fields, or use a short token.
+    await assertFails(setDoc(doc(alice, `shares/${TOKEN}`), share('alice', { noteId: 'memo-2' })));
+    await assertFails(setDoc(doc(alice, `shares/${TOKEN}`), share('alice', { views: 1 })));
+    await assertFails(setDoc(doc(alice, 'shares/short'), share()));
+    // A link entry must point at the owner's own copy of that memo.
+    await assertFails(setDoc(doc(alice, 'users/alice/workspaces/default/shareLinks/memo-2'), { token: TOKEN, createdAt: serverTimestamp() }));
+
+    const anonymous = env.unauthenticatedContext().firestore();
+    const bob = env.authenticatedContext('bob').firestore();
+    for (const db of [anonymous, bob]) {
+      await assertSucceeds(getDoc(doc(db, `shares/${TOKEN}`)));
+      await assertFails(getDocs(collection(db, 'shares')));
+      await assertFails(setDoc(doc(db, `shares/${TOKEN}`), share('bob')));
+      await assertFails(deleteDoc(doc(db, `shares/${TOKEN}`)));
+      await assertFails(getDoc(doc(db, 'users/alice/workspaces/default/shareLinks/memo-1')));
+    }
+    // A free account cannot share, even its own memo.
+    await assertFails(setDoc(doc(bob, 'shares/bbbbbbbbbbbbbbbbbbbbbb'), share('bob')));
+
+    // Back to free: the page is not readable and not updatable; Pro again brings the same link back.
+    await pro('alice', 'free');
+    await assertFails(getDoc(doc(anonymous, `shares/${TOKEN}`)));
+    await assertFails(setDoc(doc(alice, `shares/${TOKEN}`), share('alice', { title: 'Later' })));
+    await pro('alice', 'pro');
+    await assertSucceeds(getDoc(doc(anonymous, `shares/${TOKEN}`)));
+
+    // Blocked by the operator: nobody reads it and the owner cannot clear it, but can delete it.
+    await env.withSecurityRulesDisabled(async context => { await updateDoc(doc(context.firestore(), `shares/${TOKEN}`), { blocked: true }); });
+    await assertFails(getDoc(doc(anonymous, `shares/${TOKEN}`)));
+    await assertFails(setDoc(doc(alice, `shares/${TOKEN}`), share()));
+    await assertSucceeds(deleteDoc(doc(alice, `shares/${TOKEN}`)));
+    await assertSucceeds(deleteDoc(doc(alice, 'users/alice/workspaces/default/shareLinks/memo-1')));
   });
 });

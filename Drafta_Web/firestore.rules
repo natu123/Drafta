@@ -50,6 +50,19 @@ service cloud.firestore {
           && request.resource.data.documentJson.size() < 500000
           && request.resource.data.updatedAt == request.time;
       }
+      // Which memos are shared, read only by their owner (specs/24_share_links.md). Each entry is made
+      // together with its public copy, and is never changed: sharing again makes a new link.
+      match /shareLinks/{noteId} {
+        allow read, delete: if owns(uid) && workspaceId == 'default';
+        allow create: if owns(uid) && workspaceId == 'default'
+          && noteId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && request.resource.data.keys().hasOnly(['token', 'createdAt'])
+          && request.resource.data.token is string
+          && request.resource.data.token.matches('^[A-Za-z0-9_-]{22}$')
+          && request.resource.data.createdAt == request.time
+          && getAfter(/databases/$(database)/documents/shares/$(request.resource.data.token)).data.ownerUid == uid
+          && getAfter(/databases/$(database)/documents/shares/$(request.resource.data.token)).data.noteId == noteId;
+      }
       match /memoHistory/{noteId} {
         function historyOwner() {
           return owns(uid) && workspaceId == 'default' && noteId.matches('^[A-Za-z0-9_-]{1,128}$');
@@ -82,6 +95,35 @@ service cloud.firestore {
     match /users/{uid}/billing/{docId} {
       allow read: if owns(uid) && docId == 'subscription';
       allow write: if false;
+    }
+    // A shared memo's public copy (specs/24_share_links.md): anyone with the link reads it one at a time
+    // while its owner is Pro and the operator has not blocked it; nobody can list them. Only a Pro owner
+    // writes it, and the owner cannot clear `blocked`.
+    match /shares/{token} {
+      function ownerIsPro(owner) {
+        return get(/databases/$(database)/documents/users/$(owner)/billing/subscription).data.plan == 'pro';
+      }
+      function validShare() {
+        return request.resource.data.keys().hasOnly(['schemaVersion', 'ownerUid', 'noteId', 'title', 'documentJson', 'updatedAt', 'blocked'])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.noteId is string
+          && request.resource.data.noteId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && request.resource.data.title is string
+          && request.resource.data.title.size() <= 2000
+          && request.resource.data.documentJson is string
+          && request.resource.data.documentJson.size() < 500000
+          && request.resource.data.blocked is bool
+          && request.resource.data.updatedAt == request.time;
+      }
+      allow get: if resource.data.blocked == false && ownerIsPro(resource.data.ownerUid);
+      allow list: if false;
+      allow create: if request.auth != null && token.matches('^[A-Za-z0-9_-]{22}$')
+        && validShare() && request.resource.data.blocked == false && ownerIsPro(request.auth.uid);
+      allow update: if request.auth != null && resource.data.ownerUid == request.auth.uid
+        && validShare() && request.resource.data.noteId == resource.data.noteId
+        && request.resource.data.blocked == resource.data.blocked && ownerIsPro(request.auth.uid);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
     // No client access to billing customers, processed Stripe events, other profiles, or unrecognized paths.
     match /{document=**} { allow read, write: if false; }
