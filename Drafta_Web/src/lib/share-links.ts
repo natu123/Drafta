@@ -28,8 +28,14 @@ function copyOf(uid: string, note: BackupNote) {
   };
 }
 
-/** `onChange` hears every change of which memos are shared (noteId to token), once they are first read. */
-export function shareLinks(db: Firestore, uid: string, onChange?: (shared: ReadonlyMap<string, string>) => void) {
+/**
+ * `onChange` hears every change of which memos are shared (noteId to token), once they are first read.
+ * `prepare` turns a memo into what is published: a sample memo is stored in English and shown in the
+ * reader's language, so it is published in the language on screen (Gles's choice of 2026-10-29).
+ */
+export function shareLinks(db: Firestore, uid: string, options: { onChange?: (shared: ReadonlyMap<string, string>) => void; prepare?: (note: BackupNote) => BackupNote } = {}) {
+  const { onChange } = options;
+  const publish = (note: BackupNote) => copyOf(uid, { ...(options.prepare?.(note) ?? note), id: note.id });
   const links = collection(db, 'users', uid, 'workspaces', 'default', 'shareLinks');
   let tokens: Promise<Map<string, string>> | null = null;
   const known = () => tokens ??= getDocsFromServer(links).then(
@@ -65,7 +71,7 @@ export function shareLinks(db: Firestore, uid: string, onChange?: (shared: Reado
       if (current) return current;
       const token = newShareToken();
       const batch = writeBatch(db);
-      batch.set(doc(db, 'shares', token), copyOf(uid, note));
+      batch.set(doc(db, 'shares', token), publish(note));
       batch.set(doc(links, note.id), { token, createdAt: serverTimestamp() });
       await batch.commit();
       map.set(note.id, token);
@@ -82,7 +88,7 @@ export function shareLinks(db: Firestore, uid: string, onChange?: (shared: Reado
       const jobs = [
         ...changed.filter(note => map.has(note.id)).map(note => note.isDeleted
           ? () => stop(note.id)
-          : () => setDoc(doc(db, 'shares', map.get(note.id)!), copyOf(uid, note))),
+          : () => setDoc(doc(db, 'shares', map.get(note.id)!), publish(note))),
         ...deleted.filter(id => map.has(id)).map(id => () => stop(id)),
       ];
       const results = await Promise.allSettled(jobs.map(job => job()));

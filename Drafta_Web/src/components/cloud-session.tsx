@@ -109,7 +109,10 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
   const shares = React.useRef<{ uid: string; links: ShareLinks } | null>(null);
   const [sharedState, setSharedState] = React.useState<{ uid: string; shared: ReadonlyMap<string, string> } | null>(null);
   const sharesFor = React.useCallback((uid: string) => {
-    if (shares.current?.uid !== uid) shares.current = { uid, links: shareLinks(client.current!.db, uid, shared => setSharedState({ uid, shared })) };
+    if (shares.current?.uid !== uid) shares.current = { uid, links: shareLinks(client.current!.db, uid, {
+      onChange: shared => setSharedState({ uid, shared }),
+      prepare: note => freezeHistorySample(note, document, historyContext.current.lang, historyContext.current.shortcutMod),
+    }) };
     return shares.current.links;
   }, []);
   // Bodies arriving after the summaries (specs/17): each goes to its memo's token as it is read.
