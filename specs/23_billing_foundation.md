@@ -105,7 +105,8 @@ Glesさんの作業 (キーは私の見える場所 (チャット・ファイル
 - 済み: `Drafta_Web/functions/` (TypeScript, `firebase-functions` 7.4.0, `firebase-admin` 14.5.0, `stripe` 23.0.1. Glesさんの選択で最新版を使い, APIの版は`2026-09-30.endive`). 3つの関数 (`createCheckoutSession`, `createPortalSession`, `stripeWebhook`) と, 状態の計算の単体テスト7件. Firestoreルールに`/users/{uid}/billing/subscription` (本人は読むだけ, 誰も書けない) を足し, ルールのテストを9件にしました (本番のルールには未反映. A4). `firebase.json`とEmulatorの設定にFunctionsを足しました (Hostingだけの公開の手順は変わりません). アプリの型チェック・Lint・テストは`functions/`を対象外にしました.
 - テスト用のシークレットキーは, Glesさんが`.secret.local`に書きました. 書いたときに, ファイルの変更の通知でキーの値が私に表示されました. テスト用のキーのため, Glesさんの判断でそのまま使います. 本番のキーはこの方法で扱いません.
 - 購入ページと契約管理 (2026-10-29): 料金のID (月・年) をEmulatorの設定 (`functions/.env.local`, Git対象外) に入れ, EmulatorのテストアカウントからStripeのサンドボックスへ呼び出しました. ログインなしと月・年以外は断られ, 月払い・年払いのManaged PaymentsのCheckoutのURLと, Customer PortalのURLが返りました.
-- 残り: Stripe CLIで通知を転送し, 購入・更新・解約・支払失敗・二重通知・順番の入れ替わりを確かめる. Managed PaymentsのサブスクでCustomer Portalが使えるか (Linkのサイトで管理する形か) を確かめる.
+- Webhook (2026-10-29): Stripe CLI 1.55.3 を入れ, Glesさんがサンドボックスのアカウントで許可しました (`stripe login`). 転送用の署名シークレットは, 値を表示せずに`.secret.local`へ書きました. Emulatorと`stripe listen`で, テスト用の顧客とサブスクを作り, 新しいサブスクでPro (月払い) になること, 期間の終わりでの解約の予約でProのまま記録されること, すぐの解約で無料に戻ること, 古い通知を送り直してもProに戻らないこと, 署名のない要求を400で断ることを確かめました (6件). テスト用の顧客は最後に消しました. 途中の2回は, Stripe CLIの確認の問いに答えられず止まり, 残った`stripe listen`とEmulatorを止めて, 残っていたテスト用の顧客1件を消しました.
+- 残り: 購入ページから実際にテスト購入して (Managed PaymentsのCheckout), `checkout.session.completed`でProになるか. 支払失敗 (テスト用の失敗するカード) で`past_due`のままProか. Managed PaymentsのサブスクでCustomer Portalが使えるか (Linkのサイトで管理する形か) を確かめる.
 
 ### 費用の目安 (導入時に再確認)
 
