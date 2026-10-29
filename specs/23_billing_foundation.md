@@ -94,7 +94,7 @@
 
 Glesさんの作業 (キーは私の見える場所 (チャット・ファイルの中身の表示・ログ) に出しません):
 
-1. **Managed Paymentsが使えるか**: StripeのDashboardで, Managed Paymentsが有効か, 審査待ちになっていないかを確かめます. 限定公開のため, 使えない場合は (b) Stripe Taxで組み, 有効になったら切り替えます.
+1. **Managed Paymentsが使えるか**: StripeのDashboardで, Managed Paymentsが有効か, 審査待ちになっていないかを確かめます. 限定公開のため, 使えない場合は (b) Stripe Taxで組み, 有効になったら切り替えます. **済み (2026-10-29)**: Glesさんが Dashboardの「Managed Payments を設定する」(`/settings/managed-payments`) を最後まで進めました. 追加の手数料は取引ごとに3.5% と表示されました. 案内の中で商品「Drafta Pro」(月¥600を既定の料金, 年¥6,000) を作り, 決済は「構築済みの決済フォーム」(ホスト型のCheckout) と「新しい統合」を選びました. 決済用リンクは作っていません.
 2. **テスト用のシークレットキー**: Dashboardをテスト環境 (サンドボックス) に切り替え, `sk_test_`で始まるシークレットキーを確かめます. B1では, Emulatorが読む `Drafta_Web/functions/.secret.local` に, Glesさんが自分で次の1行を書きます (このファイルはGitの対象外です): `STRIPE_SECRET_KEY=sk_test_...`. 本番のキー (`sk_live_`) は書きません. 本番の前 (B5) には, 権限を絞った制限付きキーに替えます.
 3. **Stripe CLI**: Stripeの通知を手元のEmulatorへ転送するために入れ, `stripe login`でテスト環境のアカウントにログインします. `stripe listen`が表示する署名用のシークレット (`whsec_`) も, 同じファイルに `STRIPE_WEBHOOK_SECRET=whsec_...` として書きます.
 
