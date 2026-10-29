@@ -11,7 +11,13 @@ export type BillingState = {
   interval: 'month' | 'year' | null;
   /** Milliseconds since the epoch; null without a subscription. */
   currentPeriodEnd: number | null;
+  /**
+   * A cancellation is booked: either flag of Stripe's. The Customer Portal books one by setting the
+   * date (cancel_at), not cancel_at_period_end (found in the sandbox on 2026-10-29).
+   */
   cancelAtPeriodEnd: boolean;
+  /** When the booked cancellation takes effect, in milliseconds; null when none is booked. */
+  cancelAt: number | null;
   /** Stripe's creation time (seconds) of the event this state came from, to keep older events from overwriting it. */
   sourceEventCreated: number;
 };
@@ -24,7 +30,7 @@ export type BillingState = {
 export const PRO_STATUSES: ReadonlySet<string> = new Set(['active', 'trialing', 'past_due']);
 
 export function billingState(subscription: Stripe.Subscription | null, eventCreated: number): BillingState {
-  if (!subscription) return { plan: 'free', status: 'none', interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, sourceEventCreated: eventCreated };
+  if (!subscription) return { plan: 'free', status: 'none', interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, cancelAt: null, sourceEventCreated: eventCreated };
   const item = subscription.items.data[0];
   const interval = item?.price.recurring?.interval;
   // From the 2025-03-31 API on, the period sits on each item rather than the subscription.
@@ -34,7 +40,8 @@ export function billingState(subscription: Stripe.Subscription | null, eventCrea
     status: subscription.status,
     interval: interval === 'month' ? 'month' : interval === 'year' ? 'year' : null,
     currentPeriodEnd: typeof periodEnd === 'number' ? periodEnd * 1000 : null,
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end || subscription.cancel_at != null,
+    cancelAt: subscription.cancel_at != null ? subscription.cancel_at * 1000 : subscription.cancel_at_period_end && typeof periodEnd === 'number' ? periodEnd * 1000 : null,
     sourceEventCreated: eventCreated,
   };
 }

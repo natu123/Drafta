@@ -106,7 +106,8 @@ Glesさんの作業 (キーは私の見える場所 (チャット・ファイル
 - テスト用のシークレットキーは, Glesさんが`.secret.local`に書きました. 書いたときに, ファイルの変更の通知でキーの値が私に表示されました. テスト用のキーのため, Glesさんの判断でそのまま使います. 本番のキーはこの方法で扱いません.
 - 購入ページと契約管理 (2026-10-29): 料金のID (月・年) をEmulatorの設定 (`functions/.env.local`, Git対象外) に入れ, EmulatorのテストアカウントからStripeのサンドボックスへ呼び出しました. ログインなしと月・年以外は断られ, 月払い・年払いのManaged PaymentsのCheckoutのURLと, Customer PortalのURLが返りました.
 - Webhook (2026-10-29): Stripe CLI 1.55.3 を入れ, Glesさんがサンドボックスのアカウントで許可しました (`stripe login`). 転送用の署名シークレットは, 値を表示せずに`.secret.local`へ書きました. Emulatorと`stripe listen`で, テスト用の顧客とサブスクを作り, 新しいサブスクでPro (月払い) になること, 期間の終わりでの解約の予約でProのまま記録されること, すぐの解約で無料に戻ること, 古い通知を送り直してもProに戻らないこと, 署名のない要求を400で断ることを確かめました (6件). テスト用の顧客は最後に消しました. 途中の2回は, Stripe CLIの確認の問いに答えられず止まり, 残った`stripe listen`とEmulatorを止めて, 残っていたテスト用の顧客1件を消しました.
-- 残り: 購入ページから実際にテスト購入して (Managed PaymentsのCheckout), `checkout.session.completed`でProになるか. 支払失敗 (テスト用の失敗するカード) で`past_due`のままProか. Managed PaymentsのサブスクでCustomer Portalが使えるか (Linkのサイトで管理する形か) を確かめる.
+- テスト購入 (2026-10-29): Emulatorのテスト用アカウントで月払いのCheckout (Managed Payments) を開き, Glesさんがテスト用のカードで購入しました. 約3秒後に`customer.subscription.created`と`checkout.session.completed`が届き, Pro (月払い, 有効) になりました. Proのまま購入ページを求めると断られます (`already-exists`). Customer Portalでは, Managed Paymentsのサブスクも表示され, 解約できました (「11/29に終了」). このとき解約は`cancel_at_period_end`ではなく解約の日時 (`cancel_at`) で予約されると分かり, 状態の`cancelAtPeriodEnd`はどちらでも立つように直し, 解約の日時`cancelAt`を足しました (単体テスト8件). 直した後, 同じサブスクの更新の通知で「Proのまま解約予定」になることを確かめました. テスト用のサブスクと顧客は, Dashboardで見られるようサンドボックスに残しています.
+- 残り: 支払失敗 (テスト用の失敗するカードやTest clock) で`past_due`のままProか. 設定の「Pro」の画面 (B2, Options First). Managed PaymentsのサブスクでCustomer Portalが使えるか (Linkのサイトで管理する形か) を確かめる.
 
 ### 費用の目安 (導入時に再確認)
 

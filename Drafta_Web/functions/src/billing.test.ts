@@ -18,8 +18,14 @@ describe('billing state', () => {
     const state = billingState(subscription('active', { cancel_at_period_end: true }), 5);
     expect(state).toMatchObject({ interval: 'year', currentPeriodEnd: 1_800_000_000_000, cancelAtPeriodEnd: true, sourceEventCreated: 5 });
   });
+  it('sees a cancellation booked by date, as the Customer Portal books it', () => {
+    const state = billingState(subscription('active', { cancel_at_period_end: false, cancel_at: 1_800_000_000 }), 5);
+    expect(state).toMatchObject({ plan: 'pro', cancelAtPeriodEnd: true, cancelAt: 1_800_000_000_000 });
+    expect(billingState(subscription('active'), 5)).toMatchObject({ cancelAtPeriodEnd: false, cancelAt: null });
+    expect(billingState(subscription('active', { cancel_at_period_end: true }), 5)).toMatchObject({ cancelAtPeriodEnd: true, cancelAt: 1_800_000_000_000 });
+  });
   it('is free without a subscription', () => {
-    expect(billingState(null, 7)).toEqual({ plan: 'free', status: 'none', interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, sourceEventCreated: 7 });
+    expect(billingState(null, 7)).toEqual({ plan: 'free', status: 'none', interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, cancelAt: null, sourceEventCreated: 7 });
   });
   it('never lets an older event overwrite a newer state', () => {
     expect(isNewer(undefined, 1)).toBe(true);
