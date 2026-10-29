@@ -9,21 +9,23 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 /**
- * Delete, history, search and pin for the open memo, in that order, on the right of the editor's
+ * Delete, history, share, search and pin for the open memo, in that order, on the right of the editor's
  * toolbar (AGENTS.md, Editor Layout; Gles's order of 2026-10-26). The editor hands in its search button.
  * Delete sits right before history, search and pin, on PCs after a gap from Plain/Rich and Remove
  * formatting (Gles's choices of 2026-10-26).
  */
-export function MemoActions({ isPinned, onTogglePin, historyAction, onDelete, search }: {
+export function MemoActions({ isPinned, onTogglePin, historyAction, shareAction, onDelete, search }: {
   isPinned: boolean;
   onTogglePin?: () => void;
   historyAction?: React.ReactNode;
+  /** Share links, next to history (specs/24, 4). */
+  shareAction?: React.ReactNode;
   onDelete?: () => void;
   search?: React.ReactNode;
 }) {
   const { t, lang } = useLang();
   const pinLabel = isPinned ? t.unpinMemo : t.pinMemo;
-  if (!onTogglePin && !historyAction && !onDelete && !search) return null;
+  if (!onTogglePin && !historyAction && !shareAction && !onDelete && !search) return null;
   return (
     <>
       {onDelete && (
@@ -36,6 +38,7 @@ export function MemoActions({ isPinned, onTogglePin, historyAction, onDelete, se
       )}
     <div role="group" aria-label={mobileCopy[lang].memoActions} className="editor-memo-actions">
       {historyAction}
+      {shareAction}
       {search}
       {onTogglePin && (
         <Tooltip>

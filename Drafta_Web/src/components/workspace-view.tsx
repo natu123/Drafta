@@ -13,6 +13,7 @@ import type { MemoHistoryRepository, MemoHistoryVersion } from '@/lib/memo-histo
 import { restoreHistoryCopy } from '@/lib/memo-history-restore';
 import { memoHistoryCopy } from '@/lib/memo-history-copy';
 import { MemoHistoryAction } from '@/components/memo-history-action';
+import { ShareAction, SharedMark } from '@/components/share-action';
 import { MemoActions } from '@/components/memo-actions';
 import { MobileCreateSheet, MobileNav, type MobilePane } from '@/components/mobile-nav';
 import { mobileCopy } from '@/lib/mobile-copy';
@@ -401,6 +402,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
             {/* One truncated line shows a few dozen characters; laying out whole memos took most of a tray switch. */}
             <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent?.slice(0, PREVIEW_CHARACTERS)}</p>
             {trayName !== undefined && <span className="memo-tray text-[10px] text-muted-foreground truncate max-w-[40%] shrink-0 mr-2">{trayName}</span>}
+            <SharedMark noteId={item.id} />
             <span className="memo-date text-[10px] text-muted-foreground shrink-0">
               {new Date(item.updatedAt).toLocaleDateString()}
             </span>
@@ -1745,6 +1747,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                   isPinned={Boolean(activeNote.isPinned)}
                   onTogglePin={!activeNote.isDeleted ? () => handleTogglePin(activeNote.id) : undefined}
                   historyAction={memoHistory ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
+                  shareAction={!activeNote.isDeleted ? <ShareAction noteId={activeNote.id} /> : undefined}
                   onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
                     handleDeleteNote(activeNote.id);
                     setActiveView('home');

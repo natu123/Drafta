@@ -28,11 +28,16 @@ function copyOf(uid: string, note: BackupNote) {
   };
 }
 
-export function shareLinks(db: Firestore, uid: string) {
+/** `onChange` hears every change of which memos are shared (noteId to token), once they are first read. */
+export function shareLinks(db: Firestore, uid: string, onChange?: (shared: ReadonlyMap<string, string>) => void) {
   const links = collection(db, 'users', uid, 'workspaces', 'default', 'shareLinks');
   let tokens: Promise<Map<string, string>> | null = null;
   const known = () => tokens ??= getDocsFromServer(links).then(
-    snapshot => new Map(snapshot.docs.flatMap(entry => typeof entry.data().token === 'string' && isShareToken(entry.data().token) ? [[entry.id, entry.data().token as string]] : [])),
+    snapshot => {
+      const map = new Map(snapshot.docs.flatMap(entry => typeof entry.data().token === 'string' && isShareToken(entry.data().token) ? [[entry.id, entry.data().token as string]] : []));
+      onChange?.(new Map(map));
+      return map;
+    },
     error => { tokens = null; throw error; },
   );
 
@@ -45,9 +50,12 @@ export function shareLinks(db: Firestore, uid: string) {
     batch.delete(doc(links, noteId));
     await batch.commit();
     map.delete(noteId);
+    onChange?.(new Map(map));
   }
 
   return {
+    /** Reads which memos are shared (once per account). */
+    load: () => known().then(() => undefined),
     /** The token of a shared memo, or null. */
     async tokenOf(noteId: string): Promise<string | null> { return (await known()).get(noteId) ?? null; },
     /** Shares a memo (or returns its current link). Only a Pro account succeeds. */
@@ -61,6 +69,7 @@ export function shareLinks(db: Firestore, uid: string) {
       batch.set(doc(links, note.id), { token, createdAt: serverTimestamp() });
       await batch.commit();
       map.set(note.id, token);
+      onChange?.(new Map(map));
       return token;
     },
     stop,
