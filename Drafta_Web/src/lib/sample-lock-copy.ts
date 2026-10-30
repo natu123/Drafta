@@ -5,7 +5,7 @@ const copy = ([notice, duplicate, duplicated]: Words) => ({ notice, duplicate, d
 
 export const sampleLockCopy: Record<Lang, ReturnType<typeof copy>> = {
   en: copy(['This guide cannot be edited. Duplicate it to make your own editable copy.', 'Duplicate to edit', 'Created an editable copy.']),
-  ja: copy(['このガイドは編集できません. 複製すると自由に編集できます.', '複製して編集', '編集できる複製を作成しました.']),
+  ja: copy(['このガイドは編集できません。複製すると自由に編集できます。', '複製して編集', '編集できる複製を作成しました。']),
   'zh-CN': copy(['此指南无法编辑。复制后即可自由编辑。', '复制并编辑', '已创建可编辑的副本。']),
   ko: copy(['이 안내는 편집할 수 없습니다. 복제하면 자유롭게 편집할 수 있습니다.', '복제해서 편집', '편집할 수 있는 복제본을 만들었습니다.']),
   es: copy(['Esta guía no se puede editar. Duplícala para tener una copia editable.', 'Duplicar para editar', 'Se creó una copia editable.']),

@@ -21,9 +21,9 @@ export const playgroundCopy: Record<Lang, PlaygroundCopy> = {
   },
   ja: {
     tryIt: 'ログインせずに試す',
-    notice: 'Playground: ここでの変更は保存されず, 再読み込みやページを閉じると消えます.',
+    notice: 'Playground: ここでの変更は保存されず、再読み込みやページを閉じると消えます。',
     signIn: 'ログインして保存する',
-    warning: '保存して使うにはGoogleログインが必要です (Playgroundでは保存なしで試せます). 閉じる前に「保存済み」を確認してください. 保留中の未保存編集は, 再読み込みやページを閉じると失われます.',
+    warning: '保存して使うにはGoogleログインが必要です (Playgroundでは保存なしで試せます)。閉じる前に「保存済み」を確認してください。保留中の未保存編集は、再読み込みやページを閉じると失われます。',
   },
   'zh-CN': {
     tryIt: '无需登录试用',

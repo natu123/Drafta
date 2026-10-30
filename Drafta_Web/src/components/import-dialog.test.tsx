@@ -46,7 +46,7 @@ describe('import completion screen', () => {
 
   it('replaces the selection guidance with the tray name and memo count', async () => {
     const dialog = await importFiles([file('Vault/a.md', '# A'), file('Vault/b.md', 'B')]);
-    expect(dialog.textContent).toContain('トレイ「Vault」に, メモ 2件を保存しました.');
+    expect(dialog.textContent).toContain('トレイ「Vault」に、メモ 2件を保存しました。');
     expect(dialog.textContent).not.toContain(labels.description);
     expect(dialog.querySelector('details')).toBeNull();
     expect([...dialog.querySelectorAll('button')].map(button => button.textContent)).toEqual(expect.arrayContaining([labels.close, labels.showTray]));
@@ -54,7 +54,7 @@ describe('import completion screen', () => {
 
   it('lists every new tray and keeps the files left out open on the same screen', async () => {
     const dialog = await importFiles([file('Vault/root.md', 'Root'), file('Vault/Folder/inner.md', 'Inner'), file('Vault/picture.png', 'x')]);
-    expect(dialog.textContent).toContain('新しいトレイ 2個に, メモ 2件を保存しました.');
+    expect(dialog.textContent).toContain('新しいトレイ 2個に、メモ 2件を保存しました。');
     expect([...dialog.querySelectorAll('li')].map(item => item.textContent)).toEqual(expect.arrayContaining(['Vault', 'Vault / Folder', `Vault/picture.png — ${labels.reasons.unsupported}`]));
     expect(dialog.querySelector('details')!.open).toBe(true);
   });
@@ -99,7 +99,7 @@ describe('import sources', () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain(labels.confirm));
     const confirm = [...document.querySelectorAll('button')].find(button => button.textContent === labels.confirm)!;
     await act(async () => { confirm.click(); });
-    await vi.waitFor(() => expect(document.body.textContent).toContain('トレイ「家」に, メモ 1件を保存しました.'));
+    await vi.waitFor(() => expect(document.body.textContent).toContain('トレイ「家」に、メモ 1件を保存しました。'));
     const [groups, notes] = onBatch.mock.calls[0] as unknown as [{ name: string }[], { title: string; content: string }[]];
     expect(groups.map(item => item.name)).toEqual(['家']);
     expect(notes[0].title).toBe('買い物');

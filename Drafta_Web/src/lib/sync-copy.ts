@@ -3,7 +3,7 @@ type Copy = { suffix: string; title: string; description: string; keepBoth: stri
 const copy = (suffix: string, title: string, description: string, keepBoth: string, copied: string): Copy => ({ suffix, title, description, keepBoth, copied });
 export const syncCopy: Record<Lang, Copy> = {
   en: copy('Conflict copy', 'Review concurrent changes', 'Tray, order or deletion changes overlap. Keep the server version and settings, and add separate copies of this device’s trays and memos? Cancel keeps your unsaved edits on this device.', 'Keep both versions', 'Conflicting edits were kept as separate memo copies.'),
-  ja: copy('競合コピー', '同時編集の内容を確認', 'Tray･順序･削除などの変更が重なりました. サーバーの内容と設定を採用し, この端末のTray･Memoを別のコピーとして追加しますか? キャンセルすると未保存の編集をこの端末に保持します.', '両方の内容を残す', '競合した編集を別のMemoとして残しました.'),
+  ja: copy('競合コピー', '同時編集の内容を確認', 'Tray･順序･削除などの変更が重なりました。サーバーの内容と設定を採用し、この端末のTray･Memoを別のコピーとして追加しますか? キャンセルすると未保存の編集をこの端末に保持します。', '両方の内容を残す', '競合した編集を別のMemoとして残しました。'),
   'zh-CN': copy('冲突副本', '检查并发更改', '托盘、顺序或删除操作发生冲突。是否保留服务器内容和设置，并另外添加此设备的托盘和备忘录副本？取消会在此设备保留未保存的编辑。', '保留两个版本', '冲突的编辑已保留为独立备忘录副本。'),
   ko: copy('충돌 사본', '동시 변경 확인', '트레이, 순서 또는 삭제 변경이 겹칩니다. 서버 내용과 설정을 유지하고 이 기기의 트레이와 메모를 별도 사본으로 추가할까요? 취소하면 저장하지 않은 편집을 이 기기에 유지합니다.', '두 버전 모두 유지', '충돌한 편집을 별도 메모 사본으로 보존했습니다.'),
   es: copy('Copia en conflicto', 'Revisar cambios simultáneos', 'Hay cambios incompatibles en bandejas, orden o eliminaciones. ¿Conservar el contenido y los ajustes del servidor y añadir copias de las bandejas y notas de este dispositivo? Cancelar mantiene aquí los cambios sin guardar.', 'Conservar ambas versiones', 'Los cambios en conflicto se conservaron como copias separadas.'),

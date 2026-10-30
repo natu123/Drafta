@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const loginRequiredCopy: Record<Lang, string> = {
   en: 'Sign in with Google to use Drafta. Your memos are saved to your account.',
-  ja: 'Draftaを使うには Googleでログインしてください. Memoはアカウントに保存されます.',
+  ja: 'Draftaを使うには Googleでログインしてください。Memoはアカウントに保存されます。',
   'zh-CN': '请使用Google登录以使用Drafta. 备忘录将保存到您的账户.',
   ko: 'Drafta를 사용하려면 Google로 로그인하세요. 메모는 계정에 저장됩니다.',
   es: 'Inicia sesión con Google para usar Drafta. Tus memos se guardan en tu cuenta.',
