@@ -61,9 +61,11 @@ import { selectSideReleaseCopy } from './select-side-release-copy';
 import { syncNowReleaseCopy } from './sync-now-release-copy';
 import { twoColumnReleaseCopy } from './two-column-release-copy';
 import { drawerEdgeReleaseCopy } from './drawer-edge-release-copy';
+import { jaPunctuationReleaseCopy } from './ja-punctuation-release-copy';
 
 export interface ReleaseCopy {
   release01123: string;
+  release01124: string;
   release01122: string;
   release01121: string;
   release01120: string;
@@ -151,7 +153,7 @@ export interface ReleaseCopy {
   planned: string;
 }
 
-const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102' | 'release0103' | 'release0104' | 'release0110' | 'release0111' | 'release0112' | 'release0113' | 'release0114' | 'release0115' | 'release0116' | 'release0117' | 'release0118' | 'release0119' | 'release01110' | 'release01111' | 'release01112' | 'release01113' | 'release01114' | 'release01115' | 'release01116' | 'release01117' | 'release01118' | 'release01119' | 'release01120' | 'release01121' | 'release01122' | 'release01123'>> = {
+const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'release021' | 'release030' | 'release040' | 'release050' | 'release051' | 'release060' | 'release061' | 'release062' | 'release063' | 'release064' | 'release065' | 'release066' | 'release067' | 'release068' | 'release069' | 'release0610' | 'release0611' | 'release0612' | 'release0613' | 'release070' | 'release071' | 'release072' | 'release073' | 'release080' | 'release081' | 'release082' | 'release083' | 'release084' | 'release085' | 'release086' | 'release090' | 'release091' | 'release0100' | 'release0101' | 'release0102' | 'release0103' | 'release0104' | 'release0110' | 'release0111' | 'release0112' | 'release0113' | 'release0114' | 'release0115' | 'release0116' | 'release0117' | 'release0118' | 'release0119' | 'release01110' | 'release01111' | 'release01112' | 'release01113' | 'release01114' | 'release01115' | 'release01116' | 'release01117' | 'release01118' | 'release01119' | 'release01120' | 'release01121' | 'release01122' | 'release01123' | 'release01124'>> = {
   "en": {
     "release011": "Added Rich / Markdown, input assistance and 11-language support to the implementation history. These are existing features, not new additions in this update.",
     "historyRich": "Improved switching and round-trip compatibility between Rich text and Markdown.",
@@ -179,28 +181,28 @@ const previousReleaseCopy: Record<Lang, Omit<ReleaseCopy, 'release020' | 'releas
     "planned": "Planned"
   },
   "ja": {
-    "release011": "実装履歴に Rich / Markdown, 入力支援, 11言語対応を追加しました. 今回の機能追加ではなく, 既存機能の紹介を補足しています.",
-    "historyRich": "Rich表示とMarkdownを切り替える編集機能の往復互換性を改善しました.",
-    "historyInput": "Drafta-MDの色付きテキスト･番号付きリストに加え, 記法の自動変換とスラッシュコマンドで入力支援を拡充しました.",
-    "historyLanguages": "操作画面に加えて サンプルノートも11言語に対応しました.",
+    "release011": "実装履歴に Rich / Markdown、入力支援、11言語対応を追加しました。今回の機能追加ではなく、既存機能の紹介を補足しています。",
+    "historyRich": "Rich表示とMarkdownを切り替える編集機能の往復互換性を改善しました。",
+    "historyInput": "Drafta-MDの色付きテキスト･番号付きリストに加え、記法の自動変換とスラッシュコマンドで入力支援を拡充しました。",
+    "historyLanguages": "操作画面に加えてサンプルノートも11言語に対応しました。",
     "preview": "Web試験公開",
-    "warning": "データ保存は未対応です. 再読み込みでメモが失われる場合があります.",
+    "warning": "データ保存は未対応です。再読み込みでメモが失われる場合があります。",
     "roadmapTitle": "今後の実装計画",
     "next": "次に実装",
     "later": "その後",
     "future": "将来構想",
-    "nextBody": "バックアップ･復元を整え, Googleログイン･永続保存･同期･障害復旧へ進みます.",
-    "laterBody": "プロファイル, バージョン更新情報, フィードバックフォームを用意し, 広告なしの無料βで実用性を検証します.",
-    "futureBody": "Notion / Evernoteからのインポート, Codex向けMCP, Memo共有, 有料プラン, iOS / Androidネイティブアプリを計画しています.",
-    "roadmapNote": "計画は変更される場合があります. 公開日は未定です. 有料化は無料βの検証後に判断します.",
+    "nextBody": "バックアップ･復元を整え、Googleログイン･永続保存･同期･障害復旧へ進みます。",
+    "laterBody": "プロファイル、バージョン更新情報、フィードバックフォームを用意し、広告なしの無料βで実用性を検証します。",
+    "futureBody": "Notion / Evernoteからのインポート、Codex向けMCP、Memo共有、有料プラン、iOS / Androidネイティブアプリを計画しています。",
+    "roadmapNote": "計画は変更される場合があります。公開日は未定です。有料化は無料βの検証後に判断します。",
     "updates": "更新情報",
     "allUpdates": "すべての更新履歴",
-    "releaseSummary": "Version 0.1.0から バージョン番号の公開を開始します. 今後の実装計画と 更新履歴も確認できるようになりました.",
+    "releaseSummary": "Version 0.1.0からバージョン番号の公開を開始します。今後の実装計画と更新履歴も確認できるようになりました。",
     "historyTitle": "これまでの主な実装",
-    "historyNote": "バージョン運用前の主な変更を実装日ごとに掲載しています. 過去の番号は後付けしていません.",
-    "historyLatest": "編集ツールバーをコンパクト化し, Undo / Redoを先頭へ, カラーパレットを開閉式へ変更しました.",
-    "historyPins": "Tray･Memoのピン留めと折りたたみ, ノート内検索に対応しました.",
-    "historyCreation": "Tray･Memoの一覧内作成とTrayの改名に対応し, Rich変換でコードブロックが消える不具合を修正しました.",
+    "historyNote": "バージョン運用前の主な変更を実装日ごとに掲載しています。過去の番号は後付けしていません。",
+    "historyLatest": "編集ツールバーをコンパクト化し、Undo / Redoを先頭へ、カラーパレットを開閉式へ変更しました。",
+    "historyPins": "Tray･Memoのピン留めと折りたたみ、ノート内検索に対応しました。",
+    "historyCreation": "Tray･Memoの一覧内作成とTrayの改名に対応し、Rich変換でコードブロックが消える不具合を修正しました。",
     "back": "Draftaへ戻る",
     "planned": "予定"
   },
@@ -505,6 +507,7 @@ export const releaseCopy = Object.fromEntries(
     release01121: syncNowReleaseCopy[language as Lang],
     release01122: twoColumnReleaseCopy[language as Lang],
     release01123: drawerEdgeReleaseCopy[language as Lang],
+    release01124: jaPunctuationReleaseCopy[language as Lang],
     // Sign-in is for saving; the Playground lets anyone try without it (AGENTS.md, Playground).
     warning: playgroundCopy[language as Lang].warning,
   }]),
