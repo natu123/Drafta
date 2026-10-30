@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const speedReleaseCopy: Record<Lang, string> = {
   en: 'Drafta is lighter: right after it opens you can scroll and tap at once (it no longer pauses briefly), switching to a tray with hundreds of memos is about four times faster, and opening a memo does less work.',
-  ja: '動作を軽くしました. 起動直後に一瞬操作が効かなくなる現象をなくし, 数百件のメモがあるトレイへの切り替えは約4倍速くなりました. メモを開くときの処理も減らしました.',
+  ja: '動作を軽くしました。起動直後に一瞬操作が効かなくなる現象をなくし、数百件のメモがあるトレイへの切り替えは約4倍速くなりました。メモを開くときの処理も減らしました。',
   'zh-CN': '运行更轻快了: 启动后不再短暂无法操作, 切换到包含数百条备忘录的托盘快了约4倍, 打开备忘录时的处理也减少了.',
   ko: '동작을 가볍게 했습니다. 시작 직후 잠깐 조작이 안 되던 현상을 없앴고, 메모가 수백 개인 트레이로 전환하는 속도가 약 4배 빨라졌습니다. 메모를 열 때의 처리도 줄였습니다.',
   es: 'Drafta es más ligero: justo al abrirse ya puedes desplazarte y tocar (ya no se detiene un instante), cambiar a una bandeja con cientos de notas es unas cuatro veces más rápido y abrir una nota requiere menos trabajo.',

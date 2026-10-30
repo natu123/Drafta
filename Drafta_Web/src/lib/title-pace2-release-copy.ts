@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const titlePace2ReleaseCopy: Record<Lang, string> = {
   en: 'On touch screens, a long title’s five-line row now scrolls a little faster while you select in it: one line every 0.15 seconds instead of 0.25.',
-  ja: 'タッチ画面で長いタイトルを選択するときの5行の枠のスクロールを, 0.25秒に1行から0.15秒に1行へ, 少し速くしました.',
+  ja: 'タッチ画面で長いタイトルを選択するときの5行の枠のスクロールを、0.25秒に1行から0.15秒に1行へ、少し速くしました。',
   'zh-CN': '在触摸屏上选择较长的标题时, 5 行框的滚动稍微加快, 从每 0.25 秒一行改为每 0.15 秒一行.',
   ko: '터치 화면에서 긴 제목을 선택할 때 5줄 틀의 스크롤을 0.25초에 한 줄에서 0.15초에 한 줄로 조금 빠르게 했습니다.',
   es: 'En pantallas táctiles, la fila de cinco líneas de un título largo ahora se desplaza un poco más rápido al seleccionar: una línea cada 0,15 segundos en lugar de 0,25.',

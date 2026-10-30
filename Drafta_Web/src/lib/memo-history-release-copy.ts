@@ -6,8 +6,8 @@ export const memoHistoryReleaseCopy: Record<Lang, { release040: string; nextBody
     nextBody: 'Strengthen reliability and recovery procedures before the ad-free beta.',
   },
   ja: {
-    release040: 'Memoの保存履歴に対応しました. タイトル横から過去の版を確認し, 別Memoへ復元できます. 通常5分間隔で最大20版を保持し, 削除・本文全消去前の版を優先して残します.',
-    nextBody: '広告なしの無料βに向けて, 保存・同期の安定性と障害時の復旧手順を整えます.',
+    release040: 'Memoの保存履歴に対応しました。タイトル横から過去の版を確認し、別Memoへ復元できます。通常5分間隔で最大20版を保持し、削除・本文全消去前の版を優先して残します。',
+    nextBody: '広告なしの無料βに向けて、保存・同期の安定性と障害時の復旧手順を整えます。',
   },
   'zh-CN': {
     release040: '新增备忘录保存历史. 可从标题旁查看旧版本, 并恢复为独立备忘录. 通常每五分钟保留一个版本, 最多20个; 删除或清空正文前优先保存.',

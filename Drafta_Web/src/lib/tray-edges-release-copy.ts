@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const trayEdgesReleaseCopy: Record<Lang, string> = {
   en: 'In the chat style, the tray list now follows the list direction: All memos is at the bottom and Restore at the top. The to-do style keeps All memos at the top.',
-  ja: 'チャットスタイルでは, トレイ一覧もリストの向きに合わせ, 「すべてのメモ」を下端に, 「復元」を上端に置くようにしました. ToDoスタイルでは今までどおり「すべてのメモ」が上端です.',
+  ja: 'チャットスタイルでは、トレイ一覧もリストの向きに合わせ、「すべてのメモ」を下端に、「復元」を上端に置くようにしました。ToDoスタイルでは今までどおり「すべてのメモ」が上端です。',
   'zh-CN': '在聊天样式中, 托盘列表也随列表方向排列: “全部备忘录”位于底部, “回收站”位于顶部. 待办样式仍将“全部备忘录”放在顶部.',
   ko: '채팅 스타일에서는 트레이 목록도 목록 방향에 맞춰 「모든 메모」를 맨 아래에, 「복원」을 맨 위에 두도록 했습니다. 할 일 스타일에서는 지금처럼 「모든 메모」가 맨 위입니다.',
   es: 'En el estilo chat, la lista de bandejas sigue ahora la dirección de la lista: «Todas las notas» queda abajo y «Restaurar» arriba. El estilo de tareas mantiene «Todas las notas» arriba.',

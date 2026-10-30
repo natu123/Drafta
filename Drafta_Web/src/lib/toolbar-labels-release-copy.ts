@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const toolbarLabelsReleaseCopy: Record<Lang, string> = {
   en: 'The delete button in the editor toolbar is now called “Delete memo”.',
-  ja: 'エディタのツールバーのボタン名を, 「削除」から「メモを削除」に, 「ノート内検索」から「メモ内検索」に変えました.',
+  ja: 'エディタのツールバーのボタン名を、「削除」から「メモを削除」に、「ノート内検索」から「メモ内検索」に変えました。',
   'zh-CN': '编辑器工具栏的删除按钮现在名为 "删除备忘录".',
   ko: '편집기 도구 모음의 삭제 버튼 이름을 "메모 삭제" 로 바꿨습니다.',
   es: 'El botón de eliminar de la barra del editor se llama ahora «Eliminar nota».',

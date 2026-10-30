@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const startupSwipeReleaseCopy: Record<Lang, string> = {
   en: 'Drafta starts lighter: memos stored on this device are checked after the list appears, which halves the work before the list shows, and while a long list is still filling in it waits whenever you touch or scroll it, so swiping no longer stalls. Copying a title no longer adds "# " in front.',
-  ja: '起動直後を軽くしました. 端末に保存したメモの点検を一覧の表示後に回し, 一覧が出るまでの処理を約半分にしました. 長い一覧を読み込んでいる間も, 指で触れたりスクロールしたりしている間は描画を待つので, スワイプが止まりにくくなりました. また, タイトルをコピーしたときに「# 」が付かなくなりました.',
+  ja: '起動直後を軽くしました。端末に保存したメモの点検を一覧の表示後に回し、一覧が出るまでの処理を約半分にしました。長い一覧を読み込んでいる間も、指で触れたりスクロールしたりしている間は描画を待つので、スワイプが止まりにくくなりました。また、タイトルをコピーしたときに「# 」が付かなくなりました。',
   'zh-CN': '启动更轻快了: 保存在本设备上的备忘录改为在列表显示后再检查, 列表显示前的处理减少约一半. 长列表仍在加载时, 只要你在触摸或滚动就会暂停绘制, 滑动不再卡顿. 复制标题时也不再在开头加上 "# ".',
   ko: '시작 직후를 가볍게 했습니다. 이 기기에 저장된 메모의 확인을 목록 표시 후로 미뤄, 목록이 나오기 전의 처리를 약 절반으로 줄였습니다. 긴 목록을 불러오는 중에도 손가락으로 만지거나 스크롤하는 동안은 그리기를 기다리므로 스와이프가 잘 멈추지 않습니다. 또한 제목을 복사할 때 앞에 "# "이 붙지 않습니다.',
   es: 'Drafta arranca más ligero: las notas guardadas en este dispositivo se comprueban después de mostrar la lista, lo que reduce a la mitad el trabajo previo, y mientras una lista larga se sigue completando espera cada vez que la tocas o la desplazas, así que deslizar ya no se traba. Copiar un título ya no añade "# " delante.',

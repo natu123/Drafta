@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const literalHtmlReleaseCopy: Record<Lang, string> = {
   en: 'Text that looks like HTML, such as <font color="…"> written in a memo, now stays as written when you switch between Plain and Rich. The updates list no longer repeats the sign-in and saving notice under every version; it remains on the top page.',
-  ja: 'メモに書かれた <font color="…"> のようなHTMLに見える文字が, プレーンとリッチを切り替えても消えずにそのまま残るようにしました. 更新履歴の各版に毎回表示していたログインと保存の注意書きは, トップページの1か所だけにしました.',
+  ja: 'メモに書かれた <font color="…"> のようなHTMLに見える文字が、プレーンとリッチを切り替えても消えずにそのまま残るようにしました。更新履歴の各版に毎回表示していたログインと保存の注意書きは、トップページの1か所だけにしました。',
   'zh-CN': '备忘录中写的 <font color="…"> 等看起来像 HTML 的文字, 现在在纯文本与富文本之间切换时会原样保留. 更新记录中不再在每个版本下重复登录和保存的提示, 仅保留在首页.',
   ko: '메모에 적힌 <font color="…"> 같은 HTML처럼 보이는 글자가 일반 텍스트와 서식 있는 텍스트를 전환해도 사라지지 않고 그대로 남습니다. 업데이트 목록의 버전마다 반복되던 로그인과 저장 안내는 첫 페이지에만 표시합니다.',
   es: 'El texto que parece HTML, como <font color="…"> escrito en una nota, ahora se conserva tal cual al cambiar entre texto plano y enriquecido. La lista de novedades ya no repite el aviso de inicio de sesión y guardado en cada versión; se mantiene en la página principal.',

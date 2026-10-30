@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const titleFlowReleaseCopy: Record<Lang, string> = {
   en: 'On phones, a title being edited now flows with the memo instead of staying stuck at the top, so selecting a long title on the iPhone shows the selection in the right place. Going into the title from further down the body scrolls back to the top of the memo.',
-  ja: 'スマホでは, 編集中のタイトルを上に固定せず, 本文と同じように流すようにしました. iPhoneで長いタイトルを選択したときに, 選択の表示がずれなくなります. 本文の途中からタイトルに入ると, メモの先頭へスクロールします.',
+  ja: 'スマホでは、編集中のタイトルを上に固定せず、本文と同じように流すようにしました。iPhoneで長いタイトルを選択したときに、選択の表示がずれなくなります。本文の途中からタイトルに入ると、メモの先頭へスクロールします。',
   'zh-CN': '在手机上, 正在编辑的标题不再固定在顶部, 而是与正文一样随内容排列, 在 iPhone 上选择较长的标题时, 选择的显示位置不再偏移. 从正文中间进入标题时, 会滚动到备忘录开头.',
   ko: '휴대폰에서는 편집 중인 제목을 위에 고정하지 않고 본문처럼 흐르게 했습니다. iPhone 에서 긴 제목을 선택할 때 선택 표시가 어긋나지 않습니다. 본문 중간에서 제목으로 들어가면 메모의 맨 위로 스크롤합니다.',
   es: 'En el móvil, el título que editas ya no se queda fijo arriba, sino que fluye con la nota, así la selección de un título largo en el iPhone aparece en su sitio. Al entrar en el título desde más abajo del cuerpo, se vuelve al principio de la nota.',

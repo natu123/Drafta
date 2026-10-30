@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const pwaReleaseCopy: Record<Lang, string> = {
   en: 'You can now add Drafta to your home screen and open it like an app, without the browser’s address bar. On iPhone, use Share > Add to Home Screen in Safari.',
-  ja: 'Draftaをホーム画面に追加して, アドレスバーのないアプリのように開けるようになりました. iPhoneでは, Safariの共有ボタンから「ホーム画面に追加」を選びます.',
+  ja: 'Draftaをホーム画面に追加して、アドレスバーのないアプリのように開けるようになりました。iPhoneでは、Safariの共有ボタンから「ホーム画面に追加」を選びます。',
   'zh-CN': '现在可以将 Drafta 添加到主屏幕, 像应用一样打开, 不显示浏览器地址栏. 在 iPhone 上, 请在 Safari 中点按“分享”>“添加到主屏幕”.',
   ko: '이제 Drafta를 홈 화면에 추가해 주소창 없이 앱처럼 열 수 있습니다. iPhone에서는 Safari의 공유 버튼에서 "홈 화면에 추가"를 선택하세요.',
   es: 'Ahora puedes añadir Drafta a la pantalla de inicio y abrirla como una app, sin la barra de direcciones. En iPhone, usa Compartir > Añadir a pantalla de inicio en Safari.',

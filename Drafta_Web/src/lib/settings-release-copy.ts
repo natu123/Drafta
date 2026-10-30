@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const settingsReleaseCopy: Record<Lang, string> = {
   en: 'Settings are more compact and fit on a laptop screen without scrolling: the theme and list style choices sit in one row, and Import and Export sit side by side.',
-  ja: '設定の画面をコンパクトにし, ノートPCの画面でもスクロールせずに収まるようにしました. テーマとリストスタイルの選択肢を横に並べ, インポートとエクスポートも横に並べています.',
+  ja: '設定の画面をコンパクトにし、ノートPCの画面でもスクロールせずに収まるようにしました。テーマとリストスタイルの選択肢を横に並べ、インポートとエクスポートも横に並べています。',
   'zh-CN': '设置界面更紧凑, 在笔记本电脑屏幕上无需滚动即可完整显示: 主题和列表样式的选项排成一行, 导入和导出也左右并排.',
   ko: '설정 화면을 더 촘촘하게 바꿔, 노트북 화면에서도 스크롤 없이 한 번에 보입니다. 테마와 목록 스타일 선택지를 한 줄에 두고, 가져오기와 내보내기도 나란히 놓았습니다.',
   es: 'Los ajustes son más compactos y caben en la pantalla de un portátil sin desplazarse: las opciones de tema y de estilo de lista van en una fila, e Importar y Exportar, uno al lado del otro.',

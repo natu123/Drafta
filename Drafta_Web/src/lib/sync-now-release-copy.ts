@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const syncNowReleaseCopy: Record<Lang, string> = {
   en: 'Saving no longer gets stuck at “Unsaved changes”: a save that hangs is given up after 20 seconds, saving starts again by itself when you are back online or return to the page, and the account menu has “Sync now” whenever something is unsaved. On PCs, a long save status no longer pushes the account button out of reach.',
-  ja: '「未保存の変更あり」のまま止まらないようにしました. 応答のない保存は20秒で打ち切り, 通信やページに戻ったときは自動で保存を再開します. 未保存の変更があるときは, アカウントのメニューから「今すぐ同期」できます. PCで, 長い保存の状態がアカウントのボタンを押し出さないようにしました.',
+  ja: '「未保存の変更あり」のまま止まらないようにしました。応答のない保存は20秒で打ち切り、通信やページに戻ったときは自動で保存を再開します。未保存の変更があるときは、アカウントのメニューから「今すぐ同期」できます。PCで、長い保存の状態がアカウントのボタンを押し出さないようにしました。',
   'zh-CN': '保存不会再停在“有未保存的更改”: 无响应的保存会在 20 秒后放弃, 网络恢复或回到页面时会自动重新保存, 有未保存内容时可在账户菜单中“立即同步”. 在电脑上, 较长的保存状态不再把账户按钮挤出可点范围.',
   ko: '“저장되지 않은 변경” 상태에서 멈추지 않습니다. 응답 없는 저장은 20초 후 중단하고, 네트워크나 페이지로 돌아오면 자동으로 다시 저장합니다. 저장되지 않은 변경이 있으면 계정 메뉴에서 “지금 동기화”할 수 있습니다. PC 에서 긴 저장 상태가 계정 버튼을 밀어내지 않습니다.',
   es: 'El guardado ya no se queda en «Cambios sin guardar»: un guardado que no responde se abandona a los 20 segundos, el guardado se reanuda solo al recuperar la conexión o volver a la página, y el menú de la cuenta ofrece «Sincronizar ahora» cuando hay cambios sin guardar. En el ordenador, un estado largo ya no empuja fuera el botón de la cuenta.',

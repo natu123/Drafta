@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const drawerEdgeReleaseCopy: Record<Lang, string> = {
   en: 'On tablets and PCs, the right edge of the tray drawer no longer shows a resize handle that did nothing.',
-  ja: 'タブレットとPCで, トレイの引き出しの右端に, 動かしても何も起きない幅の調整のつまみが出ていたのを消しました.',
+  ja: 'タブレットとPCで、トレイの引き出しの右端に、動かしても何も起きない幅の調整のつまみが出ていたのを消しました。',
   'zh-CN': '在平板和电脑上, 托盘抽屉的右边缘不再显示拖动后没有任何效果的宽度调整手柄.',
   ko: '태블릿과 PC 에서 트레이 서랍 오른쪽 끝에 움직여도 아무 일도 없던 폭 조정 손잡이를 없앴습니다.',
   es: 'En tabletas y ordenadores, el borde derecho del cajón de bandejas ya no muestra un tirador de tamaño que no hacía nada.',

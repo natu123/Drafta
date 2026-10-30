@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const updownReleaseCopy: Record<Lang, string> = {
   en: 'The down arrow on the title’s last line and the up arrow on the body’s first line no longer move between the title and the body. Tab and taps still move between them.',
-  ja: 'タイトルの最後の行での↓と, 本文の最初の行での↑で, タイトルと本文の間を移動しないようにしました. Tabやタップでは移動できます.',
+  ja: 'タイトルの最後の行での↓と、本文の最初の行での↑で、タイトルと本文の間を移動しないようにしました。Tabやタップでは移動できます。',
   'zh-CN': '在标题最后一行按 ↓, 或在正文第一行按 ↑, 不再在标题和正文之间移动. 仍可用 Tab 或点按移动.',
   ko: '제목의 마지막 줄에서 ↓, 본문의 첫 줄에서 ↑ 를 눌러도 제목과 본문 사이를 이동하지 않습니다. Tab 이나 탭으로는 이동할 수 있습니다.',
   es: 'La flecha abajo en la última línea del título y la flecha arriba en la primera línea del cuerpo ya no pasan entre el título y el cuerpo. Tab y los toques siguen moviéndose entre ellos.',

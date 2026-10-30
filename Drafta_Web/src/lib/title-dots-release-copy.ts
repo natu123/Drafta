@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const titleDotsReleaseCopy: Record<Lang, string> = {
   en: 'While you write the body, a title cut to one line now always ends with an ellipsis, even after you have edited the title.',
-  ja: '本文を書いている間に1行に省略したタイトルが, タイトルを編集した後でも, 必ず省略記号で終わるようにしました.',
+  ja: '本文を書いている間に1行に省略したタイトルが、タイトルを編集した後でも、必ず省略記号で終わるようにしました。',
   'zh-CN': '书写正文时省略为一行的标题, 即使在编辑过标题之后, 也一定以省略号结尾.',
   ko: '본문을 쓰는 동안 한 줄로 줄인 제목이, 제목을 고친 뒤에도 항상 말줄임표로 끝납니다.',
   es: 'Mientras escribes el cuerpo, el título recortado a una línea ahora siempre termina en puntos suspensivos, incluso después de editarlo.',

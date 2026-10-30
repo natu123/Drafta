@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const titleHeightReleaseCopy: Record<Lang, string> = {
   en: 'While you edit a long title, it now stays within five lines and scrolls inside, instead of taking up to half the screen, so the iPhone keyboard no longer covers it.',
-  ja: '長いタイトルを編集している間は, 画面の半分まで広げるのをやめ, 5行の高さの中でスクロールするようにしました. iPhoneでキーボードに隠れなくなります.',
+  ja: '長いタイトルを編集している間は、画面の半分まで広げるのをやめ、5行の高さの中でスクロールするようにしました。iPhoneでキーボードに隠れなくなります。',
   'zh-CN': '编辑较长的标题时, 不再扩展到半个屏幕, 而是在 5 行高度内滚动, 在 iPhone 上不会再被键盘遮住.',
   ko: '긴 제목을 고치는 동안 화면 절반까지 넓히지 않고 5줄 높이 안에서 스크롤합니다. iPhone 에서 키보드에 가려지지 않습니다.',
   es: 'Al editar un título largo, ahora se queda en cinco líneas y se desplaza dentro, en lugar de ocupar hasta media pantalla, así el teclado del iPhone ya no lo tapa.',

@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const loginErrorsReleaseCopy: Record<Lang, string> = {
   en: 'Removed the duplicate sign-in label. Closing the sign-in window no longer shows an error. Blocked popups and other sign-in failures now show clear guidance instead of internal error codes.',
-  ja: 'ログイン表示の重複を解消しました. ログイン画面を閉じた場合はエラーを表示せず, ポップアップのブロックや認証失敗には内部コードではなく操作案内を表示します.',
+  ja: 'ログイン表示の重複を解消しました。ログイン画面を閉じた場合はエラーを表示せず、ポップアップのブロックや認証失敗には内部コードではなく操作案内を表示します。',
   'zh-CN': '移除了重复的登录文字. 关闭登录窗口不再显示错误. 弹窗被阻止或登录失败时, 现在显示清晰的操作提示, 而非内部错误代码.',
   ko: '중복된 로그인 표시를 제거했습니다. 로그인 창을 닫으면 오류를 표시하지 않습니다. 팝업 차단과 로그인 실패에는 내부 오류 코드 대신 명확한 안내를 표시합니다.',
   es: 'Eliminamos el texto de acceso duplicado. Cerrar la ventana de acceso ya no muestra un error. Los bloqueos y otros fallos de acceso muestran instrucciones claras en lugar de códigos internos.',

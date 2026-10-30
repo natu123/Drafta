@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const caretReleaseCopy: Record<Lang, string> = {
   en: 'Clicking or tapping in a memo now puts the cursor where you point. Clicks between paragraphs, in the margins or on the scrollbar no longer jump to the end of the memo, and clicking right of a bullet or numbered item puts the cursor at the end of that line.',
-  ja: 'メモの中をクリック･タップすると, その位置にカーソルが入るようにしました. 段落の間や余白, スクロールバーのクリックでメモの末尾へ飛ぶことがなくなり, 箇条書きや番号付きリストの文字の右側をクリックするとその行の末尾に入ります.',
+  ja: 'メモの中をクリック･タップすると、その位置にカーソルが入るようにしました。段落の間や余白、スクロールバーのクリックでメモの末尾へ飛ぶことがなくなり、箇条書きや番号付きリストの文字の右側をクリックするとその行の末尾に入ります。',
   'zh-CN': '现在在备忘录中点击或轻点时, 光标会放在所指的位置. 点击段落之间、边距或滚动条时不再跳到备忘录末尾; 点击项目符号或编号项右侧时, 光标会放在该行末尾.',
   ko: '메모 안을 클릭하거나 탭하면 그 위치에 커서가 놓입니다. 문단 사이, 여백, 스크롤바를 클릭해도 더 이상 메모 끝으로 이동하지 않으며, 글머리 기호나 번호 목록 항목의 오른쪽을 클릭하면 그 줄의 끝에 커서가 놓입니다.',
   es: 'Al hacer clic o tocar dentro de una nota, el cursor ahora queda donde señalas. Los clics entre párrafos, en los márgenes o en la barra de desplazamiento ya no saltan al final de la nota, y al hacer clic a la derecha de un elemento con viñeta o numerado el cursor queda al final de esa línea.',

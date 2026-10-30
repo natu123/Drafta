@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const listFlipReleaseCopy: Record<Lang, string> = {
   en: 'Switching between Add to Top and Add to Bottom now flips the memos in every tray, so the newest ones move to the side where new memos are added. Your own order is kept, just reversed.',
-  ja: '「上に追加」と「下に追加」を切り替えると, 各トレイのメモの並びが上下反転し, 新しいものが新規メモの増える側へ移るようにしました. 手動で並べた順序は, 反転した形で保たれます.',
+  ja: '「上に追加」と「下に追加」を切り替えると、各トレイのメモの並びが上下反転し、新しいものが新規メモの増える側へ移るようにしました。手動で並べた順序は、反転した形で保たれます。',
   'zh-CN': '在“添加到顶部”和“添加到底部”之间切换时, 各托盘中的备忘录顺序会上下翻转, 最新的会移到新备忘录添加的一侧. 手动排列的顺序会以翻转后的形式保留.',
   ko: '"위에 추가"와 "아래에 추가"를 전환하면 각 트레이의 메모 순서가 위아래로 뒤집혀, 최신 메모가 새 메모가 추가되는 쪽으로 이동합니다. 직접 정한 순서는 뒤집힌 형태로 유지됩니다.',
   es: 'Al cambiar entre «Añadir arriba» y «Añadir abajo», las notas de cada bandeja se invierten y las más recientes pasan al lado donde se añaden las nuevas. Tu orden manual se conserva, solo invertido.',

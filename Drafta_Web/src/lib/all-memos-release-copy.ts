@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const allMemosReleaseCopy: Record<Lang, string> = {
   en: 'Added All memos at the top of the tray list. It lists the memos from every tray by last edit and shows the tray of each memo. The app also starts faster: only the memo you open is prepared for the editor, so the list appears sooner.',
-  ja: 'トレイ一覧の先頭に「すべてのメモ」を追加しました. すべてのトレイのメモを更新順に一覧でき, 各メモには所属トレイが表示されます. あわせて, 開いたメモだけをエディタ用に準備するようにして, 起動してから一覧が表示されるまでを短くしました.',
+  ja: 'トレイ一覧の先頭に「すべてのメモ」を追加しました。すべてのトレイのメモを更新順に一覧でき、各メモには所属トレイが表示されます。あわせて、開いたメモだけをエディタ用に準備するようにして、起動してから一覧が表示されるまでを短くしました。',
   'zh-CN': '在托盘列表顶部新增了“全部备忘录”. 可以按更新时间浏览所有托盘中的备忘录, 并显示每条备忘录所属的托盘. 同时, 现在只为打开的备忘录准备编辑器内容, 启动后列表显示得更快.',
   ko: '트레이 목록 맨 위에 「모든 메모」를 추가했습니다. 모든 트레이의 메모를 수정한 순서대로 볼 수 있고, 각 메모가 속한 트레이가 표시됩니다. 또한 연 메모만 편집기용으로 준비하도록 바꿔, 시작 후 목록이 더 빨리 나타납니다.',
   es: 'Se añadió «Todas las notas» al principio de la lista de bandejas. Muestra las notas de todas las bandejas por fecha de edición e indica la bandeja de cada una. Además, la app inicia más rápido: solo se prepara para el editor la nota que abres, así la lista aparece antes.',

@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const titleClipReleaseCopy: Record<Lang, string> = {
   en: 'A long title cut at five lines no longer shows the top of a sixth line below the ellipsis.',
-  ja: '5行で省略した長いタイトルの下に, 6行目の上端が少し見えてしまうのを直しました.',
+  ja: '5行で省略した長いタイトルの下に、6行目の上端が少し見えてしまうのを直しました。',
   'zh-CN': '在 5 行处省略的长标题下方, 不再露出第 6 行的上边缘.',
   ko: '5줄에서 줄인 긴 제목 아래로 6번째 줄의 윗부분이 조금 보이던 문제를 고쳤습니다.',
   es: 'Un título largo cortado en cinco líneas ya no deja ver la parte superior de una sexta línea bajo los puntos suspensivos.',

@@ -3,7 +3,7 @@ import type { Lang } from '@/app/languages';
 type Copy = { release020: string; warning: string; nextBody: string; laterBody: string };
 export const authRetryReleaseCopy: Record<Lang, string> = {
   en: 'Fixed sign-in retries after a blocked or closed popup. Retry now restarts Google sign-in without clearing guest memos. Sign-in confirmation now appears inside the app.',
-  ja: 'ログイン用ポップアップがブロックされた場合などの再試行を修正しました. 未ログインのメモを残したままGoogle認証をやり直せます. ログイン前の確認も画面内へ移しました.',
+  ja: 'ログイン用ポップアップがブロックされた場合などの再試行を修正しました。未ログインのメモを残したままGoogle認証をやり直せます。ログイン前の確認も画面内へ移しました。',
   'zh-CN': '修复了登录弹窗被拦截或关闭后的重试。现在重试会重新启动Google登录，不会清除访客备忘录。登录确认改为在应用内显示。',
   ko: '로그인 팝업이 차단되거나 닫힌 후의 재시도를 수정했습니다. 이제 게스트 메모를 지우지 않고 Google 로그인을 다시 시작합니다. 로그인 확인도 앱 안에 표시합니다.',
   es: 'Corregimos el reintento tras bloquear o cerrar la ventana de acceso. Ahora reinicia el acceso con Google sin borrar las notas de invitado. La confirmación aparece dentro de la app.',
@@ -19,7 +19,7 @@ function copy(release020: string, warning: string, nextBody: string, laterBody: 
 }
 export const persistenceReleaseCopy: Record<Lang, Copy> = {
   en: copy('Added Google sign-in and automatic cloud saving for memos, trays and settings. Restore your workspace after reloading or signing in again. Save failures can be retried, and conflicting changes are not overwritten automatically.', 'Sign in with Google to save. Guest memos are temporary. Wait for “Saved” before closing.', 'Improve cross-device sync and failure recovery.', 'Profiles, manual backup and restore, and a feedback form; an ad-free beta to validate everyday use.'),
-  ja: copy('Googleログインと, Memo･Tray･設定の自動保存に対応しました. 再読み込みや再ログイン後も復元できます. 保存失敗時は再試行でき, 競合する変更は自動で上書きしません.', '保存にはGoogleログインが必要です. 未ログインのメモは一時的なものです. 閉じる前に「保存済み」を確認してください.', '端末間の同期と, 通信障害などからの復旧を強化します.', 'プロファイル, 手動バックアップ･復元, フィードバックフォームを用意し, 広告なしの無料βで実用性を検証します.'),
+  ja: copy('Googleログインと、Memo･Tray･設定の自動保存に対応しました。再読み込みや再ログイン後も復元できます。保存失敗時は再試行でき、競合する変更は自動で上書きしません。', '保存にはGoogleログインが必要です。未ログインのメモは一時的なものです。閉じる前に「保存済み」を確認してください。', '端末間の同期と、通信障害などからの復旧を強化します。', 'プロファイル、手動バックアップ･復元、フィードバックフォームを用意し、広告なしの無料βで実用性を検証します。'),
   'zh-CN': copy('新增Google登录以及备忘录、托盘和设置的云端自动保存。重新加载或再次登录后可恢复工作区。保存失败时可重试，冲突的更改不会被自动覆盖。', '请使用Google登录以保存数据。未登录的备忘录仅临时保留。关闭前请确认“已保存”。', '改进跨设备同步和故障恢复。', '提供配置档案、手动备份与恢复和反馈表单，并通过无广告免费测试版验证日常使用。'),
   ko: copy('Google 로그인과 메모, 트레이, 설정의 클라우드 자동 저장을 추가했습니다. 새로고침하거나 다시 로그인한 후 작업 공간을 복원할 수 있습니다. 저장 실패 시 다시 시도할 수 있으며 충돌하는 변경 사항은 자동으로 덮어쓰지 않습니다.', '저장하려면 Google로 로그인하세요. 로그인하지 않은 메모는 임시로만 유지됩니다. 닫기 전에 “저장됨”을 확인하세요.', '기기 간 동기화와 장애 복구를 개선합니다.', '프로필, 수동 백업과 복원, 피드백 양식을 제공하고 광고 없는 무료 베타로 일상 사용을 검증합니다.'),
   es: copy('Añadimos acceso con Google y guardado automático en la nube de notas, bandejas y ajustes. Recupera tu espacio al recargar o volver a iniciar sesión. Puedes reintentar los guardados fallidos; los cambios en conflicto no se sobrescriben automáticamente.', 'Inicia sesión con Google para guardar. Las notas de invitado son temporales. Espera a ver «Guardado» antes de cerrar.', 'Mejorar la sincronización entre dispositivos y la recuperación ante fallos.', 'Perfiles, copias de seguridad y restauración manuales, y un formulario de comentarios; una beta gratuita sin anuncios para validar el uso diario.'),

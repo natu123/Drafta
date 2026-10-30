@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const playgroundReleaseCopy: Record<Lang, string> = {
   en: 'Added the Playground, where you can try Drafta without signing in. It starts with the sample memos and saves nothing: changes are lost when you reload or close the page, and nothing moves into your account. Open it from “Try without signing in” on the top page or the sign-in screen.',
-  ja: 'ログインせずにDraftaを試せるPlaygroundを追加しました. 見本のメモから始まり, 何も保存しません. 変更は再読み込みやページを閉じると消え, アカウントにも持ち込まれません. トップページやログイン画面の「ログインせずに試す」から開けます.',
+  ja: 'ログインせずにDraftaを試せるPlaygroundを追加しました。見本のメモから始まり、何も保存しません。変更は再読み込みやページを閉じると消え、アカウントにも持ち込まれません。トップページやログイン画面の「ログインせずに試す」から開けます。',
   'zh-CN': '新增了无需登录即可试用Drafta的Playground. 从示例备忘录开始, 不保存任何内容: 刷新或关闭页面后更改会消失, 也不会带入您的账户. 可从首页或登录页面的“无需登录试用”打开.',
   ko: '로그인 없이 Drafta를 체험할 수 있는 Playground를 추가했습니다. 예시 메모로 시작하며 아무것도 저장하지 않습니다. 변경 내용은 새로고침하거나 페이지를 닫으면 사라지고, 계정으로도 옮겨지지 않습니다. 첫 페이지나 로그인 화면의 「로그인 없이 체험하기」에서 열 수 있습니다.',
   es: 'Se añadió el Playground, donde puedes probar Drafta sin iniciar sesión. Empieza con las notas de ejemplo y no guarda nada: los cambios se pierden al recargar o cerrar la página y no pasan a tu cuenta. Ábrelo desde «Probar sin iniciar sesión» en la página principal o en la pantalla de inicio de sesión.',

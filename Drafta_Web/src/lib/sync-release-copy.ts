@@ -3,7 +3,7 @@ type Copy = { release030: string; nextBody: string };
 const copy = (release030: string, nextBody: string): Copy => ({ release030, nextBody });
 export const syncReleaseCopy: Record<Lang, Copy> = {
   en: copy('Changes now sync across devices signed into the same account. Edits to different memos merge automatically; conflicting edits to one memo are kept as copies. Overlapping tray, order or deletion changes require confirmation.', 'Strengthen failure recovery, saved history and reliability.'),
-  ja: copy('同じアカウントでログインした端末間の自動同期に対応しました. 別Memoへの編集は自動で統合し, 同じMemoへの競合した編集はコピーとして残します. Tray･順序･削除などの変更が衝突した場合は確認してから反映します.', '障害からの復旧, 保存履歴, 運用の安定性を強化します.'),
+  ja: copy('同じアカウントでログインした端末間の自動同期に対応しました。別Memoへの編集は自動で統合し、同じMemoへの競合した編集はコピーとして残します。Tray･順序･削除などの変更が衝突した場合は確認してから反映します。', '障害からの復旧、保存履歴、運用の安定性を強化します。'),
   'zh-CN': copy('同一账户的设备之间现在可自动同步更改。不同备忘录的编辑会自动合并；同一备忘录的冲突编辑会保留为副本。托盘、顺序或删除操作发生冲突时，需要确认后再应用。', '加强故障恢复、保存历史和运行稳定性。'),
   ko: copy('같은 계정으로 로그인한 기기 간 자동 동기화를 지원합니다. 서로 다른 메모의 편집은 자동으로 합치고, 같은 메모의 충돌한 편집은 사본으로 보존합니다. 트레이, 순서 또는 삭제 변경의 충돌은 확인 후 반영합니다.', '장애 복구, 저장 이력과 운영 안정성을 강화합니다.'),
   es: copy('Los cambios se sincronizan entre dispositivos con la misma cuenta. Las ediciones de notas distintas se combinan automáticamente; los conflictos en una nota se conservan como copias. Los conflictos de bandejas, orden o eliminaciones requieren confirmación.', 'Reforzar la recuperación ante fallos, el historial guardado y la estabilidad.'),

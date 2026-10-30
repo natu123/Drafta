@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const chatDefaultReleaseCopy: Record<Lang, string> = {
   en: 'New workspaces now start with Add to Bottom (Chat Style). In this style, pinned memos appear at the bottom of each tray, right where the list opens. Your current setting is not changed.',
-  ja: '新しいワークスペースは「下に追加 (チャットスタイル)」で始まるようにしました. チャットスタイルでは, ピン留めしたメモを各トレイの最下部 (一覧を開いたときに見える側) に表示します. 今の設定は変わりません.',
+  ja: '新しいワークスペースは「下に追加 (チャットスタイル)」で始まるようにしました。チャットスタイルでは、ピン留めしたメモを各トレイの最下部 (一覧を開いたときに見える側) に表示します。今の設定は変わりません。',
   'zh-CN': '新的工作区现在默认使用“添加到底部 (聊天样式)”. 在此样式下, 置顶的备忘录会显示在各托盘的最下方, 也就是打开列表时看到的位置. 当前设置不会改变.',
   ko: '새 작업 공간은 이제 "아래에 추가 (채팅 스타일)"로 시작합니다. 이 스타일에서는 고정한 메모를 각 트레이의 맨 아래, 목록을 열었을 때 보이는 쪽에 표시합니다. 현재 설정은 바뀌지 않습니다.',
   es: 'Los espacios de trabajo nuevos empiezan ahora con «Añadir abajo (estilo chat)». En este estilo, las notas fijadas aparecen al final de cada bandeja, justo donde se abre la lista. Tu ajuste actual no cambia.',

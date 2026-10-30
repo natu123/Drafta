@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const storageReleaseCopy: Record<Lang, string> = {
   en: 'Memos are now stored as a list entry and a body: the list appears right away on a new device (view only until the bodies arrive), and a workspace can hold four times more (64MB). An account in the earlier storage is updated once from the screen shown when you open the app, and you can save a backup first.',
-  ja: '保存形式を新しくしました. メモを一覧用の要約と本文に分けて保存し, 新しい端末でも一覧がすぐ表示されます (本文がそろうまでは閲覧のみ). 保存できる量は4倍 (64MB) になりました. 以前の形式のアカウントは, アプリを開いたときの画面から1回だけ更新します (更新の前にバックアップを保存できます).',
+  ja: '保存形式を新しくしました。メモを一覧用の要約と本文に分けて保存し、新しい端末でも一覧がすぐ表示されます (本文がそろうまでは閲覧のみ)。保存できる量は4倍 (64MB) になりました。以前の形式のアカウントは、アプリを開いたときの画面から1回だけ更新します (更新の前にバックアップを保存できます)。',
   'zh-CN': '更新了保存方式. 备忘录分为列表用的摘要和正文保存, 在新设备上列表也会立即显示 (正文加载完成前仅可查看), 可保存的容量增加到4倍 (64MB). 旧保存方式的账户在打开应用时按画面提示更新一次 (更新前可保存备份).',
   ko: '저장 방식을 새로 바꿨습니다. 메모를 목록용 요약과 본문으로 나누어 저장해, 새 기기에서도 목록이 바로 표시됩니다 (본문이 모두 도착할 때까지는 보기만 가능). 저장할 수 있는 양은 4배 (64MB)가 되었습니다. 이전 방식의 계정은 앱을 열 때 나오는 화면에서 한 번만 업데이트합니다 (업데이트 전에 백업을 저장할 수 있습니다).',
   es: 'Las notas ahora se guardan como entrada de lista y cuerpo: la lista aparece al instante en un dispositivo nuevo (solo lectura hasta que llegan los cuerpos) y un espacio de trabajo admite cuatro veces más (64MB). Una cuenta con el almacenamiento anterior se actualiza una sola vez desde la pantalla que aparece al abrir la app, y antes puedes guardar una copia de seguridad.',

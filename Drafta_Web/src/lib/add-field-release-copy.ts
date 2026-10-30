@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const addFieldReleaseCopy: Record<Lang, string> = {
   en: 'On phones, New now opens a field at the top of the screen, where the keyboard never covers it: it adds a tray on the tray list and a memo elsewhere, and the new memo is not opened. The phone lists no longer carry their own add fields. On computers, "Add memo" and "Add tray" became rounded fields with a round +, and in the chat style a short list now sits at the bottom, with no gap above the add field.',
-  ja: 'スマホの「新規」を押すと, 画面の上に入力欄が出るようにしました (キーボードに隠れません). トレイ一覧ではトレイを, それ以外ではメモを追加し, 追加したメモは開きません. スマホの一覧からは追加欄をなくしました. PCの「メモを追加」「トレイを追加」は丸い入力欄の形にし, チャットスタイルでは短い一覧も下に寄せて, 一覧と追加欄の間の空きをなくしました.',
+  ja: 'スマホの「新規」を押すと、画面の上に入力欄が出るようにしました (キーボードに隠れません)。トレイ一覧ではトレイを、それ以外ではメモを追加し、追加したメモは開きません。スマホの一覧からは追加欄をなくしました。PCの「メモを追加」「トレイを追加」は丸い入力欄の形にし、チャットスタイルでは短い一覧も下に寄せて、一覧と追加欄の間の空きをなくしました。',
   'zh-CN': '在手机上点 "新建" 时, 输入框会出现在屏幕顶部, 不会被键盘挡住: 在托盘列表中添加托盘, 其他画面中添加备忘录, 新的备忘录不会自动打开. 手机的列表中不再显示添加栏. 电脑上的 "添加备忘录" 和 "添加托盘" 改为带圆形 + 的圆角输入框, 聊天样式下较短的列表也会靠下显示, 列表和添加栏之间不再留空.',
   ko: '스마트폰에서 "새로 만들기" 를 누르면 화면 위쪽에 입력란이 나타나 키보드에 가려지지 않습니다. 트레이 목록에서는 트레이를, 그 밖에서는 메모를 추가하며, 추가한 메모는 열리지 않습니다. 스마트폰 목록에서는 추가란을 없앴습니다. PC의 "메모 추가" 와 "트레이 추가" 는 둥근 + 가 있는 둥근 입력란 모양으로 바꾸고, 채팅 스타일에서는 짧은 목록도 아래로 붙여 목록과 추가란 사이의 빈 공간을 없앴습니다.',
   es: 'En el móvil, Nueva abre ahora un campo en la parte superior de la pantalla, donde el teclado nunca lo tapa: añade una bandeja en la lista de bandejas y una nota en el resto, y la nota nueva no se abre. Las listas del móvil ya no tienen su propio campo para añadir. En el ordenador, "Añadir nota" y "Añadir bandeja" son ahora campos redondeados con un + redondo, y en el estilo chat una lista corta queda abajo, sin hueco sobre el campo para añadir.',

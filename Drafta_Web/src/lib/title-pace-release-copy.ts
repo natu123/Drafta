@@ -2,7 +2,7 @@ import type { Lang } from '@/app/languages';
 
 export const titlePaceReleaseCopy: Record<Lang, string> = {
   en: 'On touch screens, a long title’s five-line row now scrolls at a steady, slower pace (one line every quarter second) while you select in it. On PCs too, a drag from the title no longer selects into the body, nor a drag from the body into the title. Selecting the whole memo still works.',
-  ja: 'タッチ画面で長いタイトルを選択するときの, 5行の枠のスクロールを, 0.25秒に1行の一定の遅めの速さにしました. PCでも, タイトルからのドラッグで本文まで, 本文からのドラッグでタイトルまで選択されないようにしました. メモ全体の選択はこれまでどおりできます.',
+  ja: 'タッチ画面で長いタイトルを選択するときの、5行の枠のスクロールを、0.25秒に1行の一定の遅めの速さにしました。PCでも、タイトルからのドラッグで本文まで、本文からのドラッグでタイトルまで選択されないようにしました。メモ全体の選択はこれまでどおりできます。',
   'zh-CN': '在触摸屏上选择较长的标题时, 5 行框的滚动改为每 0.25 秒一行的稳定且较慢的速度. 在电脑上, 从标题拖动也不会再选中正文, 从正文拖动也不会再选中标题. 仍可选择整个备忘录.',
   ko: '터치 화면에서 긴 제목을 선택할 때 5줄 틀의 스크롤을 0.25초에 한 줄의 일정하고 느린 속도로 바꿨습니다. PC 에서도 제목에서 드래그해 본문까지, 본문에서 드래그해 제목까지 선택되지 않습니다. 메모 전체 선택은 그대로 됩니다.',
   es: 'En pantallas táctiles, la fila de cinco líneas de un título largo ahora se desplaza a un ritmo constante y más lento (una línea cada cuarto de segundo) mientras seleccionas. En el ordenador, arrastrar desde el título ya no selecciona el cuerpo, ni arrastrar desde el cuerpo selecciona el título. Seleccionar toda la nota sigue funcionando.',
