@@ -52,3 +52,4 @@ ui-debug.log
 .secret.local
 **/functions/.secret.local
 **/functions/.runtimeconfig.json
+pubsub-debug.log

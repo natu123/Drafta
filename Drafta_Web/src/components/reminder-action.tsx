@@ -11,6 +11,7 @@ import { PastReminderError } from '@/lib/reminders-client';
 import type { PushState } from '@/lib/push-client';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import { DateTimeFields } from './date-time-fields';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
@@ -99,11 +100,10 @@ export function ReminderAction({ noteId }: { noteId: string }) {
         {showForm && (
           <>
             <p className="text-xs text-muted-foreground">{copy.offer}</p>
-            <label className="block space-y-1">
+            <div role="group" aria-label={copy.when} className="space-y-1">
               <span className="text-xs text-muted-foreground">{copy.when}</span>
-              <input type="datetime-local" value={wallTime} onChange={event => setWallTime(event.target.value)} required
-                className="w-full rounded-md border bg-background px-2 py-1.5" />
-            </label>
+              <DateTimeFields value={wallTime} onChange={setWallTime} lang={lang} pickLabel={copy.when} />
+            </div>
             <label className="block space-y-1">
               <span className="text-xs text-muted-foreground">{copy.repeat}</span>
               <select value={repeat} onChange={event => setRepeat(event.target.value as Repeat)} className="w-full rounded-md border bg-background px-2 py-1.5">
