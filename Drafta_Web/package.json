@@ -15,6 +15,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-drafta --config firebase.emulators.json",
+    "test:functions": "firebase emulators:exec --only firestore --project demo-drafta --config firebase.emulators.json \"npm --prefix functions test\"",
     "test:rules": "firebase emulators:exec --only auth,firestore --project demo-drafta --config firebase.emulators.json \"vitest run src/lib/firestore-rules.test.ts\"",
     "test:storage": "firebase emulators:exec --only auth,firestore --project demo-drafta --config firebase.emulators.json \"vitest run src/lib/cloud-workspace.test.ts\""
   },

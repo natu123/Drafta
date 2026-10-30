@@ -3,14 +3,17 @@ import { getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { setGlobalOptions } from 'firebase-functions';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/https';
 import { logger } from 'firebase-functions/logger';
+import { onSchedule } from 'firebase-functions/scheduler';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import Stripe from 'stripe';
 import { billingState, HANDLED_EVENTS, isNewer, parseInterval, subscriptionIdOf, uidOf, type BillingState } from './billing.js';
+import { pushSender } from './push.js';
+import { sendDueReminders } from './reminders.js';
 
 /**
  * Drafta Pro billing (specs/23_billing_foundation.md): the app opens Stripe's hosted Checkout and
  * Customer Portal through the two callable functions, and Stripe's signed webhook writes the Pro state
- * that the app only reads. Card details never reach Drafta.
+ * that the app only reads. Card details never reach Drafta. Reminders are sent at the end of this file.
  */
 setGlobalOptions({ region: 'asia-northeast1', maxInstances: 5 });
 initializeApp();
@@ -112,4 +115,17 @@ export const stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhoo
     logger.error('Stripe event failed', { id: event.id, type: event.type, message: error instanceof Error ? error.message : String(error) });
     res.status(500).send('Failed');
   }
+});
+
+// Reminders (specs/25_reminders.md): every minute, the reminders that have come due are sent by Web
+// Push. The VAPID private key lives in Secret Manager (in the emulator, functions/.secret.local).
+const vapidPrivateKey = defineSecret('VAPID_PRIVATE_KEY');
+const vapidPublicKey = defineString('VAPID_PUBLIC_KEY');
+const vapidSubject = defineString('VAPID_SUBJECT', { default: 'https://drafta-memo.com' });
+
+export const sendReminders = onSchedule({ schedule: 'every 1 minutes', timeZone: 'Etc/UTC', secrets: [vapidPrivateKey], retryCount: 0 }, async () => {
+  const send = pushSender({ subject: vapidSubject.value(), publicKey: vapidPublicKey.value(), privateKey: vapidPrivateKey.value() });
+  // Counts only: titles and devices stay out of the logs.
+  const result = await sendDueReminders(db, Date.now(), send);
+  if (result.due > 0) logger.info('Reminders sent', result);
 });

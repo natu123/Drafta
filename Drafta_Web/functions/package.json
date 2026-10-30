@@ -15,9 +15,11 @@
   "dependencies": {
     "firebase-admin": "14.5.0",
     "firebase-functions": "7.4.0",
-    "stripe": "23.0.1"
+    "stripe": "23.0.1",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
+    "@types/web-push": "3.6.4",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "5.0.1"
   }

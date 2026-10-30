@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (host && host !== '127.0.0.1:8080') throw new Error('Rules tests only support the local emulator at 127.0.0.1:8080');
@@ -189,5 +189,50 @@ it('lets a Pro owner share a memo, anyone read it one at a time, and nobody else
     await assertFails(setDoc(doc(alice, `shares/${TOKEN}`), share()));
     await assertSucceeds(deleteDoc(doc(alice, `shares/${TOKEN}`)));
     await assertSucceeds(deleteDoc(doc(alice, 'users/alice/workspaces/default/shareLinks/memo-1')));
+  });
+it('lets a Pro owner set a reminder, anyone stop their own, and nobody else see it (specs/25)', async () => {
+    const plan = async (value: 'pro' | 'free') => env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), 'users/alice/billing/subscription'), { plan: value, status: value === 'pro' ? 'active' : 'canceled' });
+    });
+    const reminder = (extra: Record<string, unknown> = {}) => ({ ownerUid: 'alice', noteId: 'memo-1', title: 'Send the invoice', wallTime: '2026-10-30T18:00',
+      timeZone: 'Asia/Tokyo', repeat: 'daily', nextAt: Timestamp.fromMillis(Date.parse('2026-10-30T09:00Z')), lang: 'ja', updatedAt: serverTimestamp(), ...extra });
+    const alice = env.authenticatedContext('alice').firestore();
+    const ref = doc(alice, 'reminders/alice_memo-1');
+    await plan('free');
+    await assertFails(setDoc(ref, reminder()));
+    await plan('pro');
+    await assertSucceeds(setDoc(ref, reminder()));
+    await assertSucceeds(getDoc(ref));
+    // The id, fields and values are checked.
+    await assertFails(setDoc(doc(alice, 'reminders/alice_memo-2'), reminder()));
+    await assertFails(setDoc(doc(alice, 'reminders/bob_memo-1'), reminder({ ownerUid: 'bob' })));
+    await assertFails(setDoc(ref, reminder({ repeat: 'hourly' })));
+    await assertFails(setDoc(ref, reminder({ wallTime: 'tomorrow' })));
+    await assertFails(setDoc(ref, reminder({ sent: true })));
+    // Back to free: no new time, but stopping and deleting still work.
+    await plan('free');
+    await assertFails(setDoc(ref, reminder({ wallTime: '2026-11-01T09:00' })));
+    await assertSucceeds(setDoc(ref, reminder({ nextAt: null })));
+    for (const db of [env.unauthenticatedContext().firestore(), env.authenticatedContext('bob').firestore()]) {
+      await assertFails(getDoc(doc(db, 'reminders/alice_memo-1')));
+      await assertFails(getDocs(collection(db, 'reminders')));
+      await assertFails(setDoc(doc(db, 'reminders/alice_memo-1'), reminder({ nextAt: null })));
+      await assertFails(deleteDoc(doc(db, 'reminders/alice_memo-1')));
+    }
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('keeps push subscriptions to their owner (specs/25)', async () => {
+    const subscription = (extra: Record<string, unknown> = {}) => ({ endpoint: 'https://push.example.test/abc', p256dh: 'key', auth: 'secret', createdAt: serverTimestamp(), ...extra });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(alice, 'users/alice/pushSubscriptions/device-1'), subscription()));
+    await assertSucceeds(getDoc(doc(alice, 'users/alice/pushSubscriptions/device-1')));
+    await assertFails(setDoc(doc(alice, 'users/alice/pushSubscriptions/device-2'), subscription({ endpoint: 'http://push.example.test/abc' })));
+    await assertFails(setDoc(doc(alice, 'users/alice/pushSubscriptions/device-2'), subscription({ extra: 1 })));
+    for (const db of [env.unauthenticatedContext().firestore(), env.authenticatedContext('bob').firestore()]) {
+      await assertFails(getDoc(doc(db, 'users/alice/pushSubscriptions/device-1')));
+      await assertFails(setDoc(doc(db, 'users/alice/pushSubscriptions/device-3'), subscription()));
+    }
+    await assertSucceeds(deleteDoc(doc(alice, 'users/alice/pushSubscriptions/device-1')));
   });
 });
