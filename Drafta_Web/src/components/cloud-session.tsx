@@ -31,6 +31,9 @@ import { proEnabled, stripePage, watchPro, type ProView } from '@/lib/billing-cl
 import { proCopy } from '@/lib/pro-copy';
 import { shareLinks, type ShareLinks } from '@/lib/share-links';
 import { ShareContext, type ShareControl } from '@/contexts/share-context';
+import { ReminderContext, type ReminderControl } from '@/contexts/reminder-context';
+import { reminders as remindersOf, type Reminders, type ReminderView } from '@/lib/reminders-client';
+import { enablePush, pushState, type PushState } from '@/lib/push-client';
 import { cloudCopy } from '@/lib/cloud-copy';
 import { Button } from './ui/button';
 import { DeleteConfirmDialog } from './delete-confirm-dialog';
@@ -45,7 +48,7 @@ import { BrandIcon } from './brand-icon';
 import { authErrorCopy } from '@/lib/auth-error-copy';
 
 type ViewProps = { initialState?: WorkspaceState; remoteUpdate?: WorkspaceUpdate; accountMenu?: React.ReactNode; onWorkspaceChange?: (state: WorkspaceState) => void; memoHistory?: Pick<MemoHistoryRepository, 'list'>; saveWorkspace?: () => Promise<boolean>; viewKey?: string;
-  bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void; saveProblem?: string | null };
+  bodyProgress?: { loaded: number; total: number } | null; onNeedBody?: (noteId: string) => void; saveProblem?: string | null; openRequest?: { sequence: number; noteId: string } | null };
 // Each memo's JSON is reused while its field values are unchanged, so one keystroke serializes one memo.
 const noteFingerprints = new WeakMap<Note, { fields: Note; text: string }>();
 const noteFingerprint = (note: Note) => {
@@ -115,6 +118,23 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     }) };
     return shares.current.links;
   }, []);
+  // Reminders (specs/25): this account's reminders, watched while signed in, and whether this device receives them.
+  const reminderStore = React.useRef<{ uid: string; store: Reminders } | null>(null);
+  const [reminderState, setReminderState] = React.useState<{ uid: string; all: ReadonlyMap<string, ReminderView> } | null>(null);
+  const [devicePush, setDevicePush] = React.useState<PushState>(() => pushState());
+  const remindersFor = React.useCallback((uid: string) => {
+    if (reminderStore.current?.uid !== uid) reminderStore.current = { uid, store: remindersOf(client.current!.db, uid, {
+      prepare: note => freezeHistorySample(note, document, historyContext.current.lang, historyContext.current.shortcutMod),
+      lang: () => historyContext.current.lang,
+    }) };
+    return reminderStore.current.store;
+  }, []);
+  // A notification opens its memo: from the address when the app starts, or from the service worker.
+  const [openRequest, setOpenRequest] = React.useState<{ sequence: number; noteId: string } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const noteId = new URL(window.location.href).searchParams.get('note');
+    return noteId ? { sequence: 1, noteId } : null;
+  });
   // Bodies arriving after the summaries (specs/17): each goes to its memo's token as it is read.
   const [bodyProgress, setBodyProgress] = React.useState<{ loaded: number; total: number } | null>(null);
   const bodyTokens = React.useRef(new Map<string, object>());
@@ -144,8 +164,11 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     onHistoryFailure: () => { if (id === generation.current) toast({ description: historyLabelsRef.current.warning }); },
     historySnapshot: note => freezeHistorySample(note, document, historyContext.current.lang, historyContext.current.shortcutMod),
     // A copy that fails to follow is written again in full by the next save of that memo.
-    afterSave: proEnabled() ? (changed, deleted) => { void sharesFor(uid).follow(changed, deleted).catch(() => undefined); } : undefined,
-  }), [sharesFor]);
+    afterSave: proEnabled() ? (changed, deleted) => {
+      void sharesFor(uid).follow(changed, deleted).catch(() => undefined);
+      void remindersFor(uid).follow(changed, deleted).catch(() => undefined);
+    } : undefined,
+  }), [sharesFor, remindersFor]);
 
   const applyRemote = React.useCallback((backup: WorkspaceBackup, copies: { originalId: string; copyId: string }[]) => {
     const state = workspaceToState(backup, document, { lazyBodies: true });
@@ -419,6 +442,44 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
     stop: noteId => sharesFor(proUid).stop(noteId),
     openPro: () => setProOpen(true),
   }, [proUid, shared, isPro, sharesFor]);
+  React.useEffect(() => {
+    if (!proUid || !proEnabled()) return;
+    return remindersFor(proUid).watch(all => setReminderState({ uid: proUid, all }));
+  }, [proUid, remindersFor]);
+  React.useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: unknown; noteId?: unknown } | null;
+      if (data?.type === 'open-note' && typeof data.noteId === 'string') setOpenRequest(current => ({ sequence: (current?.sequence ?? 0) + 1, noteId: data.noteId as string }));
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, []);
+  // The memo named in the address is opened once; the address is cleaned.
+  React.useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('note')) return;
+    url.searchParams.delete('note');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, []);
+  const allReminders = reminderState && reminderState.uid === proUid ? reminderState.all : null;
+  const reminderControl = React.useMemo<ReminderControl | null>(() => !proUid || !proEnabled() ? null : {
+    all: allReminders ?? new Map(),
+    isPro,
+    push: devicePush,
+    set: async (noteId, wallTime, repeat) => {
+      flushEdits();
+      const note = lastBackup.current?.notes.find(item => item.id === noteId);
+      if (!note) throw new Error('No such memo');
+      await remindersFor(proUid).set(note, wallTime, repeat);
+      // The permission is asked once a reminder exists (Gles's choice of 2026-10-30).
+      const state = await enablePush(client.current!.db, proUid).catch((): PushState => 'error');
+      setDevicePush(state);
+      return state;
+    },
+    remove: noteId => remindersFor(proUid).remove(noteId),
+    openPro: () => setProOpen(true),
+  }, [proUid, allReminders, isPro, devicePush, remindersFor]);
   // Back from Stripe's page: the webhook makes the account Pro a moment later; the address is cleaned.
   React.useEffect(() => {
     if (!proEnabled()) return;
@@ -555,5 +616,5 @@ export default function CloudSession({ Workspace }: { Workspace: React.Component
       applyRemote(backup, []); queue.current.enqueue(backup, true); setReviewRemote(null);
     } catch { setStatus('error'); }
   };
-  return <ShareContext.Provider value={shareControl}>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} bodyProgress={bodyProgress} onNeedBody={needBody} saveProblem={status === 'error' || status === 'conflict' ? labels.status[status] : null} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></ShareContext.Provider>;
+  return <ShareContext.Provider value={shareControl}><ReminderContext.Provider value={reminderControl}>{hasHeldEdits && <p role="alert" className="px-4 py-2 text-sm">{authRecoveryCopy[lang]}</p>}<Workspace key={session.key} initialState={session.seed} remoteUpdate={remoteUpdate} accountMenu={menu} onWorkspaceChange={changed} memoHistory={session.history} saveWorkspace={saveWorkspace} viewKey={session.user.uid} bodyProgress={bodyProgress} onNeedBody={needBody} saveProblem={status === 'error' || status === 'conflict' ? labels.status[status] : null} openRequest={openRequest} /><DeleteConfirmDialog open={reviewOpen} onOpenChange={setReviewOpen} title={syncLabels.title} description={syncLabels.description} confirmText={syncLabels.keepBoth} variant="default" onConfirm={resolveReview} /></ReminderContext.Provider></ShareContext.Provider>;
 }

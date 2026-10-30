@@ -14,6 +14,7 @@ import { restoreHistoryCopy } from '@/lib/memo-history-restore';
 import { memoHistoryCopy } from '@/lib/memo-history-copy';
 import { MemoHistoryAction } from '@/components/memo-history-action';
 import { ShareAction, SharedMark } from '@/components/share-action';
+import { ReminderAction, ReminderMark } from '@/components/reminder-action';
 import { MemoActions } from '@/components/memo-actions';
 import { MobileCreateSheet, MobileNav, type MobilePane } from '@/components/mobile-nav';
 import { mobileCopy } from '@/lib/mobile-copy';
@@ -37,6 +38,8 @@ export type WorkspaceViewProps = {
   onNeedBody?: (noteId: string) => void;
   /** Why the workspace is not saved, when it is not: phones show it above the bottom navigation. */
   saveProblem?: string | null;
+  /** A memo to open, from a reminder's notification (specs/25); each new sequence opens it once. */
+  openRequest?: { sequence: number; noteId: string } | null;
 };
 import { useLang } from '@/contexts/lang-context';
 import { useClientReady, useShortcutMod } from '@/hooks/use-client-ready';
@@ -402,6 +405,7 @@ const SortableNoteItemView: React.FC<SortableNoteItemProps & SortableBinding> = 
             {/* One truncated line shows a few dozen characters; laying out whole memos took most of a tray switch. */}
             <p className="text-xs text-muted-foreground truncate flex-1 pr-2 overflow-hidden">{item.plainTextContent?.slice(0, PREVIEW_CHARACTERS)}</p>
             {trayName !== undefined && <span className="memo-tray text-[10px] text-muted-foreground truncate max-w-[40%] shrink-0 mr-2">{trayName}</span>}
+            <ReminderMark noteId={item.id} />
             <SharedMark noteId={item.id} />
             <span className="memo-date text-[10px] text-muted-foreground shrink-0">
               {new Date(item.updatedAt).toLocaleDateString()}
@@ -974,7 +978,7 @@ const HomeSection: React.FC<HomeSectionProps> = ({
 
 
 /** The app screen: signed in through CloudSession at /app/, or unsaved at /playground/ (AGENTS.md, Playground). */
-export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey, notice, bodyProgress, onNeedBody, saveProblem }: WorkspaceViewProps) {
+export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, remoteUpdate, memoHistory, saveWorkspace, viewKey, notice, bodyProgress, onNeedBody, saveProblem, openRequest }: WorkspaceViewProps) {
   const { t: appT, lang, languagePreference } = useLang();
   const { theme } = useTheme();
   // What was open last time on this device, where it still exists (AGENTS.md, View Restore).
@@ -1356,6 +1360,14 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
       if (isPhone) setMobilePane('editor');
     }
   }, [notes, isPhone, openTab]);
+
+  // A reminder's notification opens its memo once it is in the list.
+  const openedRequest = React.useRef(0);
+  React.useEffect(() => {
+    if (!openRequest || openRequest.sequence === openedRequest.current || !notes.some(note => note.id === openRequest.noteId)) return;
+    openedRequest.current = openRequest.sequence;
+    handleNoteSelect(openRequest.noteId);
+  }, [openRequest, notes, handleNoteSelect]);
 
   const handleGroupSelect = React.useCallback((id: string) => {
     setActiveGroupId(id);
@@ -1748,6 +1760,7 @@ export function WorkspaceView({ initialState, accountMenu, onWorkspaceChange, re
                   onTogglePin={!activeNote.isDeleted ? () => handleTogglePin(activeNote.id) : undefined}
                   historyAction={memoHistory ? <MemoHistoryAction noteId={activeNote.id} history={memoHistory} onRestore={handleHistoryRestore} /> : undefined}
                   shareAction={!activeNote.isDeleted ? <ShareAction noteId={activeNote.id} /> : undefined}
+                  reminderAction={!activeNote.isDeleted ? <ReminderAction noteId={activeNote.id} /> : undefined}
                   onDelete={!activeNote.isProtected && !activeNote.isDeleted ? () => {
                     handleDeleteNote(activeNote.id);
                     setActiveView('home');

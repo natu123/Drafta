@@ -5,7 +5,7 @@ export type ShareCopy = { loading: string; unavailable: string; madeWith: string
 
 export const shareCopy: Record<Lang, ShareCopy> = {
   en: { loading: 'Loading…', unavailable: 'This memo is not shared.', madeWith: 'Made with Drafta' },
-  ja: { loading: '読み込んでいます…', unavailable: 'このメモは公開されていません.', madeWith: 'Draftaで作成' },
+  ja: { loading: '読み込んでいます…', unavailable: 'このメモは公開されていません。', madeWith: 'Draftaで作成' },
   'zh-CN': { loading: '正在加载…', unavailable: '此备忘录未公开.', madeWith: '使用 Drafta 创建' },
   ko: { loading: '불러오는 중…', unavailable: '이 메모는 공개되어 있지 않습니다.', madeWith: 'Drafta 로 작성' },
   es: { loading: 'Cargando…', unavailable: 'Esta nota no está compartida.', madeWith: 'Hecho con Drafta' },
@@ -26,8 +26,8 @@ export type ShareActionCopy = {
 export const shareActionCopy: Record<Lang, ShareActionCopy> = {
   en: { share: 'Share', shared: 'Shared', offerTitle: 'Share this memo with a link', offerBody: 'Anyone with the link can read it without signing in. Your edits appear there automatically.', proOnly: 'Share links are a Pro feature.', create: 'Create link', creating: 'Creating…',
     link: 'Share link', copy: 'Copy', copied: 'Copied', open: 'Open', follows: 'Your edits appear automatically.', paused: 'Not shown while you are not on Pro. Get Pro again to show it at the same link.', stop: 'Stop sharing', failed: 'That did not work. Please try again.' },
-  ja: { share: '共有', shared: '共有中', offerTitle: 'メモをリンクで公開', offerBody: 'リンクを知っている人は, ログインなしで読めます. 編集は自動で反映されます.', proOnly: '共有リンクはProの機能です.', create: 'リンクを作成', creating: '作成しています…',
-    link: '共有リンク', copy: 'コピー', copied: 'コピーしました', open: '開く', follows: '編集は自動で反映されます.', paused: 'Proでない間は公開されません. Proに戻すと, 同じリンクで再び公開されます.', stop: '共有をやめる', failed: 'うまくいきませんでした. もう一度お試しください.' },
+  ja: { share: '共有', shared: '共有中', offerTitle: 'メモをリンクで公開', offerBody: 'リンクを知っている人は、ログインなしで読めます。編集は自動で反映されます。', proOnly: '共有リンクはProの機能です。', create: 'リンクを作成', creating: '作成しています…',
+    link: '共有リンク', copy: 'コピー', copied: 'コピーしました', open: '開く', follows: '編集は自動で反映されます。', paused: 'Proでない間は公開されません。Proに戻すと、同じリンクで再び公開されます。', stop: '共有をやめる', failed: 'うまくいきませんでした。もう一度お試しください。' },
   'zh-CN': { share: '分享', shared: '分享中', offerTitle: '通过链接公开此备忘录', offerBody: '知道链接的人无需登录即可阅读. 编辑会自动同步.', proOnly: '分享链接是 Pro 功能.', create: '创建链接', creating: '正在创建…',
     link: '分享链接', copy: '复制', copied: '已复制', open: '打开', follows: '编辑会自动同步.', paused: '不是 Pro 期间不会公开. 恢复 Pro 后, 会以同一链接再次公开.', stop: '停止分享', failed: '操作失败. 请重试.' },
   ko: { share: '공유', shared: '공유 중', offerTitle: '링크로 메모 공개', offerBody: '링크를 아는 사람은 로그인 없이 읽을 수 있습니다. 편집 내용은 자동으로 반영됩니다.', proOnly: '공유 링크는 Pro 기능입니다.', create: '링크 만들기', creating: '만드는 중…',
